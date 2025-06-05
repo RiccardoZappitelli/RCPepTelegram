@@ -90,6 +90,8 @@ jumpscare while recording screen and webcam
 - Screenshot Capture: Take screenshots of the system.
 - Message Boxes: Display custom message boxes on the system.
 - System Control: Simulate system shutdowns or other actions.
+- Live Webcam and Screen: Use ngrok tunnels to have a live view of the machine.
+
 ## Installation
 1. Clone the repository
 
@@ -111,7 +113,8 @@ auth.json
 ```json
 {
     "token":"<YOUR TOKEN>",
-    "chatid":youchatid
+    "chatid":youchatid,
+    "ngrok_token":"<YOUR NGROK TOKEN>"
 }
 
 ```
