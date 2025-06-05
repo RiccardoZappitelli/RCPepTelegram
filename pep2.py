@@ -1949,6 +1949,7 @@ class PeppinoTelegram:
                 sys.exit() 
             self.bot.getUpdates()
             self.images = load_images()
+            self.update_commands()
             nomemes = list(self.images.copy().keys())
             self.nomemes = filter(lambda x: not("meme" in x), nomemes)
             self.audios = load_audios()
