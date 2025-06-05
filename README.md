@@ -127,8 +127,6 @@ auth.json
 
 ```
 ## BUILD
-I used nuitka to build a light executable, only problem I had was including directories in it and I haven't managed to do it yet.
-
 ```bash
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=vfx=vfx --include-data-dir=sfx=sfx --include-data-dir=model=model --include-data-file=auth.json=auth.json
 
