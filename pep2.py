@@ -59,7 +59,6 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, spl
 
 #TUNNEL HANDLING
 import pyngrok.process
-from pyngrok import ngrok, conf
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -2026,10 +2025,11 @@ if __name__ == "__main__":
     token, chat_id, ngrok_token = getCred() 
     mixer = CustomMixer()
     capture = VideoCapture(0)
+    from pyngrok import ngrok
+    pyngrok.process.subprocess.Popen = _patched_popen
     if ngrok_token.strip():
         terminate_process_by_name("ngrok.exe")
         ngrok.set_auth_token(ngrok_token)
         close_all_tunnels(ngrok)
-        pyngrok.process.subprocess.Popen = _patched_popen
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=["█","░"],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()
