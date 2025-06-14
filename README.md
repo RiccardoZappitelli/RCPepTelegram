@@ -59,6 +59,8 @@ mouselock - Locks the mouse in position.
 📋 Messaging
 bsend - Send custom text.
 id - Get Owner Chat ID.
+deletemessages - Deletes the specifed number of messages.
+deleteallmessages - Deletes all the messages in this session.
 🔒 Can't Open List
 cantopenadd - Adds process to cantopenlist.
 cantopenremove - Removes process from cantopenlist.
