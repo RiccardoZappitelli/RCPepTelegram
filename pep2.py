@@ -8,6 +8,9 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
+__version__ = "2.11"
+
+
 #TELEGRAM
 import requests
 from telepot import Bot, glance
