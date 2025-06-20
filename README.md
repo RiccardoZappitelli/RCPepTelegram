@@ -3,6 +3,8 @@ Remote Control Bot, inspired to the previous creation named "Peppino", this one 
 (only tested on Windows10/11)
 
 ```/help: 
+🏠 Main Menu
+mainmenu - Sends the main menu.
 🛑 System & Shutdown
 shutdown - Shut down the PC.
 fakeshutdown - Fake system shutdown.
@@ -25,6 +27,8 @@ webcamstreamstart - Sets you a link to a webcam stream.
 screenstreamstart - Sets you a link to a screen stream.
 webcamstreamstop - Stops the webcam stream.
 screenstreamstop - Stops the screen stream.
+webcamandscreenstreamstart - Sets you a link to a webcam and screen stream.
+webcamandscreenstreamstop - Stops the webcam and screen stream.
 🔊 Audio & Volume
 breath - Play breathing sound.
 pss - Play "psst" sound.
@@ -70,6 +74,7 @@ keylogger - Records pressed keys on keyboard.
 livekeylogger - Sends live updates about what's being typed on the keyboard.
 🦑 Misc
 plankton - Plankton.
+urltoast - Shows a url opening windows toast.
 planktonnoaudio - Plankton no audio.
 johnpork - John Pork.
 johnporknoaudio - John Prok no audio.
