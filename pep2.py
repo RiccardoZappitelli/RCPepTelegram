@@ -1918,6 +1918,7 @@ class PeppinoTelegram:
             if self.mainmenu_ref:
                 if command == "mainmenu_close":
                     self.mainmenu_ref.delete()
+                    self.mainmenu_ref = None
                 elif command == "mainmenu_next":
                     self.mainmenu_ref.delete()
                     self.mainmenu_ref.send_next_page()
@@ -2405,7 +2406,7 @@ class PeppinoTelegram:
         if self.webcam_and_screen_url:
             self.tunnelhandler.stop_service("webcamandscreen")
             self.webcam_and_screen_url = None
-            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Screen tunnel closed")
+            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen tunnel closed")
         else:
             self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} You have no screen tunnel opened")
     
