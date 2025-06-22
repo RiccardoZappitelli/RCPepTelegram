@@ -147,8 +147,6 @@ plugins = {
     "Shutdown Timed":("shutdown_timed",shutdown_timed)
 }
 ```
-
-```
 ## ⚠️ WARNING: Security and Ethical Risks ⚠️
 This code is intended for educational purposes only and should not be used in any malicious, unethical, or unauthorized manner. The script contains functionalities that can potentially compromise the security and privacy of a system, including but not limited to:
 - Remote Control: The code allows for remote control of a system, including executing commands, capturing screenshots, recording audio/video, and more.
