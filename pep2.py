@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.13"
+__version__ = "2.14.1"
 
 
 #TELEGRAM
@@ -51,6 +51,7 @@ import ctypes
 import psutil
 import socket
 import traceback
+from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
@@ -61,7 +62,6 @@ from threading import Thread
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
-from io import BytesIO, StringIO
 from random import choice, randint
 from winotify import audio, Notification
 from webbrowser import open as browseropen
@@ -187,6 +187,7 @@ except Exception as e:
 def _patched_popen(*args, **kwargs):
     kwargs["creationflags"] = CREATE_NO_WINDOW
     kwargs["stderr"] = PIPE
+    kwargs["stdout"] = PIPE
     return Popen(*args, **kwargs)
 
 def close_all_tunnels(ngrok):
@@ -962,6 +963,8 @@ class EditableMessage:
             ...
     
     def edit(self, new_content: str) -> bool:
+        if new_content.strip() == self.content.strip():
+            return False
         if self.bold:
             new_content = f"<b>{new_content}</b>"
         try:
