@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.12.4"
+__version__ = "2.13"
 
 
 #TELEGRAM
