@@ -1554,7 +1554,10 @@ class PeppinoTelegram:
         self.bsend("Live keylogger done")
 
     def load_plugins(self) -> None:
-        from plugins.plugins import plugins
+        try:
+            from plugins.plugins import plugins
+        except ImportError:
+            plugins = None
         return plugins if plugins else None
 
     def message_box(self, text: str, title: str = "Warning") -> int:
