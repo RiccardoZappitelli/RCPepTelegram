@@ -134,6 +134,18 @@ auth.json
 ## BUILD
 ```bash
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=vfx=vfx --include-data-dir=sfx=sfx --include-data-dir=model=model --include-data-file=auth.json=auth.json
+## PLUGINS
+To include plugins you must create a plugins folder and create a plugins.py file.
+```python
+# Plugin example:
+import os
+def shutdown_timed(time: int) -> None:
+    os.system(f"shutdown -s -t {time}")
+plugins = {
+    #Button Name       #the command    #the function
+    "Shutdown Timed":("shutdown_timed",shutdown_timed)
+}
+```
 
 ```
 ## ⚠️ WARNING: Security and Ethical Risks ⚠️
