@@ -134,6 +134,7 @@ auth.json
 ## BUILD
 ```bash
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=vfx=vfx --include-data-dir=sfx=sfx --include-data-dir=model=model --include-data-file=auth.json=auth.json
+```
 ## PLUGINS
 To include plugins you must create a plugins folder and create a plugins.py file.
 ```python
