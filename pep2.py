@@ -1303,12 +1303,12 @@ class PeppinoTelegram:
             "rightclick":self.rightclick,
             "nothing":lambda:...,
             "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
-            "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8)
+            "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8),
         }
         self.plugins = self.load_plugins()
         if self.plugins:
             function_table_update = {v[0]:v[1] for k,v in self.plugins.items()}
-            self.plugins_buttons = {k:f"{v[0]}" for k,v in self.plugins.items()}
+            self.plugins_buttons = {k:f"/{v[0]}" for k,v in self.plugins.items()}
             self.function_table.update(function_table_update)
 
         self.no_background_functions = [self.message_box, self.spam_windows]
