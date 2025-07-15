@@ -66,7 +66,7 @@ from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
-from os.path import join, abspath, isfile, exists, dirname, realpath, isdir, split as pathsplit, getsize
+from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit 
 
 #UTILS
 import pyngrok
