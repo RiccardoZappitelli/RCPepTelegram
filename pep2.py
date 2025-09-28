@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.14.4"
+__version__ = "2.14.5"
 
 
 #TELEGRAM
@@ -972,8 +972,7 @@ class PeppinoTelegram:
         release_key('alt')
 
     def ask_yesno(self, custom_message: str = "Confirm? Y/n") -> bool:
-        return self.send_prompt("Confirm").lower() == "y"
-
+        return self.send_prompt(custom_message).lower() == "y"
     def breath(self) -> None:
         self.__play_loaded_sound("breath")
 
@@ -2080,7 +2079,7 @@ class PeppinoTelegram:
         self.restore_wallpaper()
 
     def selfdestruction(self) -> None:
-        if self.ask_yesno():
+        if not self.ask_yesno():
             self.bsend("Operation stopped.")
             return
         current_file = realpath(sys.argv[0])
@@ -2110,7 +2109,7 @@ class PeppinoTelegram:
             self.bsend(f"Error while trying to show image: \n{e}")
 
     def shutdown(self, seconds=0) -> None:
-        if self.ask_yesno():
+        if not self.ask_yesno():
             self.bsend("Operation stopped.")
             return
         system(f"shutdown -s -t {seconds}")
@@ -2228,7 +2227,7 @@ class PeppinoTelegram:
                 self.running = False
 
     def stop(self) -> None:
-        if self.ask_yesno():
+        if not self.ask_yesno():
             self.bsend("Operation stopped.")
             return
         self.running = False
@@ -2238,7 +2237,7 @@ class PeppinoTelegram:
         self.stop_webcam_tunnel()
         sys.exit()
 
-    def test(self) -> None: #this is a test command used for test purpuses
+    def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         ...
 
     def update_commands(self) -> bool:
