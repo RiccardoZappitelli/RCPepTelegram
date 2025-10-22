@@ -1,0 +1,16 @@
+*.bat
+*.json
+venv/
+backup/
+new_banner.py
+__pycache__/
+tests/
+update_readme.py
+plugins/
+TODO
+utils/__pycache__/
+*.build
+*.dist
+*onefile-build
+pep2.exe
+assets/executables/fakeuac.exe
