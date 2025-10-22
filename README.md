@@ -133,6 +133,8 @@ auth.json
 
 ```
 ## BUILD
+Get the latest version of [FakeUAC](https://github.com/RiccardoZappitelli/FakeUAC) and put the executable in assets/executable/fakeuac.exe.
+I could not add it because github has a 100MB limit and the executable was 114MB.
 ```bash
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=assets/vfx=assets/vfx --include-data-dir=assets/sfx=assets/sfx --include-data-dir=assets/model=assets/model --include-data-file=auth.json=auth.json --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
 ```
