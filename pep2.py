@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.15"
+__version__ = "2.16"
 
 
 #TELEGRAM
@@ -855,6 +855,8 @@ class PeppinoTelegram:
         self.all_session_messages: list[int] = []
         self.cmd_session = CMDSession()
 
+        LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")#TODO Update user
+
         #gets the function from the text
         self.function_table: dict[str:Callable] = {
             "pss":self.pss,
@@ -951,13 +953,21 @@ class PeppinoTelegram:
             "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
             "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8),
         }
+
+        LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
+
+        sleep(.25)
         self.plugins = self.load_plugins()
         if self.plugins:
             function_table_update = {v[0]:v[1] for k,v in self.plugins.items()}
             self.plugins_buttons = {k:f"/{v[0]}" for k,v in self.plugins.items()}
             self.function_table.update(function_table_update)
+        LOADING_STATUS_MESSAGE.edit("PLUGINS LOADED")
 
+        sleep(.25)
         self.no_background_functions = [self.message_box, self.spam_windows]
+        LOADING_STATUS_MESSAGE.edit("READY")
+        LOADING_STATUS_MESSAGE.delete()
 
     def __play_loaded_sound(self, audio: str, volume=None) -> None:
         old = self.audio_mixer.getVolumePercentage()
