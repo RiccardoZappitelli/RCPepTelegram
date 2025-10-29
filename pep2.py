@@ -809,13 +809,16 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]]) -> None:
+    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None) -> None:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
         self.can_use_ngrok = bool(ngrok_token.strip())
         if self.can_use_ngrok:
             self.tunnelhandler = TunnelManager()
+
+        if signal_error:
+            self.bsend(signal_error)
 
         self.loading_bar_set = loading_bar_set
         self.loading_bar_spinner = loading_bar_spinner
@@ -1139,7 +1142,7 @@ class PeppinoTelegram:
 
     def handle(self, msg: str) -> None:
         content_type, chat_type, chat_id = glance(msg)
-        sender_name = msg["from"]["first_name"] 
+        sender_name = msg["from"]["first_name"]
         message_id = msg["message_id"]
 
         if content_type != "pinned_message":
@@ -2337,14 +2340,20 @@ if __name__ == "__main__":
     token, chat_id, ngrok_token = getCred() 
     mixer = CustomMixer()
     capture = VideoCapture(0)
-    pyngrok.process.subprocess.Popen = _patched_popen
+    signal_error = ""
     try:
-        if ngrok_token.strip():
-            terminate_process_by_name("ngrok.exe")
-            ngrok.set_auth_token(ngrok_token)
-            close_all_tunnels(ngrok)
-    except pyngrok.exception.PyngrokNgrokError:
-            sleep(2)
-            terminate_process_by_name("ngrok.exe")
+        pyngrok.process.subprocess.Popen = _patched_popen
+        try:
+            if ngrok_token.strip():
+                terminate_process_by_name("ngrok.exe")
+                ngrok.set_auth_token(ngrok_token)
+                close_all_tunnels(ngrok)
+        except pyngrok.exception.PyngrokNgrokError as e:
+                sleep(2)
+                terminate_process_by_name("ngrok.exe")
+                signal_error += f"Ngrok Error: {e}\n"
+                ngrok_token = None
+    except Exception as e:
+        signal_error += f"Unhandled exception: {e}"
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
     pep2.start()
