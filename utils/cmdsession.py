@@ -2,6 +2,7 @@ import re
 from time import sleep
 import subprocess as sp
 from threading import Thread
+from subprocess import CREATE_NO_WINDOW
 
 def is_cmd_prompt(line: str) -> bool:
     pattern = r'^[A-Z]:\\(?:[^\\<>:"/|?*\r\n]+\\)*[^\\<>:"/|?*\r\n]*>.*$'
@@ -19,7 +20,8 @@ class CMDSession:
             stdin=sp.PIPE,
             text=True,
             bufsize=1,
-            encoding="mbcs"
+            encoding="mbcs",
+            creationflags=CREATE_NO_WINDOW
         )
     
     def read_output(self, parsing_function=print):
