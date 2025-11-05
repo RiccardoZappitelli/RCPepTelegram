@@ -25,7 +25,6 @@ class CMDSession:
         )
     
     def read_output(self, parsing_function=print):
-        """Read stdout line by line and print."""
         while self.reading_allowed:
             line = self.cmd_session.stdout.readline()
             if not line:
@@ -34,7 +33,6 @@ class CMDSession:
                 parsing_function(line)
     
     def read_error(self, parsing_function=print):
-        """Read stderr line by line and print."""
         while self.reading_allowed:
             line = self.cmd_session.stderr.readline()
             if not line:
