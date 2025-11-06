@@ -26,7 +26,7 @@ from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, wai
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
                  CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap,
-                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT, imencode)
+                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT)
 
 #MERGE AUDIO&VIDEO
 from moviepy.editor import AudioFileClip, VideoFileClip
@@ -2399,5 +2399,5 @@ if __name__ == "__main__":
     except Exception as e:
         signal_error += f"Unhandled exception: {e}"
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
-    # I wanted to make this multiple user but there is no way I'm rewriting all that shit.
+    # I wanted to make this multiple user but the code has become too hard to maintain.
     pep2.start()
