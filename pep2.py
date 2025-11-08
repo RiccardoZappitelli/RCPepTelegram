@@ -648,8 +648,11 @@ class EditableMessage:
             return False
     
     def delete(self) -> None:
-        if self.sent:
-            self.bot.deleteMessage((self.chat_id, self.message_id))
+        try:
+            if self.sent:
+                self.bot.deleteMessage((self.chat_id, self.message_id))
+        except TelegramError:
+            pass#since we have no way of notifying the user
     
     def delete_and_send(self, message: str) -> None:
         self.delete()
@@ -824,6 +827,7 @@ class PeppinoTelegram:
         self.loading_bar_set = loading_bar_set
         self.loading_bar_spinner = loading_bar_spinner
 
+        # this is used to send input prompts to the user without stopping the code
         self.user = {
             "status":None,             #can be "input_requested" or None 
             "last_response":None       #can be None, or the last response of an input
@@ -841,7 +845,7 @@ class PeppinoTelegram:
         self.cantopenlist = []
         self.processmonitorlist = {} 
         self.duckyhelp = DUCKYHELP
-        self.explorer_path = getcwd() # For now I'm not forward to make a file explorer
+        self.explorer_path = getcwd() # For now I'm not looing forward to make a file explorer
         self.audio_mixer = mixer
         self.running = True
         self.message_timeout = 5
