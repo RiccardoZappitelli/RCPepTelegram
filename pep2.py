@@ -1738,6 +1738,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         elif mimetype == "video":
             caption = msg["caption"].lower().strip()
             if caption == "/setvideowallpaper":
+                if not self.confirmContuinuingWithoutWallpaperBackup():
+                    return
                 duration = document["duration"]
                 video_stream = VideoCapture(saved_filepath)
                 res = True
@@ -2070,6 +2072,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bsend(f"🔒 Removed {process} to cantopenlist.")
 
     def restore_wallpaper(self) -> None:
+        if self.backup_wallpaper_path:
+            self.bsend("Wallpaper backup was not created so restoring it is not currently possible.")
+            return
         change_wallpaper(self.backup_wallpaper_path)
 
     def rightclick(self) -> None:
@@ -2120,7 +2125,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             remove(filepath)
             message.delete()
 
+    def confirmContuinuingWithoutWallpaperBackup(self):
+        if not self.backup_wallpaper_path:
+            return self.ask_yesno("The program was unable to backup the wallpaper, do you still want to use this functionality Y/n")
+        else:
+            return True
+
     def setCameraAsWallpaper(self, seconds: float|int=5):
+        if not self.confirmContuinuingWithoutWallpaperBackup():
+            return
         seconds = int(seconds)
         loading_bar = self.new_loading_bar(label=f"{emoji_dict['camera']}{emoji_dict['screen']} Set Camera As Wallpaper", total=seconds, showperc=True)
         filename = join(BURN_DIRECTORY, "jxframe.png")
@@ -2150,6 +2163,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Volume must be from 0.0 to 100.0")
 
     def setvideowallpaper(self, videofilename: str) -> None:
+        if not self.confirmContuinuingWithoutWallpaperBackup():
+            return
         res = True
         filename = join(BURN_DIRECTORY, "jxframe.png")
         backup_filename = join(BURN_DIRECTORY, "backup.png")
@@ -2302,7 +2317,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.audios = load_audios()
         STARTING_LOG_MESSAGE.edit("AUDIOS LOADED")
 
-        self.backup_wallpaper_path = join(BURN_DIRECTORY, get_current_wallpaper())
+        curr_wallpaper_path = get_current_wallpaper()
+        if curr_wallpaper_path:
+            self.backup_wallpaper_path = join(BURN_DIRECTORY, curr_wallpaper_path)
+        else:
+            self.backup_wallpaper_path = None
         STARTING_LOG_MESSAGE.edit("WALLPAPER BACKED UP")
 
         self.cantopenthread = Thread(target=self.cantopenkiller)
