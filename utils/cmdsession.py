@@ -32,9 +32,13 @@ class CMDSession:
         )
 
     def kill(self) -> None:
+        self.write_input("exit")
+        self.cmd_session.stdin.close()
+        self.cmd_session.wait()
         self.cmd_session.kill()
 
     def read_output(self, parsing_function=print):
+        self.reading_allowed = True
         while self.reading_allowed:
             line = self.cmd_session.stdout.readline()
             if not line:
@@ -52,6 +56,7 @@ class CMDSession:
             parsing_function(line)
 
     def read_error(self, parsing_function=print):
+        self.reading_allowed = True
         while self.reading_allowed:
             line = self.cmd_session.stderr.readline()
             if not line:
@@ -62,6 +67,9 @@ class CMDSession:
         Thread(target=self.read_output, args=(parsing_function_output,), daemon=True).start()
         Thread(target=self.read_error, args=(parsing_function_error,), daemon=True).start()
 
+    def stop_output_readed_thread(self):
+        self.reading_allowed = False
+
     def write_input(self, message: str):
         self.last_input = message
         self.cmd_session.stdin.write(message + "\n")
@@ -70,8 +78,3 @@ class CMDSession:
     def get_cwd(self) -> str | None:
         """Return last known working directory (cached from prompt)."""
         return self.cwd
-
-    def exit(self):
-        self.write_input("exit")
-        self.cmd_session.stdin.close()
-        self.cmd_session.wait()
