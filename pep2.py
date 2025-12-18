@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.17"
+__version__ = "2.20"
 
 
 #TELEGRAM
@@ -1133,6 +1133,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 )
                 self.cmd_session_active = False
                 self.cmd_session = None
+                break
 
             elif program == ":download":
                 path = " ".join(arguments[1:])
