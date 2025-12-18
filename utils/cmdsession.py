@@ -31,6 +31,9 @@ class CMDSession:
             creationflags=CREATE_NO_WINDOW
         )
 
+    def kill(self) -> None:
+        self.cmd_session.kill()
+
     def read_output(self, parsing_function=print):
         while self.reading_allowed:
             line = self.cmd_session.stdout.readline()
