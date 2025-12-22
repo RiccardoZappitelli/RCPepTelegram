@@ -73,9 +73,9 @@ class ScreenStreamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    screenshot = screenshot()
+                    screenshot_out = screenshot()
                     with BytesIO() as output:
-                        screenshot.save(output, format="JPEG")
+                        screenshot_out.save(output, format="JPEG")
                         frame = output.getvalue()
                     self.wfile.write(b"--frame\r\n")
                     self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
