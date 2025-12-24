@@ -2027,6 +2027,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def pss(self) -> None:
         self.__play_loaded_sound("pss")
 
+    def knockknock(self) -> None:
+        self.__play_loaded_sound("knockknock")
+
+    def fart(self) -> None:
+        self.__play_loaded_sound("fart")
+
     def replyquickmenu(self) -> int:
         commands = list(map(lambda x: f"/{x['command']}", self.commands))
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
