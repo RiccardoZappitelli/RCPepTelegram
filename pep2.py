@@ -66,7 +66,10 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, split as p
 #UTILS
 import pyngrok
 from utils import *
-from plugins import *
+try:
+    from plugins import *
+except ImportError:
+    plugins = None
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -962,13 +965,14 @@ class PeppinoTelegram:
 
         LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
 
-        sleep(.25)
-        plugins_commands = self.load_plugins(self.bot, plugins)
-        if plugins_commands:
-            function_table_update = {v[0]:v[1] for _,v in plugins_commands.items()}
-            self.plugins_buttons = {k:f"/{v[0]}" for k,v in plugins_commands.items()}
-            self.function_table.update(function_table_update)
-        LOADING_STATUS_MESSAGE.edit("PLUGINS LOADED")
+        if plugins:
+            sleep(.25)
+            plugins_commands = self.load_plugins(self.bot, plugins)
+            if plugins_commands:
+                function_table_update = {v[0]:v[1] for _,v in plugins_commands.items()}
+                self.plugins_buttons = {k:f"/{v[0]}" for k,v in plugins_commands.items()}
+                self.function_table.update(function_table_update)
+            LOADING_STATUS_MESSAGE.edit("PLUGINS LOADED")
 
         sleep(.25)
         self.no_background_functions = [self.message_box, self.spam_windows]
