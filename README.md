@@ -145,17 +145,49 @@ I could not add it because github has a 100MB limit and the executable was 114MB
 ```bash
 nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=assets/vfx=assets/vfx --include-data-dir=assets/sfx=assets/sfx --include-data-dir=assets/model=assets/model --include-data-file=auth.json=auth.json --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
 ```
-## PLUGINS
-To include plugins you must create a plugins folder and create a plugins.py file.
+## 🧩 Plugin System
+
+RCPepTelegram supports **class-based plugins** that integrate directly with the bot, UI, and messaging system.
+
+### 📁 Plugin Structure
+
+```
+plugins/
+├── plugin_base.py
+├── system_plugins.py
+└── custom_plugins.py
+```
+
+### 🧪 Minimal Plugin Example
+
 ```python
-# Plugin example:
+from .plugin_base import Plugin
 import os
-def shutdown_timed(time: int) -> None:
-    os.system(f"shutdown -s -t {time}")
-plugins = {
-    #Button Name       #the command    #the function
-    "Shutdown Timed":("shutdown_timed",shutdown_timed)
-}
+
+class ShutdownTimed(Plugin):
+    def __init__(self):
+        super().__init__("⏻ Schedule Shutdown", "shutdown_timed")
+
+    def action(self, seconds: int = 60):
+        os.system(f"shutdown -s -t {seconds}")
+        self.pep2.bsend(f"Shutdown scheduled in {seconds} seconds.")
+```
+
+### 🧠 Plugin Rules
+
+- Inherit from `Plugin`
+- `__init__(label, command)` sets button name and Telegram command
+- `action(...)` is triggered on command/button click
+- `self.pep2` is the reference to the running `PeppinoTelegram` instance
+
+### 📌 Plugin Registration
+
+```python
+plugins = [
+    ShutdownTimed,
+    ToggleCapsLock,
+    LockWorkstation
+]
 ```
 ## ⚠️ WARNING: Security and Ethical Risks ⚠️
 This code is intended for educational purposes only and should not be used in any malicious, unethical, or unauthorized manner. The script contains functionalities that can potentially compromise the security and privacy of a system, including but not limited to:
