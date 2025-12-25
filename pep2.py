@@ -35,7 +35,6 @@ from moviepy.editor import AudioFileClip, VideoFileClip
 import soundfile as sf
 import sounddevice as sd
 
-
 #MISC
 import sys
 import json
@@ -67,6 +66,7 @@ from os.path import join, abspath, isfile, exists, dirname, realpath, split as p
 #UTILS
 import pyngrok
 from utils import *
+from plugins import *
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
@@ -963,10 +963,10 @@ class PeppinoTelegram:
         LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
 
         sleep(.25)
-        self.plugins = self.load_plugins()
-        if self.plugins:
-            function_table_update = {v[0]:v[1] for k,v in self.plugins.items()}
-            self.plugins_buttons = {k:f"/{v[0]}" for k,v in self.plugins.items()}
+        plugins_commands = self.load_plugins(self.bot, plugins)
+        if plugins_commands:
+            function_table_update = {v[0]:v[1] for _,v in plugins_commands.items()}
+            self.plugins_buttons = {k:f"/{v[0]}" for k,v in plugins_commands.items()}
             self.function_table.update(function_table_update)
         LOADING_STATUS_MESSAGE.edit("PLUGINS LOADED")
 
@@ -1397,13 +1397,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             buffer_message.edit(state["value"])
         state["running"]=False
         bar.fill_and_delete()
+        
+    def load_plugins(self, bot: Bot, plugin_classes: list[type[Plugin]]) -> dict[str,dict[str,Callable]]:
+        registry = {}
 
-    def load_plugins(self) -> None:
-        try:
-            from plugins.plugins import plugins
-        except ImportError:
-            plugins = None
-        return plugins if plugins else None
+        for cls in plugin_classes:
+            plugin = cls()
+            plugin.bind_bot(bot)
+            plugin.bind_pep(self)
+            exported = plugin.export()
+            registry.update(exported)
+        return registry
 
     def message_box(self, text: str, title: str = "Warning") -> int:
         def run():
