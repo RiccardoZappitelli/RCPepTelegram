@@ -1,5 +1,5 @@
 # RCPepTelegram
-Remote Control Bot, inspired to the previous creation named "Peppino", this one offers much many features, including some pretty original pranks.
+Remote Control Bot, inspired to the previous creation named "Peppino", this one offers many features, including some pretty original pranks.
 (only tested on Windows10/11)
 
 ```/help: 
