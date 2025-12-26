@@ -30,11 +30,21 @@ def ogg_to_wav(filename: str, rmold: bool=False) -> str:
 def play_wav(audio: str, separate_thread: bool = True) -> None:
     PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
 
-def play_random_noise(duration, samplerate=44100, volume=0.3):
+def play_random_noise(duration, regulator: dict[str, bool]=None, samplerate=44100, volume=0.3):
+    if regulator is None:
+        regulator = {"running": True}
+
     samples = int(duration * samplerate)
-    noise = np.random.uniform(-1.0, 1.0, samples).astype(np.float32)
-    sd.play(noise * volume, samplerate)
-    sd.wait()
+    noise = np.random.uniform(-1.0, 1.0, samples).astype(np.float32) * volume
+
+    chunk_size = 1024  # number of samples per chunk
+
+    with sd.OutputStream(samplerate=samplerate, channels=1, dtype='float32') as stream:
+        for start in range(0, samples, chunk_size):
+            if not regulator["running"]:
+                break
+            end = min(start + chunk_size, samples)
+            stream.write(noise[start:end])
 
 def play_mp3(path: str, blocking: bool = True):
     data, sr = sf.read(path, dtype='float32', always_2d=True)
