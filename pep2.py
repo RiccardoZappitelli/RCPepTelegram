@@ -2126,39 +2126,43 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             sleep(1)
         loading_bar.fill_and_delete()
 
-    def whisper_overlay(self, duration: int) -> None:
-        whispers = [
-            "can you hear me",
-            "i'm here",
-            "look behind you",
-            "don't turn around",
-            "i can see you",
-            "you're not alone",
-            "the screen",
-            "close your eyes",
-            "i'm in the room",
-            "check the door",
-            "someone's behind you",
-            "don't look",
-            "i know you're there",
-            "your reflection",
-            "the window",
-            "i'm watching",
-            "not alone",
-            "behind the screen",
-            "in your system",
-            "can you see me",
-            "turn around",
-            "i'm closer",
-            "the darkness",
-            "your shadow",
-            "in the corner",
-            "don't scream",
-            "it's me",
-            "behind you",
-            "i'm inside",
-            "the silence"
-        ]
+    def whisper_overlay(self, duration: int, whispers: str | list[str] | None = None) -> None:
+        if whispers is None:
+            whispers = [
+                "can you hear me",
+                "i'm here",
+                "look behind you",
+                "don't turn around",
+                "i can see you",
+                "you're not alone",
+                "the screen",
+                "close your eyes",
+                "i'm in the room",
+                "check the door",
+                "someone's behind you",
+                "don't look",
+                "i know you're there",
+                "your reflection",
+                "the window",
+                "i'm watching",
+                "not alone",
+                "behind the screen",
+                "in your system",
+                "can you see me",
+                "turn around",
+                "i'm closer",
+                "the darkness",
+                "your shadow",
+                "in the corner",
+                "don't scream",
+                "it's me",
+                "behind you",
+                "i'm inside",
+                "the silence"
+            ]
+        else:
+            if isinstance(whispers, str):
+                whispers = whispers.split(",")
         
         # Create thread for the overlay
         def run_overlay():
