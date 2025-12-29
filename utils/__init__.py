@@ -6,3 +6,4 @@ from .tunnel_handler import *
 from .wifidumper import WifiDumper
 from .audio_player import *
 from .telegram_widgets import *
+from .messages import *
