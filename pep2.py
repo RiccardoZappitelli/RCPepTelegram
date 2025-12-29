@@ -17,7 +17,7 @@ from telepot import Bot, glance
 from telepot.loop import MessageLoop
 from telepot.exception import TelegramError
 from urllib3.exceptions import MaxRetryError
-from telepot.namedtuple import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telepot.namedtuple import ReplyKeyboardMarkup
 
 #IMAGES
 import numpy as np
