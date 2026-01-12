@@ -1641,6 +1641,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         while (time()-start) < duration:
             elapsed = int(time()-start)
             loading_bar.update(elapsed)
+            if loading_bar.canceled:
+                break
             sleep(1)
         loading_bar.fill_and_delete()
 
