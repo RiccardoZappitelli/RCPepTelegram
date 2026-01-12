@@ -7,3 +7,4 @@ from .wifidumper import WifiDumper
 from .audio_player import *
 from .telegram_widgets import *
 from .messages import *
+#from .thread_killer import *
