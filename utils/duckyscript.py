@@ -14,6 +14,7 @@ o888bood8P'    `V88V"V8P' `Y8bod8P' o888o o888o     .8'     8""88888P'  `Y8bod8P
 
 #actually some parts are missing since this function has been made in ~2020
 def toducky(payload, execute=False) -> str:
+    print(f"ducky: {payload=}", flush=True)
     duckyScript = [x.strip() for x in payload.split("\n")]
     final = ""
     defaultDelay = 0
