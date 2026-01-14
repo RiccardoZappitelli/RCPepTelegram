@@ -6,7 +6,27 @@ from typing import Callable, Any
 from time import perf_counter, sleep
 
 from threading import Thread
-from multiprocessing import Process
+#from multiprocessing import Process
+from typing import List
+from collections import defaultdict
+from .commands import Command, category_order
+
+def generate_help(commands: List[Command]) -> str:
+    # Group commands by category
+    grouped = defaultdict(list)
+    for cmd in commands:
+        grouped[cmd.category].append(cmd)
+
+    lines = []
+    for category in category_order:
+        if category in grouped:
+            lines.append(f"{category}")
+            for cmd in sorted(grouped[category], key=lambda c: c.name):
+                lines.append(f"  {cmd.name} - {cmd.description}")
+            lines.append("")  # extra line between categories
+
+    return "\n".join(lines).strip()
+
 
 
 all_spinners = {
@@ -404,7 +424,7 @@ class LoadingBarTimedWorker:
 
     def start(self) -> None:
         self.running = True
-        self._proc = Process(target=self._target, args=self._args)
+        self._proc = Thread(target=self._target, args=self._args)
         self._proc.start()
 
         # Setup loading bar
