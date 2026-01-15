@@ -382,6 +382,7 @@ class PeppinoTelegram:
             Command("menu_keylogger", self.menu_keylogger, "Open Keylogger menu.", "🏠 Menu", "🧠 Keylogger"),
             Command("menu_misc", self.menu_misc, "Open Misc menu.", "🏠 Menu", "🦑 Misc"),
             Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "🏠 Menu", "🔌 Your Plugins"),
+            Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "🏠 Menu", "🦆 DuckyScript"),
             
             # 🛑 System & Shutdown
             Command("shutdown", self.shutdown, "Power off PC.", "🛑 System", "🛑 Shutdown"),
@@ -1062,6 +1063,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             ("🔒 Can't Open", "🔒 Can't Open List", "/menu_cantopen"),
             ("🧠 Keylogger", "🧠 Keylogger", "/menu_keylogger"),
             ("🦑 Misc", "🦑 Misc", "/menu_misc"),
+            ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript")
             ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
         ]:
             buttons[label] = submenu
@@ -1082,10 +1084,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return self.mainmenu_ref
 
     # Generic submenu generator
-    def generate_category_menu(self, category_name: str, menu_label: str = None):
+    def generate_category_menu(self, category_name: str, menu_label: str = None) -> ButtonsMenu:
         buttons = {"🔙 Back": "/mainmenu"}
-        print(f"{category_name=}")
-        print(self.commands)
         for cmd in [c for c in self.commands if c.category == category_name]:
             buttons[cmd.label] = f"/{cmd.name}"
 
@@ -1103,7 +1103,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             prev_btn_lab="mainmenu_prev"
         )
         return self.mainmenu_ref
-
+    
+    """
+    ooo        ooooo
+    `88.       .888'
+    888b     d'888   .ooooo.  ooo. .oo.   oooo  oooo   .oooo.o
+    8 Y88. .P  888  d88' `88b `888P"Y88b  `888  `888  d88(  "8
+    8  `888'   888  888ooo888  888   888   888   888  `"Y88b.
+    8    Y     888  888    .o  888   888   888   888  o.  )88b
+    o8o        o888o `Y8bod8P' o888o o888o  `V88V"V8P' 8""888P'
+    """
 
     def menu_system(self):
         return self.generate_category_menu("🛑 System", "🛑 System & Shutdown")
@@ -1143,6 +1152,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def menu_plugins(self):
         return self.generate_category_menu("🔌 PlugIns", "🔌 Your Plugins")
+
+    def menu_ducky(self):
+        buttons = {
+            i:f"/duckyscript {i}" for i in KEYMAP.keys()
+        }
+        return self.new_menu(buttons)
 
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
