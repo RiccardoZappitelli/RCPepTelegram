@@ -1,5 +1,3 @@
-import pyautogui as pg
-
 """
 oooooooooo.                         oooo                     .oooooo..o                     o8o                 .   
 `888'   `Y8b                        `888                    d8P'    `Y8                     `"'               .o8   
@@ -12,50 +10,103 @@ o888bood8P'    `V88V"V8P' `Y8bod8P' o888o o888o     .8'     8""88888P'  `Y8bod8P
                                                 `Y8P'                                            o888o
 """
 
+KEYMAP = {
+    "GUI": "win",
+    "WINDOWS": "win",
+    "CTRL": "ctrl",
+    "CONTROL": "ctrl",
+    "ALT": "alt",
+    "SHIFT": "shift",
+    "ENTER": "enter",
+    "TAB": "tab",
+    "ESC": "esc",
+    "ESCAPE": "esc",
+    "SPACE": "space",
+    "UP": "up",
+    "DOWN": "down",
+    "LEFT": "left",
+    "RIGHT": "right",
+    "DELETE": "delete",
+    "DEL": "delete",
+    "BACKSPACE": "backspace",
+    "HOME": "home",
+    "END": "end",
+    "PAGEUP": "pageup",
+    "PAGEDOWN": "pagedown",
+    "PRINTSCREEN": "printscreen",
+    "CAPSLOCK": "capslock",
+    "NUMLOCK": "numlock",
+}
+
 #actually some parts are missing since this function has been made in ~2020
 def toducky(payload, execute=False) -> str:
-    print(f"ducky: {payload=}", flush=True)
-    duckyScript = [x.strip() for x in payload.split("\n")]
-    final = ""
-    defaultDelay = 0
-    if duckyScript[0][:7] == "DEFAULT":
-        defaultDelay = int(duckyScript[0][:13]) / 1000
-    previousStatement = ""
-    duckyCommands = ["WINDOWS", "GUI", "APP", "MENU", "SHIFT", "ALT", "CONTROL", "CTRL", "DOWNARROW", "DOWN",
-                     "LEFTARROW", "LEFT", "RIGHTARROW", "RIGHT", "UPARROW", "UP", "BREAK", "PAUSE", "CAPSLOCK", "DELETE", "END",
-                     "ESC", "ESCAPE", "HOME", "INSERT", "NUMLOCK", "PAGEUP", "PAGEDOWN", "PRINTSCREEN", "SCROLLLOCK", "SPACE", 
-                     "TAB", "ENTER", " a", " b", " c", " d", " e", " f", " g", " h", " i", " j", " k", " l", " m", " n", " o", " p", " q", " r", " s", " t",
-                     " u", " v", " w", " x", " y", " z", " A", " B", " C", " D", " E", " F", " G", " H", " I", " J", " K", " L", " M", " N", " O", " P",
-                     " Q", " R", " S", " T", " U", " V", " W", " X", " Y", " Z"]
-    pyautoguiCommands = ["win", "win", "optionleft", "optionleft", "shift", "alt", "ctrl", "ctrl", "down", "down",
-                         "left", "left", "right", "right", "up", "up", "pause", "pause", "capslock", "delete", "end",
-                         "esc", "escape", "home", "insert", "numlock", "pageup", "pagedown", "printscreen", "scrolllock", "space",
-                         "tab", "enter", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-                         "u", "v", "w", "x", "y", "z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p",
-                         "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
-    for line in duckyScript:
-        if line[0:3] == "REM":
-            previousStatement = line.replace("REM", "#")
-        elif line[0:5] == "DELAY":
-            previousStatement = "sleep(" + str(float(line[6:]) / 1000) + ")"
-        elif line[0:6] == "STRING":
-            previousStatement = "pg.typewrite(\"" + line[7:] + "\", interval=0.02)"
-        elif line[0:6] == "REPEAT":
-            for i in range(int(line[7:]) - 1):
-                final += previousStatement
-                final += "\n"
-        else:
-            previousStatement = "pg.hotkey("
-            for j in range(len(pyautoguiCommands)):
-                if line.find(duckyCommands[j]) != -1:
-                    previousStatement = previousStatement + "\'" + pyautoguiCommands[j] + "\',"
-            previousStatement = previousStatement[:-1] + ")"
-        if defaultDelay != 0:
-            previousStatement = "sleep(" + str(defaultDelay) + ")"
-        final += previousStatement
-        final += "\n"
+    lines = [l.strip() for l in payload.splitlines() if l.strip()]
+    out = []
+    default_delay = 0.0
+    last_stmt = None
 
-    final = final.replace("pg.hotkey)\n", "")
+    def emit(stmt: str):
+        nonlocal last_stmt
+        out.append(stmt)
+        last_stmt = stmt
+
+    for line in lines:
+        # comments
+        if line.startswith(("REM", "#")):
+            continue
+
+        tokens = line.split()
+
+        cmd = tokens[0]
+
+        # DEFAULT_DELAY <ms>
+        if cmd == "DEFAULT_DELAY":
+            default_delay = float(tokens[1]) / 1000.0
+            continue
+
+        # DELAY <ms>
+        if cmd == "DELAY":
+            emit(f"sleep({float(tokens[1]) / 1000.0})")
+            continue
+
+        # STRING <text>
+        if cmd == "STRING":
+            text = line[len("STRING "):]
+            emit(f"pg.write({text!r}, interval=0.01)")
+        
+        # STRINGLN <text>
+        elif cmd == "STRINGLN":
+            text = line[len("STRINGLN "):]
+            emit(f"pg.write({text!r}, interval=0.01); pg.press('enter')")
+
+        # REPEAT <n>
+        elif cmd == "REPEAT":
+            if last_stmt is None:
+                continue
+            count = int(tokens[1]) - 1
+            for _ in range(count):
+                out.append(last_stmt)
+
+        # key combinations (GUI r, CTRL ALT DEL, etc.)
+        else:
+            keys = []
+            for t in tokens:
+                t = t.upper()
+                if t in KEYMAP:
+                    keys.append(KEYMAP[t])
+                elif len(t) == 1:
+                    keys.append(t.lower())
+            if keys:
+                emit(f"pg.hotkey({', '.join(repr(k) for k in keys)})")
+
+        # implicit default delay
+        if default_delay > 0:
+            out.append(f"sleep({default_delay})")
+
+    final = "\n".join(out)
+
     if execute:
-        exec(final)
+        exec("import time\nimport pyautogui as pg\n" + final)
+
     return final
+
