@@ -1,5 +1,5 @@
 from .cmdsession import CMDSession
-from .duckyscript import toducky
+from .duckyscript import toducky, KEYMAP
 from .mymixer import CustomMixer
 from .overlays import HDMIDrownedOverlay, OverlayPlayer
 from .tunnel_handler import *
