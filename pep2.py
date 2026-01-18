@@ -318,6 +318,9 @@ class PeppinoTelegram:
         self.tunnelhandler = TunnelManager(tunnel_provider)
         self.tunnel_provider = tunnel_provider
 
+        # Need to add this one so someone who spams my bot won't spam me
+        self.strangers : list[int] = []
+
         if signal_error:
             self.bsend(signal_error)
 
@@ -815,8 +818,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def handle(self, msg: str) -> None:
         content_type, chat_type, chat_id = glance(msg)
+        if chat_id in self.strangers:
+            return
         sender_name = msg["from"]["first_name"]
         message_id = msg["message_id"]
+        user = msg['from']
+        username = user.get('username')
 
         if content_type != "pinned_message":
             self.all_session_messages.append(message_id)
@@ -837,11 +844,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             elif content_type == "pinned_message":
                 self.delete_message(message_id)
             elif content_type == "video_note":
-                self.parse_document(msg, mimetype="video_note")
+                Thread(self.parse_document, args=(msg, "video_note")).start()
             else:
                 self.bsend(f"Unparsed content-type: {content_type}")
         else:
-            self.bsend(f"What do you want {sender_name}, I don't work for you.")
+            stranger_message = f"What do you want {sender_name}, @{username} `{chat_id}`, I don't work for you."
+            self.bot.sendMessage(chat_id, stranger_message)
+            self.bsend(f"Message from {sender_name} @{username} `{chat_id}`:\n{msg.get('text')}")
+            self.strangers.append(chat_id)
 
     def inverted_screen(self) -> None:
         self.modded_screenshot(invert_image)
