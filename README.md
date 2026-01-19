@@ -136,8 +136,9 @@ auth.json
 ```json
 {
     "token":"<YOUR TOKEN>",
-    "chatid":youchatid,
-    "ngrok_token":"<YOUR NGROK TOKEN>"
+    "chatid":"<YOUR CHAT ID>",
+    "ngrok_token":"<YOUR NGROK TOKEN>",
+    "tunnel_provider":"<TUNNEL PROVIDER>"// can be either "localtunnel" or "ngrok"
 }
 
 ```
