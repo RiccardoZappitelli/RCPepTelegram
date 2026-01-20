@@ -87,6 +87,7 @@ cwd_folder = getcwd()
 HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
 TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
+GENERATE_COMMANDS_MD = True
 
 
 try:
@@ -467,7 +468,7 @@ class PeppinoTelegram:
             # 💻 System Control
             Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "💻 System Control", "💿 List Drives"),
             Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
-            Command("execute", self.execute, None, None, None),
+            Command("execute", self.execute, "null", "null", "null"),
             Command("processkiller", self.process_killer, "Kill process from list.", "💻 System Control", "💀 Process Killer"),
             Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "💻 System Control", "🛑 Terminate Process"),
             Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "💻 System Control", "➕ Procmon Add"),
@@ -2335,5 +2336,12 @@ if __name__ == "__main__":
             signal_error += f"Unhandled exception: {e}\n"
 
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel")
+    if GENERATE_COMMANDS_MD:
+        try:
+            import update_commandsMD
+            update_commandsMD.main(pep2)
+        except ImportError:
+            pass
+        sys.exit(0)
     # I wanted to make this multiple user but the code has become too hard to maintain.
     pep2.start()
