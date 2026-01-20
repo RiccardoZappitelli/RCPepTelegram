@@ -80,6 +80,7 @@ def resource_path(relative_path: str) -> str:
         base_path = dirname(__file__)
     return join(base_path, relative_path)
 
+# CONSTANTS
 logging = False
 iswindows = name == "nt"
 islinux = not iswindows
@@ -87,7 +88,7 @@ cwd_folder = getcwd()
 HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
 TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
-GENERATE_COMMANDS_MD = True
+GENERATE_COMMANDS_MD = False
 
 
 try:
@@ -850,10 +851,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             elif content_type == "pinned_message":
                 self.delete_message(message_id)
             elif content_type == "video_note":
-                Thread(self.parse_document, args=(msg, "video_note")).start()
+                Thread(target=self.parse_document, args=(msg, "video_note")).start()
             else:
                 self.bsend(f"Unparsed content-type: {content_type}")
         else:
+            # Handling strangers
             stranger_message = f"What do you want {sender_name}, @{username} `{chat_id}`, I don't work for you."
             self.bot.sendMessage(chat_id, stranger_message)
             self.bsend(f"Message from {sender_name} @{username} `{chat_id}`:\n{msg.get('text')}")
