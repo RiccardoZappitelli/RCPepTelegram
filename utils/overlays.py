@@ -14,10 +14,8 @@ from .audio_player import play_wav
 
 
 class OverlayManager:
-    def __init__(self, pep, burn_directory: str, x_offset=10, y_offset=10):
+    def __init__(self, pep, burn_directory: str):
         self.pep = pep
-        self.X_OFFSET = x_offset
-        self.Y_OFFSET = y_offset
         self.root = None
         self.burn_dir = burn_directory
 
