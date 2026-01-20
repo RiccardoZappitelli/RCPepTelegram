@@ -89,5 +89,5 @@ def format_disk(disc: dict, loading_bar_set=["▰","▱"]) -> str:
         f"🗄 <b>{name}</b>\n"
         f"<code>{bar}</code>  {perc:.1f}%\n"
         f"📦 {used} / {tot_size}\n"
-        f"🆓 Free: {free}"
+        f"🆓 Free: {free}\n"
     )
