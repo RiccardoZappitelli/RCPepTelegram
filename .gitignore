@@ -9,8 +9,6 @@ update_commandsMD.py
 plugins/
 TODO
 utils/__pycache__/
-*.build
-*.dist
-*onefile-build
 pep2.exe
 assets/executables/fakeuac.exe
+tmp/
