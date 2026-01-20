@@ -305,6 +305,7 @@ class LoadingBar:
         self.deleted = False
         self.pin_message = pin_message
         self.cancel_button = cancel_button
+        self.parse_mode = "HTML"
         if cancel_button:
             self.canceled = False
         self.ETDMessage = None
@@ -322,7 +323,7 @@ class LoadingBar:
         if self.label:
             bar = f"{self.label}\n{bar}"
         if self.spinner_enabled:
-            bar = f"{self.spinner[self.spinner_index]}{bar}" if self.spinner_pos=="left" else f"{bar}{self.spinner[self.spinner_index]}"
+            bar = f"<code>{self.spinner[self.spinner_index]}{bar}</code>" if self.spinner_pos=="left" else f"<code>{bar}{self.spinner[self.spinner_index]}</code>"
         return bar
 
     def setup(self):
@@ -332,7 +333,7 @@ class LoadingBar:
             keyboard = [[InlineKeyboardButton(text="Cancel", callback_data=f"cancel_loading:{id(self)}")]]
             reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-        self.ETDMessage = self.bot.sendMessage(self.chat_id, bar_text, reply_markup=reply_markup)
+        self.ETDMessage = self.bot.sendMessage(self.chat_id, bar_text, reply_markup=reply_markup, parse_mode=self.parse_mode)
         
         if self.pin_message:
             self.bot.pinChatMessage(self.chat_id, self.ETDMessage["message_id"])
@@ -360,7 +361,8 @@ class LoadingBar:
             self.bot.editMessageText(
                 (self.chat_id, self.ETDMessage["message_id"]),
                 self.get_bar(),
-                reply_markup=self.ETDMessage.get("reply_markup")  # keep the cancel button
+                reply_markup=self.ETDMessage.get("reply_markup"),  # keep the cancel button,
+                parse_mode=self.parse_mode
             )
         except TelegramError:
             ...
