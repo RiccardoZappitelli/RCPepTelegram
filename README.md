@@ -2,8 +2,8 @@
 Remote Control Bot, inspired to the previous creation named "Peppino", this one offers many features, including some pretty original pranks.
 (only tested on Windows10/11)
 
-```/help: 
 See [Commands](docs/COMMANDS.md)
+```/help: 
 📎 File Input Commands
 *sending a photo* - Displays the photo on the screen as a pop-up.
 *sending a photo with "/jumpscare" caption* - Will create a jumpscare with that photo.
