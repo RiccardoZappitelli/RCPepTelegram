@@ -535,6 +535,13 @@ _This file is auto-generated. Do not edit manually._
 
 > Take webcam photo.
 
+### `selfieandscreenshot`
+
+**Label:** `🤳🖼️ Take Screenshot&Webcam`  
+**Function:** `screenshotandselfie`
+
+> Caputre screen and webcam in the same image
+
 ### `setvideowallpaper`
 
 **Label:** `🎞️ Set Video Wallpaper`  
