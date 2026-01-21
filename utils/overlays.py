@@ -11,6 +11,35 @@ from tkinter import Tk, Canvas, Label, NW
 from random import randint, choice, uniform, random
 
 from .audio_player import play_wav
+from typing import Any
+
+
+def screen_and_webcam_pic(cap: cv2.VideoCapture, screen: Any | str = None) -> tuple[bool, Any]:
+    if screen is None:
+        with mss.mss() as sct:
+            monitor = sct.monitors[1]
+            shot = sct.grab(monitor)
+
+        screen = np.array(shot)
+        screen = cv2.cvtColor(screen, cv2.COLOR_BGRA2BGR)
+    else:
+        if isinstance(screen, str):
+            if exists(screen):
+                screen = cv2.imread(screen)
+            else:
+                return False, None
+
+    ret, cam = cap.read()
+    if not ret:
+        return False, None
+
+    cam_h, cam_w = cam.shape[:2]
+    cam = cv2.resize(cam, (cam_w // 2, cam_h // 2))
+
+    h, w = cam.shape[:2]
+    screen[0:h, 0:w] = cam
+
+    return True, screen
 
 
 class OverlayManager:
