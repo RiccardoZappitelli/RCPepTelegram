@@ -1,9 +1,27 @@
 import re
 import os
+import io
+import mss
 import socket
-import platform
 import shutil
 import requests
+import platform
+from cv2 import imencode
+from os.path import join
+
+def fast_screenshot(output: str = "monitor-{mon}.png", callback = None):
+    with mss.mss() as sct:
+        for x in sct.save(callback=callback, output=output):
+            yield x
+
+def cv2_to_bytesio(image, ext=".png") -> io.BytesIO:
+    ok, buf = imencode(ext, image)
+    if not ok:
+        return None
+
+    bio = io.BytesIO(buf.tobytes())
+    bio.seek(0)
+    return bio
 
 def get_public_ip() -> str:
     r = requests.get("https://ifconfig.co", 
