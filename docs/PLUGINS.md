@@ -56,6 +56,7 @@ This metadata is used for:
 - plugin discovery
 - user-facing listings
 - documentation generation
+Note: if a plugins has "<STARTUPSCRIPT>" as button_label, its action will be executed as soon as it loaded.
 
 ---
 
