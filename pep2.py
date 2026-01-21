@@ -1012,7 +1012,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             registry.update(exported)
 
         for label, (command, action, description) in registry.items():
-            if label == STARTUP_SCRIPT_MARKER:
+            if label == "<STARTUPSCRIPT>":
                 action()
                 continue
             new_command = Command(name=command,
