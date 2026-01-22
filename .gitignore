@@ -6,9 +6,9 @@ new_banner.py
 __pycache__/
 tests/
 update_commandsMD.py
-plugins/
 TODO
 utils/__pycache__/
 pep2.exe
 assets/executables/fakeuac.exe
 tmp/
+.git
