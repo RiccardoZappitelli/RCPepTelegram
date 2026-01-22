@@ -34,14 +34,19 @@ class OnStart(Plugin): # THIS IS A SPECIAL PLUGIN WHICH WILL BE EXECUTED AS SOON
         super().__init__(STARTUP_SCRIPT_MARKER, "startupscript", "this is the startupscript")
 
     def action(self):
-        return
+        return self.pep2.bsend("On Start")
+
+    def bind_pep(self, pep2):
+        res = super().bind_pep(pep2)
+        self.pep2.startupscript = self.action
+        return res
 
 class OnLoad(Plugin): #THIS IS A SPECIAL PLUGIN THAT WILL BE EXECUTED AS SOON AS ITS LOADED
     def __init__(self):
         super().__init__(ONLOAD_PLUGINS_MARKER, "onloadscript", "onloadscrpit")
 
     def action(self):
-        return
+        return self.pep2.bsend("On Load")
 
 # -------------------------------
 # Plugin List
