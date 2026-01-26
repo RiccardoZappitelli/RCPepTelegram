@@ -25,6 +25,7 @@ category_order = [
     "🔒 Can't Open",
     "🧠 Keylogger",
     "🔧 Utility",
+    "🕵️‍♂️ MITM"
 ]
 
 CATEGORY_TO_MENU = {
@@ -41,4 +42,5 @@ CATEGORY_TO_MENU = {
     "🧠 Keylogger": "menu_keylogger",
     "🦑 Misc": "menu_misc",
     "🔌 PlugIns": "menu_plugins",
+    "🕵️‍♂️ MITM": "menu_mitm",
 }

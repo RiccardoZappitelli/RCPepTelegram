@@ -1,7 +1,9 @@
-import win32com.client
+import pydivert
 import subprocess as sp
 from xml.dom import minidom
 from os import listdir, remove
+from time import perf_counter
+
 """
 ooooo      ooo               .                                       oooo        ooooo     ooo     .    o8o  oooo
 `888b.     `8'             .o8                                       `888        `888'     `8'   .o8    `"'  `888
@@ -11,6 +13,26 @@ ooooo      ooo               .                                       oooo       
  8       `888  888    .o   888 .    `888'`888'    888   888  888      888 `88b.   `88.    .8'    888 .  888   888  o.  )88b
 o8o        `8  `Y8bod8P'   "888"     `8'  `8'     `Y8bod8P' d888b    o888o o888o    `YbodP'      "888" o888o o888o 8""888P'
 """
+def block_port(port: int, timeout: int):
+    FILTER = f"""
+    (outbound and (
+        (tcp.DstPort == {port}) or
+        (udp.DstPort == {port})
+    ))
+    """
+    start = perf_counter()
+    with pydivert.WinDivert(FILTER) as w:
+        while perf_counter()-start < timeout:
+            packet = w.recv()
+            if packet:
+                pass
+
+def block_http(timeout: int):
+    block_port(80, timeout)
+
+def block_https(timeout: int):
+    block_port(443, timeout)
+
 class WifiDumper:
     def __init__(self) -> None:
         pass

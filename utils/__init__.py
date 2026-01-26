@@ -3,7 +3,7 @@ from .duckyscript import toducky, KEYMAP
 from .mymixer import CustomMixer
 from .overlays import OpenCVOverlayPlayer, OverlayManager
 from .tunnel_handler import *
-from .wifidumper import WifiDumper
+from .network_utils import WifiDumper, block_port, block_http, block_https
 from .audio_player import *
 from .telegram_widgets import *
 from .messages import *

@@ -408,12 +408,13 @@ oooooo   oooooo     oooo                    oooo
       `8'      `8'       `Y8bod8P' d888b    o888o o888o `Y8bod8P' d888b
 """
 class LoadingBarTimedWorker:
-    def __init__(self, duration: int, chat_id: int, bot: Bot, target: Callable, args=(), loading_bar_kwargs: dict = {}) -> None:
-        self.duration = duration
+    def __init__(self,label: str,  duration: int, chat_id: int, bot: Bot, target: Callable, args=(), loading_bar_kwargs: dict = {}) -> None:
+        self._duration = duration
         self._target = target
         self._args = args
+        self._label = label
 
-        self._loading_bar = LoadingBar(duration, chat_id, bot, autosend=False, **loading_bar_kwargs)
+        self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, **loading_bar_kwargs)
         self.running = False
 
     def get_loading_bar(self) -> LoadingBar:
@@ -441,7 +442,7 @@ class LoadingBarTimedWorker:
             # Update the loading bar
             elapsed = perf_counter()-start_time
             self._loading_bar.update(elapsed)
-            if elapsed >= self.duration:
+            if elapsed >= self._duration:
                 break
             sleep(1)
 

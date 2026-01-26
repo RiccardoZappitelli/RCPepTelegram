@@ -2,12 +2,19 @@ import re
 import os
 import io
 import mss
+import ctypes
 import socket
 import shutil
 import requests
 import platform
 from cv2 import imencode
 from os.path import join
+
+def is_admin() -> bool:
+    try:
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
 
 def fast_screenshot(output: str = "monitor-{mon}.png", callback = None):
     with mss.mss() as sct:
