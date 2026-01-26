@@ -711,7 +711,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
                 download_thread = Thread(target=self.download_file, args=(filepath,))
                 download_thread.start()
-                download_thread.join()
 
                 self.bsend(f"✅ Download completed for `{filepath}`")
 
