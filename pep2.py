@@ -548,7 +548,7 @@ class PeppinoTelegram:
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "🔧 Utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "🔧 Utility", "🛑 Stop"),
             Command("test", self.test, "Run test routine.", "🔧 Utility", "🧪 Test"),
-            Command("help", lambda: self.bsend(self.help), "Show help menu.", "🔧 Utility", "❓ Help"),
+            Command("help", self.show_help, "Show help menu.", "🔧 Utility", "❓ Help"),
             Command("nothing", lambda: ..., "No-op command.", "🔧 Utility", "Nothing"),
         ]
 
@@ -2119,6 +2119,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             Popen(['sh', sh_file]) 
         self.bsend(f"🛑 Removing executable.")
         self.stop()
+
+    def show_help(self) -> None:
+        """Send help messages in parts."""
+        help_parts = self.help  # This should now be a list
+        for i, part in enumerate(help_parts, 1):
+            if len(help_parts) > 1:
+                caption = f"Help ({i}/{len(help_parts)})"
+            else:
+                caption = None
+            self.bsend(part, parse_mode=None if caption else None)
 
     def show_image(self, image_path: str) -> None:
         print(f"Showing image: {image_path}")
