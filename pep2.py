@@ -2444,8 +2444,8 @@ if __name__ == "__main__":
     # Use only if developer
     if GENERATE_COMMANDS_MD:
         try:
-            import update_commandsMD
-            update_commandsMD.main(pep2)
+            import generate_commandsMD
+            generate_commandsMD.main(pep2)
         except ImportError:
             pass
         sys.exit(0)
