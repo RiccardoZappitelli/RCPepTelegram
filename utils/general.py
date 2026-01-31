@@ -10,6 +10,15 @@ import platform
 from cv2 import imencode
 from os.path import join
 
+def craft_file(content: bytes, filename: str, encoding="utf-8"):
+    buf = io.BytesIO()
+    if isinstance(content, str):
+        content = content.encode(encoding)
+    buf.write(content)
+    buf.seek(0)
+    buf.name = filename
+    return buf
+
 def is_admin() -> bool:
     try:
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
