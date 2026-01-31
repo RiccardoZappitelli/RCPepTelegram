@@ -11,23 +11,74 @@ from typing import List
 from collections import defaultdict
 from .commands import Command, category_order
 
-def generate_help(commands: List[Command]) -> str:
+def generate_help(commands: List[Command]) -> List[str]:
+    """Generate help messages, splitting into multiple parts if too long."""
     # Group commands by category
     grouped = defaultdict(list)
     for cmd in commands:
         grouped[cmd.category].append(cmd)
+    
+    # Get all unique categories and sort them alphabetically
+    # But keep "🏠 Menu" first if it exists
+    all_categories = list(grouped.keys())
+    
+    # Try to put "🏠 Menu" first, then sort the rest alphabetically
+    categories_with_menu_first = []
+    menu_category = None
+    
+    for cat in all_categories:
+        if "Menu" in cat or "🏠" in cat:
+            menu_category = cat
+        else:
+            categories_with_menu_first.append(cat)
+    
+    # Sort non-menu categories alphabetically
+    categories_with_menu_first.sort()
+    
+    # Add menu category at the beginning if found
+    if menu_category:
+        category_order = [menu_category] + categories_with_menu_first
+    else:
+        category_order = categories_with_menu_first
 
-    lines = []
+    help_parts = []
+    current_part = []
+    current_length = 0
+    
     for category in category_order:
         if category in grouped:
-            lines.append(f"{category}")
+            # Format category section
+            category_header = f"{category}\n"
+            commands_section = ""
+            
+            # Add all commands for this category
             for cmd in sorted(grouped[category], key=lambda c: c.name):
-                lines.append(f"  {cmd.name} - {cmd.description}")
-            lines.append("")  # extra line between categories
-
-    return "\n".join(lines).strip()
-
-
+                command_line = f"  /{cmd.name} - {cmd.description}\n"
+                commands_section += command_line
+            
+            # Add separator line
+            separator = "\n"
+            
+            # Calculate total length for this section
+            section_length = len(category_header) + len(commands_section) + len(separator)
+            
+            # If adding this section would exceed limit, start new part
+            if current_length + section_length > 2800:  # Keep under 3000 with buffer
+                if current_part:
+                    help_parts.append("".join(current_part).strip())
+                current_part = [category_header, commands_section, separator]
+                current_length = section_length
+            else:
+                current_part.append(category_header)
+                current_part.append(commands_section)
+                current_part.append(separator)
+                current_length += section_length
+    
+    # Add the last part if it exists
+    if current_part:
+        help_parts.append("".join(current_part).strip())
+    
+    return help_parts
 
 all_spinners = {
     "slash": ["|", "/", "-", "\\"],
