@@ -8,4 +8,5 @@ from .audio_player import *
 from .telegram_widgets import *
 from .messages import *
 from .general import *
+from .logs import DebugLogger
 #from .thread_killer import *
