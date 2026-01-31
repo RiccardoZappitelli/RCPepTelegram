@@ -315,7 +315,7 @@ class LoadingBar:
 
     def get_bar(self):
         self.perc_progress = round((self.progress / self.tot) * 100, 1)
-        self.int_perc_progress = int(self.perc_progress)
+        self.int_perc_progress = min(int(self.perc_progress), 100)
         bar = self.full_char * (self.int_perc_progress//self.bar_lenght) + \
               self.empty_char * (self.bar_lenght - (self.int_perc_progress//self.bar_lenght))
         if self.showperc:
@@ -423,7 +423,7 @@ class LoadingBarTimedWorker:
     def stop(self) -> None:
         if not self.running:
             raise RuntimeError("The process was not running.")
-        self._proc.terminate()
+        #self._proc.terminate()
 
     def start(self) -> None:
         self.running = True
