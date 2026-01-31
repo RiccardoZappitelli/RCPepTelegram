@@ -5,7 +5,7 @@ backup/
 new_banner.py
 __pycache__/
 tests/
-update_commandsMD.py
+*MD.py
 TODO
 utils/__pycache__/
 pep2.exe
