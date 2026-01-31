@@ -22,6 +22,40 @@ _This file is auto-generated. Do not edit manually._
 
 ## 🌐 Network
 
+### `block_http`
+
+**Label:** `🚫 Block HTTP`  
+**Function:** `block_http`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Block all outbound HTTP traffic (port 80).
+
+### `block_https`
+
+**Label:** `🚫 Block HTTPS`  
+**Function:** `block_https`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Block all outbound HTTPS traffic (port 443).
+
+### `block_port`
+
+**Label:** `🚫 Block Port`  
+**Function:** `block_port`
+
+**Positional arguments:**
+
+- `port`
+- `timeout`
+
+> Block a specific TCP/UDP port.
+
 ### `getip`
 
 **Label:** `🌐 Get IP`  
@@ -286,6 +320,13 @@ _This file is auto-generated. Do not edit manually._
 
 > Open Misc menu.
 
+### `menu_mitm`
+
+**Label:** `🕵️‍♂️ MITM`  
+**Function:** `menu_mitm`
+
+> Open MITM menu.
+
 ### `menu_network`
 
 **Label:** `🌐 Network & Remote Access`  
@@ -320,6 +361,13 @@ _This file is auto-generated. Do not edit manually._
 **Function:** `menu_system`
 
 > Open System & Shutdown menu.
+
+### `menu_utilities`
+
+**Label:** `🔧 Utility`  
+**Function:** `menu_utilities`
+
+> Open Utilities Menu
 
 ## 💻 System Control
 
@@ -707,58 +755,6 @@ _This file is auto-generated. Do not edit manually._
 
 > Set volume percentage.
 
-## 🔌 PlugIns
-
-### `lock_pc`
-
-**Label:** `🔒 Lock PC`  
-**Function:** `action`
-
-> Lock the Windows workstation immediately.
-
-### `restart_now`
-
-**Label:** `🔄 Restart Now`  
-**Function:** `action`
-
-> Restart the PC immediately.
-
-### `shutdown_timed`
-
-**Label:** `⛔ Schedule Shutdown`  
-**Function:** `action`
-
-**Positional arguments:**
-
-- `seconds`
-
-> Schedule a PC shutdown after a given number of seconds.
-
-### `stop_scheduled_shutdown`
-
-**Label:** `🛑 Stop Scheduled Shutdown`  
-**Function:** `action`
-
-> Cancel a previously scheduled shutdown.
-
-### `toggle_caps`
-
-**Label:** `⇪ Toggle Caps Lock`  
-**Function:** `action`
-
-> Toggle the Caps Lock key.
-
-### `type_in_execute`
-
-**Label:** `⌨ Run Command`  
-**Function:** `action`
-
-**Positional arguments:**
-
-- `command`
-
-> Run a command via Win+R.
-
 ## 🔒 Can't Open
 
 ### `cantopenadd`
@@ -792,6 +788,13 @@ _This file is auto-generated. Do not edit manually._
 
 ## 🔧 Utility
 
+### `get_logs`
+
+**Label:** `📄 Get Logs`  
+**Function:** `get_logs`
+
+> Gets the program logs ins a file
+
 ### `help`
 
 **Label:** `❓ Help`  
@@ -819,6 +822,42 @@ _This file is auto-generated. Do not edit manually._
 **Function:** `test`
 
 > Run test routine.
+
+## 🕵️‍♂️ MITM
+
+### `block_http`
+
+**Label:** `Block HTTP`  
+**Function:** `block_http`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Blocks traffic http
+
+### `block_https`
+
+**Label:** `Block HTTPS`  
+**Function:** `block_https`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Blocks traffic on a specific port.
+
+### `block_port`
+
+**Label:** `Block Port`  
+**Function:** `block_port`
+
+**Positional arguments:**
+
+- `port`
+- `timeout`
+
+> Blocks traffic on a specific port.
 
 ## 😈 Pranks
 
@@ -928,7 +967,7 @@ _This file is auto-generated. Do not edit manually._
 
 ### `whisper_overlay`
 
-**Label:** `👻 Whisper Overlay`  
+**Label:** `👻 Red Text Overlay`  
 **Function:** `whisper_overlay`
 
 **Positional arguments:**
