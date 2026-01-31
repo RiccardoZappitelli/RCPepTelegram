@@ -12,7 +12,7 @@ class DebugLogger:
     def _write(self, s: str, orig):
         with self._lock:
             self._buffer.append(s)
-            orig(s)
+            #orig(s) #uncommenting this will re-enable console logging
 
     def activate(self):
         with self._lock:
