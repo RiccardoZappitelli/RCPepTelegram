@@ -101,8 +101,6 @@ except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
-
-
 try:
     vfx = resource_path(join("assets", "vfx"))
     sfx = resource_path(join("assets", "sfx"))
@@ -722,11 +720,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return
 
         self.cmd_session_active = True
-        self.bsend(
-            "💻 CMD session started.\n"
-            "Type 'exit' to quit.\n"
-            "Use :help for special commands."
+        self.bsendWithMarkdownV2(
+            "💻 *CMD Session Started*\n"
+            "▫️ `exit` → close session\n"
+            "▫️ `:help` → show commands"
         )
+
 
         # Start output reader threads
         self.cmd_session.run_output_reader_thread(
@@ -1663,7 +1662,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         while self.running:
             for process, checked in self.processmonitorlist.items():
                 if self.check_if_proc_running(process) and not checked:
-                    self.bsend(f"{process} is running.")
+                    self.bsendWithMarkdownV2(f"⚠️ *Process Active*\n`{process}`")
                     self.processmonitorlist[process]=True
                 elif not(self.check_if_proc_running(process)):
                     self.processmonitorlist[process]=False
@@ -2327,12 +2326,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         self.screen_width, self.screen_height = pg.size()
         STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
-        botstartedmessage = f"Bot started now, you have acces to 👤{getlogin()}\nAdmin: {'yes' if self.has_admin else 'no'}"
+        botstartedmessage = (
+            "🚀 *RCPT Online*\n"
+            f"👤 User: `{getlogin()}`\n"
+            f"🛡️ Admin: `{'YES' if self.has_admin else 'NO'}`"
+        )
+
         if not sys.argv[1:]:
             if not self.selfie(botstartedmessage, reply_markup=self.replyquickmenu()):
-                self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
+                self.bsendWithMarkdownV2(botstartedmessage, reply_markup=self.replyquickmenu())
         else:
-            self.bsend(botstartedmessage, reply_markup=self.replyquickmenu())
+            self.bsendWithMarkdownV2(botstartedmessage, reply_markup=self.replyquickmenu())
 
         #cleanup update
         self.bot.getUpdates(-1) #if the bot gets accidentally added to a group, which telepot can't handle, this will fix it
@@ -2357,7 +2361,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.stop_all_tunnels()
             sys.exit()
         else:
-            self.bsend("Operation stopped.")
+            self.bsend("⛔ *Operation Aborted*")
 
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         print("Running test")
