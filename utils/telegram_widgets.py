@@ -10,6 +10,7 @@ from threading import Thread
 from typing import List
 from collections import defaultdict
 from .commands import Command, category_order
+from .cancellable_thread import CancellableThread
 
 def generate_help(commands: List[Command]) -> List[str]:
     """Generate help messages, splitting into multiple parts if too long."""
@@ -459,14 +460,23 @@ oooooo   oooooo     oooo                    oooo
       `8'      `8'       `Y8bod8P' d888b    o888o o888o `Y8bod8P' d888b
 """
 class LoadingBarTimedWorker:
-    def __init__(self,label: str,  duration: int, chat_id: int, bot: Bot, target: Callable, args=(), loading_bar_kwargs: dict = {}) -> None:
+    def __init__(
+        self,
+        label: str,
+        duration: int,
+        chat_id: int,
+        bot: Bot,
+        target: Callable,
+        args=(),
+        loading_bar_kwargs: dict = {}
+    ) -> None:
         self._duration = duration
         self._target = target
         self._args = args
         self._label = label
-
         self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, **loading_bar_kwargs)
         self.running = False
+        self._thread: CancellableThread | None = None   # ← store reference
 
     def get_loading_bar(self) -> LoadingBar:
         return self._loading_bar
@@ -474,27 +484,46 @@ class LoadingBarTimedWorker:
     def stop(self) -> None:
         if not self.running:
             raise RuntimeError("The process was not running.")
-        #self._proc.terminate()
+        if self._thread and self._thread.is_alive():
+            self._thread.cancel()               # ← this is what you want!
+            # Optional: give it a moment to react
+            self._thread.join(timeout=1.5)
 
     def start(self) -> None:
         self.running = True
-        self._proc = Thread(target=self._target, args=self._args)
-        self._proc.start()
+
+        # Wrap the real target so it can check cancellation
+        def wrapped_target():
+            # Pass the cancellable thread instance to the target function
+            # so the target can do: if thread.is_cancelled(): return / break
+            return self._target(thread=self._thread, *self._args)
+
+        self._thread = CancellableThread(
+            target=wrapped_target,
+            name=f"Worker-{self._label}",
+            check_interval=0.1,          # fast reaction
+            daemon=True
+        )
+        self._thread.start()
 
         # Setup loading bar
         self._loading_bar.setup()
-        start_time = perf_counter()
 
+        start_time = perf_counter()
         while True:
             if self._loading_bar.canceled:
-                self.stop()
+                self.stop()                     # ← calls .cancel() on thread
                 break
 
-            # Update the loading bar
-            elapsed = perf_counter()-start_time
+            elapsed = perf_counter() - start_time
             self._loading_bar.update(elapsed)
+
             if elapsed >= self._duration:
                 break
-            sleep(1)
+
+            sleep(0.4)   # don't hammer CPU — 2–3 updates/sec is plenty
 
         self.running = False
+        # Optional: final join to make sure thread is really done
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=2.0)
