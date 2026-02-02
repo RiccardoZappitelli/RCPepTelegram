@@ -2403,9 +2403,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
         print(f"Starting disturbed overlay and noise for {duration} seconds")
-        self.wrapper_for_hdmi_overlay(duration)
         t2 = Thread(target=play_random_noise, args=(duration,))
         t2.start()
+        self.wrapper_for_hdmi_overlay(duration)
         t2.join()
 
 """
