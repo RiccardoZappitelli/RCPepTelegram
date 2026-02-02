@@ -326,7 +326,7 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, logger,  loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
+    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, logger: DebugLogger,  loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
@@ -335,6 +335,7 @@ class PeppinoTelegram:
         self.tunnel_provider = tunnel_provider
         self.has_admin = is_admin()
         self.logger = logger
+        self.logger.bind(conflict_error, self.handle_conflict)
 
         # Need to add this one so someone who spams my bot won't spam me
         self.strangers : list[int] = []
@@ -915,6 +916,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def gabinetti(self) -> None:
         print("Playing Gabinetti meme")
         self.jumpscare("plankton_meme", "gabinetti")
+
+    def handle_conflict(self) -> None:
+        self.stop()
 
     def handle(self, msg: str) -> None:
         print(f"Handling message type: {glance(msg)[0]}")
