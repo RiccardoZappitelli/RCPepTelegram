@@ -1,6 +1,6 @@
 import sys
 import threading
-from typing import Optional
+from typing import Optional, Callable
 
 class DebugLogger:
     def __init__(self):
@@ -9,10 +9,19 @@ class DebugLogger:
         self._stderr_orig = None
         self._buffer: list[str] = []
 
+        #not implemented
+        self._binds: dict[str, Callable] = {}
+
     def _write(self, s: str, orig):
         with self._lock:
             self._buffer.append(s)
             #orig(s) #uncommenting this will re-enable console logging
+
+    # Not Implemented Yet
+    def bind(self, string, function):
+        "Intercepts strings in the stdout buffer and if 'string' is found it calls 'function'"
+        raise NotImplemented
+        self._binds.update({string: function})
 
     def activate(self):
         with self._lock:
