@@ -10,6 +10,8 @@ import platform
 from cv2 import imencode
 from os.path import join
 
+conflict_error = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running', 409, {'ok': False, 'error_code': 409, 'description': 'Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
+
 def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf = io.BytesIO()
     if isinstance(content, str):
