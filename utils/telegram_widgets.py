@@ -12,6 +12,26 @@ from collections import defaultdict
 from .commands import Command, category_order
 from .cancellable_thread import CancellableThread
 
+def escape_md_v2(text: str) -> str:
+    """
+    Escapes special characters for Telegram MarkdownV2.
+    Use this on any user-controlled or dynamic content inside `...` or *...*
+    """
+    if not text:
+        return text
+    
+    # Characters that must be escaped in MarkdownV2 inside inline code (`...`) or bold/italic
+    special_chars = r'\_[]()~`>#+-=|{}.!'
+    
+    result = []
+    for char in text:
+        if char in special_chars:
+            result.append('\\' + char)
+        else:
+            result.append(char)
+    
+    return ''.join(result)
+
 def generate_help(commands: List[Command]) -> List[str]:
     """Generate help messages, splitting into multiple parts if too long."""
     # Group commands by category
