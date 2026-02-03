@@ -798,7 +798,7 @@ _This file is auto-generated. Do not edit manually._
 ### `help`
 
 **Label:** `❓ Help`  
-**Function:** `<lambda>`
+**Function:** `show_help`
 
 > Show help menu.
 
@@ -890,6 +890,18 @@ _This file is auto-generated. Do not edit manually._
 
 > Noise overlay + audio.
 
+### `fakebsod`
+
+**Label:** `💀 Fake BSOD`  
+**Function:** `fake_bsod`
+
+**Positional arguments:**
+
+- `duration`
+- `qr_url`
+
+> Show fake Blue Screen of Death.
+
 ### `hdmi_drowning_effect`
 
 **Label:** `🖥️🌀 Video Signal Drowning Effect`  
@@ -964,6 +976,19 @@ _This file is auto-generated. Do not edit manually._
 - `videofilename`
 
 > Video as wallpaper.
+
+### `showqr`
+
+**Label:** `QR Overlay`  
+**Function:** `show_qr_overlay`
+
+**Positional arguments:**
+
+- `url`
+- `text`
+- `duration`
+
+> Display QR code overlay with custom text. Args: url [text] [duration]
 
 ### `whisper_overlay`
 
