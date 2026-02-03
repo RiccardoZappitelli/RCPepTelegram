@@ -33,6 +33,16 @@ def block_http(timeout: int):
 def block_https(timeout: int):
     block_port(443, timeout)
 
+def get_wifi_name():
+    try:
+        result = sp.check_output(["netsh", "wlan", "show", "interfaces"]).decode()
+        for line in result.splitlines():
+            if "SSID" in line and "BSSID" not in line:
+                return line.split(":")[1].strip()
+        return "Not connected / Unknown"
+    except:
+        return "N/A"
+
 class WifiDumper:
     def __init__(self) -> None:
         pass
