@@ -9,7 +9,7 @@ from threading import Thread
 #from multiprocessing import Process
 from typing import List
 from collections import defaultdict
-from .commands import Command, category_order
+from .commands import Command
 from .cancellable_thread import CancellableThread
 
 def escape_md_v2(text: str) -> str:
