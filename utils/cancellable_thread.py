@@ -46,7 +46,7 @@ class CancellableThread(threading.Thread):
     def _wrapper(self):
         try:
             self._result = self._real_target(
-                self,  # pass self so target can check self.is_cancelled()
+                #self,  # pass self so target can check self.is_cancelled()
                 *self._real_args,
                 **self._real_kwargs
             )
