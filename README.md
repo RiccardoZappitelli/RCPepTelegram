@@ -144,6 +144,7 @@ cd RCPepTelegram
 
 ```bash
 pip install -r requirements.txt
+#also install this: https://github.com/xshiraori/PyDivert2
 ```
 
 ---
