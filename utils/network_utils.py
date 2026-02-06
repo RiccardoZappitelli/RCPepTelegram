@@ -4,6 +4,7 @@ import subprocess as sp
 from xml.dom import minidom
 from os import listdir, remove
 from time import perf_counter
+from threading import Event
 
 """
 ooooo      ooo               .                                       oooo        ooooo     ooo     .    o8o  oooo
@@ -15,29 +16,20 @@ ooooo      ooo               .                                       oooo       
 o8o        `8  `Y8bod8P'   "888"     `8'  `8'     `Y8bod8P' d888b    o888o o888o    `YbodP'      "888" o888o o888o 8""888P'
 """
 
-def chrome_pids():
+def get_pids_for_process(proc: str):
     return [
         p.pid for p in psutil.process_iter(['name'])
-        if p.info['name'] and p.info['name'].lower() == 'chrome.exe'
+        if p.info['name'] and p.info['name'].lower() == proc
     ]
 
 def block_chrome(timeout: int):
-    pids = chrome_pids()
-    if not pids:
-        return
+    pass
 
-    FILTER = "outbound and (" + " or ".join(
-        f"processId == {pid}" for pid in pids
-    ) + ")"
-
-    start = perf_counter()
-    with pydivert.WinDivert(FILTER) as w:
-        while perf_counter() - start < timeout:
-            packet = w.recv()
-            if packet:
-                pass  # drop
-
-def block_port(port: int, timeout: int):
+#The functions that contains a GIL blocking function must have cancel event
+def block_port(port: int, timeout: int, cancel_event: Event|None=None):
+    if cancel_event is None:
+        print(f"Port blocker: {port=} cancel_event wasn't passed")
+        cancel_event = Event()
     FILTER = f"""
     (outbound and (
         (tcp.DstPort == {port}) or
@@ -46,15 +38,16 @@ def block_port(port: int, timeout: int):
     """
     start = perf_counter()
     with pydivert.WinDivert(FILTER) as w:
-        while perf_counter()-start < timeout:
+        while perf_counter()-start < timeout and not cancel_event.is_set():
             packet = w.recv()
+            print(f"Port blocker: {port=} {cancel_event.is_set()=}")
             if packet:
                 pass
 
-def block_http(timeout: int):
+def block_http(timeout: int, cancel_event=None):
     block_port(80, timeout)
 
-def block_https(timeout: int):
+def block_https(timeout: int, cancel_event=None):
     block_port(443, timeout)
 
 def get_wifi_name():
