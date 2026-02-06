@@ -5,6 +5,7 @@ from time import sleep
 from typing import Callable, Any
 
 
+#The functions that contains a GIL blocking function must have cancel event argument
 def cancellable(check_interval: float = 0.08):
     """
     Decorator that adds automatic cancellation checking.
@@ -38,12 +39,14 @@ def cancellable(check_interval: float = 0.08):
     return decorator
 
 
+#The functions that contains a GIL blocking function must have cancel event argument
 class CancellableThread(threading.Thread):
     """
-    Smart cancellable thread:
-    - Accepts forced 'thread' as first positional arg (for backward compatibility)
-    - Converts it to cancel_event kwarg if target accepts it
-    - Or ignores it if target doesn't need cancellation
+    Cancellable thread that:
+    - Automatically passes cancel_event=None as kwarg if the target function accepts it
+    - Does NOT force any positional arguments
+    - Target can check cancel_event.is_set() to stop gracefully
+    - .cancel() sets the event and runs optional cleanup
     """
     def __init__(
         self,
@@ -64,6 +67,7 @@ class CancellableThread(threading.Thread):
         self._exception = None
 
     def cancel(self):
+        """Signal cancellation and run cleanup if provided"""
         self._cancel_event.set()
         if self._on_cancel:
             try:
@@ -76,30 +80,20 @@ class CancellableThread(threading.Thread):
 
     def run(self):
         try:
-            # Prepare call args/kwargs
-            real_args = list(self._args)
-            real_kwargs = self._kwargs.copy()
-
-            # If target expects 'thread' as first positional → provide it
-            # Otherwise, convert to cancel_event kwarg if accepted
+            # Prepare kwargs — add cancel_event ONLY if the function accepts it
+            call_kwargs = self._kwargs.copy()
             sig = inspect.signature(self._target)
+            if "cancel_event" in sig.parameters:
+                print("[CancellableThread] Cancel event is set")
+                call_kwargs["cancel_event"] = self._cancel_event
+            else:
+                print("[CancellableThread] Cancel event is set")
 
-            if "thread" in sig.parameters and sig.parameters["thread"].kind in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD
-            ):
-                # Old style: pass thread as positional
-                real_args.insert(0, self)
-            elif "cancel_event" in sig.parameters:
-                # Modern style: pass as keyword
-                real_kwargs["cancel_event"] = self._cancel_event
-
-            # Run the target
-            self._result = self._target(*real_args, **real_kwargs)
+            self._result = self._target(*self._args, **call_kwargs)
 
         except Exception as e:
             self._exception = e
-            raise
+            raise  # let it propagate (you can log/catch higher up)
 
     def join(self, timeout: float | None = None) -> bool:
         super().join(timeout)

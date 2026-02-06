@@ -498,6 +498,8 @@ class LoadingBarTimedWorker:
         self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, **loading_bar_kwargs)
         self.running = False
         self._thread: CancellableThread | None = None   # ← store reference
+        self.worker_name = f"Worker-{self._label}"
+        print(f"[LoadingBarTimedWorker]({self.worker_name}) Initialized bar")
 
     def get_loading_bar(self) -> LoadingBar:
         return self._loading_bar
@@ -519,13 +521,10 @@ class LoadingBarTimedWorker:
     def start(self) -> None:
         self.running = True
 
-        def wrapped_target(thread):  # ← accepts thread positional
-            # Target can now use thread.is_cancelled() if it wants
-            # Or ignore it completely
-            return self._target(*self._args)
-
+        # No forced wrapper — target is called directly
         self._thread = CancellableThread(
-            target=wrapped_target,
+            target=self._target,
+            args=self._args,
             name=f"Worker-{self._label}",
             daemon=True
         )
@@ -536,6 +535,7 @@ class LoadingBarTimedWorker:
 
         while True:
             if self._loading_bar.canceled:
+                self._thread.cancel()   # ← sets event automatically
                 self.stop()
                 break
 
