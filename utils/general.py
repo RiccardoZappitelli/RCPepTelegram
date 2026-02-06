@@ -54,8 +54,11 @@ def escape_md(text: str) -> str:
 def check_connection():
     try:
         s = socket.socket()
+        s.settimeout(2)
         s.connect(("www.google.com", 80))
     except socket.gaierror:
+        return False
+    except TimeoutError:
         return False
     return True
 
