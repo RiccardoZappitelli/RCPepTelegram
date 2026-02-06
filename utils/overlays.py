@@ -293,7 +293,6 @@ class OverlayManager:
             self.root.withdraw()  # hide it temporarily — we only need it for PhotoImage
 
             # Step 2: Now generate QR + PhotoImage (root exists → no error)
-            import qrcode
             qr = qrcode.QRCode(version=1, box_size=10, border=4)
             qr.add_data(url)
             qr.make(fit=True)
@@ -355,10 +354,11 @@ class OverlayManager:
             print(f"QR overlay error: {e}")
             self._safe_destroy()
 
-    def video_note_overlay(self, path):
+    def video_note_overlay(self, path, pos="center"):
         TRANSPARENT_COLOR = "#FF00FF"
         temp_audio = join(self.burn_dir, f"{randint(100000,999999)}.wav")
-
+        
+        # ─── Video & Audio handling ────────────────────────────────────────
         try:
             clip = VideoFileClip(path)
             if clip.audio:
@@ -369,7 +369,7 @@ class OverlayManager:
             pass
 
         cap = cv2.VideoCapture(path)
-        fps = cap.get(5) or 30
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30          # better to use CAP_PROP_FPS
         delay = int(1000 / fps)
 
         try:
@@ -380,10 +380,28 @@ class OverlayManager:
             self.root.attributes("-transparentcolor", TRANSPARENT_COLOR)
             self.root.config(bg=TRANSPARENT_COLOR)
 
+            # Fixed overlay size
             size = 300
+
+            # Screen dimensions
             sw = self.root.winfo_screenwidth()
             sh = self.root.winfo_screenheight()
-            self.root.geometry(f"{size}x{size}+{sw-size-10}+{sh-size-10}")
+
+            # Position mapping
+            pos_map = {
+                "top-left":     (20, 20),
+                "top-right":    (sw - size - 20, 20),
+                "bottom-left":  (20, sh - size - 20),
+                "bottom-right": (sw - size - 20, sh - size - 20),
+                "center":       ((sw - size) // 2, (sh - size) // 2)
+            }
+
+            # Get position — fallback to center if invalid key
+            position = pos_map.get(pos, pos_map["center"])
+            x, y = position
+
+            # Set window geometry with chosen position
+            self.root.geometry(f"{size}x{size}+{x}+{y}")
 
             canvas = Canvas(
                 self.root,
@@ -394,7 +412,7 @@ class OverlayManager:
             )
             canvas.pack()
 
-            # Allow the overlay window to be dragged with the mouse
+            # ─── Window dragging ───────────────────────────────────────────────
             def start_move(event):
                 self.root.x = event.x
                 self.root.y = event.y
@@ -404,11 +422,12 @@ class OverlayManager:
                 self.root.y = None
 
             def do_move(event):
-                deltax = event.x - self.root.x
-                deltay = event.y - self.root.y
-                x = self.root.winfo_x() + deltax
-                y = self.root.winfo_y() + deltay
-                self.root.geometry(f"+{x}+{y}")
+                if self.root.x is not None and self.root.y is not None:
+                    deltax = event.x - self.root.x
+                    deltay = event.y - self.root.y
+                    new_x = self.root.winfo_x() + deltax
+                    new_y = self.root.winfo_y() + deltay
+                    self.root.geometry(f"+{new_x}+{new_y}")
 
             canvas.bind('<Button-1>', start_move)
             canvas.bind('<ButtonRelease-1>', stop_move)
@@ -416,6 +435,7 @@ class OverlayManager:
 
             self.root.bind('<Escape>', lambda e: self._safe_destroy())
 
+            # ─── Frame update loop ─────────────────────────────────────────────
             def frame():
                 ret, img = cap.read()
                 if not ret:
@@ -427,28 +447,30 @@ class OverlayManager:
 
                 h, w = img.shape[:2]
                 s = min(h, w)
+
+                # Center crop to square
                 img = img[(h-s)//2:(h+s)//2, (w-s)//2:(w+s)//2]
 
-                # Generate a circular mask to clip the video into a round shape
+                # Create circular mask
                 mask = np.zeros((s, s), np.uint8)
                 cv2.circle(mask, (s//2, s//2), s//2, 255, -1)
 
+                # Apply mask (magenta background will be transparent)
                 out = np.full((s, s, 3), (255, 0, 255), dtype=np.uint8)
-
                 for i in range(3):
                     out[:, :, i] = np.where(mask == 255, img[:, :, i], out[:, :, i])
 
-                pil = Image.fromarray(
-                    cv2.cvtColor(out, cv2.COLOR_BGR2RGB)
-                ).resize((size, size))
-
+                # Convert to PIL → resize → RGBA → PhotoImage
+                pil = Image.fromarray(cv2.cvtColor(out, cv2.COLOR_BGR2RGB))
+                pil = pil.resize((size, size))
                 if pil.mode != 'RGBA':
                     pil = pil.convert('RGBA')
 
                 tkimg = ImageTk.PhotoImage(pil)
-                canvas.img = tkimg
+                canvas.img = tkimg   # keep reference
+
                 canvas.delete("all")
-                canvas.create_image(0, 0, anchor=NW, image=tkimg)
+                canvas.create_image(0, 0, anchor="nw", image=tkimg)
 
                 self.root.after(delay, frame)
 
@@ -457,7 +479,8 @@ class OverlayManager:
 
         except Exception as e:
             print(f"Error in video overlay: {e}")
-            cap.release()
+            if 'cap' in locals():
+                cap.release()
             self._safe_destroy()
 
 
