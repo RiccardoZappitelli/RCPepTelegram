@@ -1,4 +1,5 @@
 import pydivert
+import psutil
 import subprocess as sp
 from xml.dom import minidom
 from os import listdir, remove
@@ -13,6 +14,29 @@ ooooo      ooo               .                                       oooo       
  8       `888  888    .o   888 .    `888'`888'    888   888  888      888 `88b.   `88.    .8'    888 .  888   888  o.  )88b
 o8o        `8  `Y8bod8P'   "888"     `8'  `8'     `Y8bod8P' d888b    o888o o888o    `YbodP'      "888" o888o o888o 8""888P'
 """
+
+def chrome_pids():
+    return [
+        p.pid for p in psutil.process_iter(['name'])
+        if p.info['name'] and p.info['name'].lower() == 'chrome.exe'
+    ]
+
+def block_chrome(timeout: int):
+    pids = chrome_pids()
+    if not pids:
+        return
+
+    FILTER = "outbound and (" + " or ".join(
+        f"processId == {pid}" for pid in pids
+    ) + ")"
+
+    start = perf_counter()
+    with pydivert.WinDivert(FILTER) as w:
+        while perf_counter() - start < timeout:
+            packet = w.recv()
+            if packet:
+                pass  # drop
+
 def block_port(port: int, timeout: int):
     FILTER = f"""
     (outbound and (
