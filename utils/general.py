@@ -42,9 +42,13 @@ def cv2_to_bytesio(image, ext=".png") -> io.BytesIO:
     return bio
 
 def get_public_ip() -> str:
-    r = requests.get("https://ifconfig.co", 
-        headers={"User-Agent": "curl/8.0"}
-    )
+    try:
+        r = requests.get("https://ifconfig.co", 
+                        timeout=4,
+                        headers={"User-Agent": "curl/8.0"}
+        )
+    except requests.exceptions.Timeout:
+        return "N/A"
     return r.text
 
 def escape_md(text: str) -> str:
