@@ -5,7 +5,8 @@ from telepot import Bot
 from typing import Callable, Any
 from time import perf_counter, sleep
 
-from threading import Thread
+import inspect
+from threading import Thread, Event
 #from multiprocessing import Process
 from typing import List
 from collections import defaultdict
@@ -48,7 +49,7 @@ def generate_help(commands: List[Command]) -> List[str]:
     menu_category = None
     
     for cat in all_categories:
-        if "Menu" in cat or "🏠" in cat:
+        if cat == "menu":
             menu_category = cat
         else:
             categories_with_menu_first.append(cat)
@@ -504,35 +505,38 @@ class LoadingBarTimedWorker:
     def stop(self) -> None:
         if not self.running:
             raise RuntimeError("The process was not running.")
+        
         if self._thread and self._thread.is_alive():
-            self._thread.cancel()               # ← this is what you want!
-            # Optional: give it a moment to react
-            self._thread.join(timeout=1.5)
+            print(f"[{self._label}] Cancelling thread...")
+            self._thread.cancel()
+            # Give it time to notice and exit gracefully
+            self._thread.join(timeout=2.0)
+            if self._thread.is_alive():
+                print(f"[{self._label}] Thread did not stop in time (timeout hit)")
+            else:
+                print(f"[{self._label}] Thread stopped cleanly")
 
     def start(self) -> None:
         self.running = True
 
-        # Wrap the real target so it can check cancellation
-        def wrapped_target():
-            # Pass the cancellable thread instance to the target function
-            # so the target can do: if thread.is_cancelled(): return / break
-            return self._target(thread=self._thread, *self._args)
+        def wrapped_target(thread):  # ← accepts thread positional
+            # Target can now use thread.is_cancelled() if it wants
+            # Or ignore it completely
+            return self._target(*self._args)
 
         self._thread = CancellableThread(
             target=wrapped_target,
             name=f"Worker-{self._label}",
-            check_interval=0.1,          # fast reaction
             daemon=True
         )
         self._thread.start()
 
-        # Setup loading bar
         self._loading_bar.setup()
-
         start_time = perf_counter()
+
         while True:
             if self._loading_bar.canceled:
-                self.stop()                     # ← calls .cancel() on thread
+                self.stop()
                 break
 
             elapsed = perf_counter() - start_time
@@ -541,9 +545,8 @@ class LoadingBarTimedWorker:
             if elapsed >= self._duration:
                 break
 
-            sleep(0.4)   # don't hammer CPU — 2–3 updates/sec is plenty
+            sleep(0.4)
 
         self.running = False
-        # Optional: final join to make sure thread is really done
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
