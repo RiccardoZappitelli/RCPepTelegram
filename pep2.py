@@ -10,7 +10,7 @@ Also this bot can *NOT* be put in a group, it will not work.
 """
 
 
-__version__ = "2.50" # I kinda forget about this every 10 commits but its kinda funny at this point
+__version__ = "2.65.0" # I kinda forget about this every 10 commits but its kinda funny at this point
 
 
 #TELEGRAM
@@ -1503,14 +1503,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Opening plugins menu")
         return self.generate_category_menu("plugins", "🔌 Your Plugins")
 
-
     def menu_ducky(self):
         print("Opening ducky script menu")
         buttons = {
             i:f"/duckyscript {i}" for i in KEYMAP.keys()
         }
         return self.new_menu(buttons)
-
 
     def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
         print(f"Creating editable message: {content[:50]}...")
