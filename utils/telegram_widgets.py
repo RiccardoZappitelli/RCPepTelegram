@@ -488,6 +488,8 @@ class LoadingBarTimedWorker:
         chat_id: int,
         bot: Bot,
         target: Callable,
+        on_cancel: Callable|None=None,
+        block_default_cancel: bool = False,
         args=(),
         loading_bar_kwargs: dict = {}
     ) -> None:
@@ -497,6 +499,8 @@ class LoadingBarTimedWorker:
         self._label = label
         self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, **loading_bar_kwargs)
         self.running = False
+        self.on_cancel = on_cancel
+        self.block_default_cancel = block_default_cancel
         self._thread: CancellableThread | None = None   # ← store reference
         self.worker_name = f"Worker-{self._label}"
         print(f"[LoadingBarTimedWorker]({self.worker_name}) Initialized bar")
@@ -510,6 +514,13 @@ class LoadingBarTimedWorker:
         
         if self._thread and self._thread.is_alive():
             print(f"[{self._label}] Cancelling thread...")
+            try:
+                if self.on_cancel:
+                    self.on_cancel()
+            except Exception as e:
+                print(f"[LoadingBarTimedWorker]({self.worker_name}) error executing on_cancel function:\n{e}")
+            if self.block_default_cancel:
+                return
             self._thread.cancel()
             # Give it time to notice and exit gracefully
             self._thread.join(timeout=2.0)
