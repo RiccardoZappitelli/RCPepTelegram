@@ -433,7 +433,7 @@ class PeppinoTelegram:
             Command("menu_misc", self.menu_misc, "Open Misc menu.", "menu", "🦑 Misc"),
             Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "menu", "🕵️‍♂️ MITM"),
             Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "menu", "🔌 Your Plugins"),
-            Command("menu_utilities", self.menu_utilities, "Open Utilitiemenu", "🏠 Menu", "🔧 Utility"),
+            Command("menu_utilities", self.menu_utilities, "Open Utilitiemenu", "menu", "🔧 Utility"),
             Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "menu", "🦆 DuckyScript"),
             
             # 🛑 System & Shutdown
@@ -479,7 +479,7 @@ class PeppinoTelegram:
             Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "audio", "🎛️ Mixer Menu"),
             Command("playfromurl", play_from_url, "Play audio from URL.", "audio", "🔗 Play from URL"),
             Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "audio", "📡 Play Noise"),
-            Command("disturbed_overlay_and_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "audio", "🌀📻 Video&Sound Disturbance"),
+            Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "audio", "🌀📻 Video&Sound Disturbance"),
 
             # 🎵 Sound Effects
             Command("pss", self.pss, "Play 'psst' sound.", "sound_fx", "👂 Psst"),
@@ -507,7 +507,7 @@ class PeppinoTelegram:
             Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "parnks", "🖥️🌀 Video Signal Drowning Effect"),
             Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "parnks", "🌀📻 Video&Sound Disturbance"),
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "parnks", "👻 Red Text Overlay"),
-            Command("setJumpVol", self.setJumpscareVolume, "Set jumpscare's volume.","parnks" , "Set Jumpscare Volume"),
+            Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","parnks" , "Set Jumpscare Volume"),
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
@@ -535,7 +535,7 @@ class PeppinoTelegram:
             Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "input", "🔠 Capslock"),
             Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🖱️ Mouselock"),
             Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "input", "🎮 Mousecontroller"),
-            Command("setMouseJump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
+            Command("set_mouse_jump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
             Command("mouser", self.mouser, "Move mouse right.", "input", "➡️ Move Right"),
             Command("mousel", self.mousel, "Move mouse left.", "input", "⬅️ Move Left"),
             Command("mouseu", self.mouseu, "Move mouse up.", "input", "⬆️ Move Up"),
@@ -940,23 +940,51 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def extract_commands(self) -> list[dict]:
         print("Extracting commands list")
+        COMMAND_RE = re.compile(r"^[a-z0-9_]{1,32}$")
         cs = []
+
         for command in self.commands:
+            name = command.name
+            desc = command.description
+
+            # category skip
             if command.category in ("menu", "utility", "testing", "null"):
                 continue
-            if len(command.name) > TELEGRAM_COMMAND_LENGHT_LIMIT:
-                print(f"Command error: {command.name} name is too long {len(command.name)}")
-                continue
-            if len(command.description) > TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT:
-                print(f"Command error: {command.name} descritpion is too long {len(command.description)}")
-                continue
-            if len(cs)+1 == TELEGRAM_COMMANDS_LIMIT:
-                print(f"Command error: too many commands added, max is {TELEGRAM_COMMANDS_LIMIT}")
+
+            # command count limit
+            if len(cs) >= TELEGRAM_COMMANDS_LIMIT:
+                print(f"Command error: too many commands (max {TELEGRAM_COMMANDS_LIMIT}).")
                 break
-            cs.append(
-                {"command"      : command.name,
-                 "description"  : command.description}
-            )
+
+            # empty checks
+            if not name or not desc:
+                print(f"Command error: empty name or description -> {name!r}")
+                continue
+
+            # length checks
+            if len(name) > TELEGRAM_COMMAND_LENGHT_LIMIT:
+                print(f"Command error: '{name}' name too long ({len(name)})")
+                continue
+
+            if len(desc) > TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT:
+                print(f"Command error: '{name}' description too long ({len(desc)})")
+                continue
+
+            # lowercase enforcement
+            if name != name.lower():
+                print(f"Command error: '{name}' contains uppercase characters")
+                continue
+
+            # character set enforcement
+            if not COMMAND_RE.fullmatch(name):
+                print(f"Command error: '{name}' contains invalid characters")
+                continue
+
+            cs.append({
+                "command": name,
+                "description": desc
+            })
+
         return cs
 
     def fake_shutdown(self) -> None:
@@ -1021,7 +1049,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             # Handling strangers
             stranger_message = f"What do you want {sender_name}, @{username} `{chat_id}`, I don't work for you."
-            self.bot.sendMessage(chat_id, stranger_message)
+            self.bot.sendMessage(chat_id, stranger_message, parse_mode="MarkdownV2")
             self.bsend(f"Message from {sender_name} @{username} `{chat_id}`:\n{msg.get('text')}")
             self.strangers.append(chat_id)
 
@@ -1691,8 +1719,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 parse_mode="Markdown"
             )
     
-    def parse_video_note(self, saved_filepath: str) -> None:
-        print(f"Parsing video note: {saved_filepath}")
+    def parse_video_note(self, saved_filepath: str, document: Any) -> None:
+        duration = document.get("duration")
+        print(f"Parsing video note: {saved_filepath}, document={document}")
         prompt = (
         "🎯 *Select Position*\n\n"
         "Choose a position by number:\n\n"
@@ -1783,7 +1812,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         elif mimetype == "video_note":
             print("VIDEO NOTE")
-            self.parse_video_note(saved_filepath)
+            self.parse_video_note(saved_filepath, document)
 
 
     def parse_photo(self, msg: dict) -> None:
@@ -2639,7 +2668,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         url = f'https://api.telegram.org/bot{self.token}/setMyCommands'
         payload = {'commands': commands}
         response = requests.post(url, json=payload)
-        print(f"Update commands response {response.text}")
+        response_json = response.json()
+        ok, result = response_json.get("ok"), response_json.get("result")
+        print(f"{'Commands updated' if ok else 'Commands NOT updated'}, Result: {result}")
         return response.status_code == 200
 
     def waitforface(self, timeout=60):
