@@ -72,13 +72,17 @@ def resource_path(relative_path: str) -> str:
     return join(base_path, relative_path)
 
 def load_dll(name: str) -> None:
+    print(f"Loading DLL:", name)
     if getattr(sys, "frozen", False):
         base = sys._MEIPASS
     else:
         base = os.path.dirname(__file__)
 
     path = os.path.join(base, name)
-    ctypes.WinDLL(path)
+    try:
+        ctypes.WinDLL(path)
+    except Exception as e:
+        print(f"Error while loading the dll: {name}\n{e}")
 
 
 # CONSTANTS
