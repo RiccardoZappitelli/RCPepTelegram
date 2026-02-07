@@ -27,8 +27,8 @@ from PIL import Image
 from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, waitKey,
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
-                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap,
-                 destroyWindow, destroyAllWindows, copyMakeBorder, BORDER_CONSTANT, WINDOW_NORMAL, CAP_PROP_FPS, resizeWindow)
+                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn,
+                 destroyAllWindows, BORDER_CONSTANT, destroyWindow, copyMakeBorder)
 
 #MERGE AUDIO&VIDEO
 from moviepy.editor import AudioFileClip, VideoFileClip
@@ -197,19 +197,6 @@ def show_image_fullscreen(image, timeout=1250) -> None:
     imshow("FullScreenImage", image) 
     waitKey(timeout)
     destroyAllWindows()
-
-def invert_image(imagearray:np.array) -> np.array:
-    return bitwise_not(imagearray)
-
-def distorted_screen(image, strength=5, frequency=50):
-    h, w, _ = image.shape
-    map_x, map_y = np.meshgrid(np.arange(w, dtype=np.float32), np.arange(h, dtype=np.float32))
-
-    map_x += np.sin(map_y / frequency) * strength
-    map_y += np.cos(map_x / frequency) * strength
-
-    distorted = remap(image, map_x, map_y, interpolation=INTER_LINEAR, borderMode=BORDER_REFLECT)
-    return distorted
 
 def detect_face(cap:VideoCapture|None=None) -> tuple[int,Mat]:
     if not FACERECOGNITION:
@@ -1049,7 +1036,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             # Handling strangers
             stranger_message = f"What do you want {sender_name}, @{username} `{chat_id}`, I don't work for you."
-            self.bot.sendMessage(chat_id, stranger_message, parse_mode="MarkdownV2")
+            self.bot.sendMessage(chat_id, stranger_message)
             self.bsend(f"Message from {sender_name} @{username} `{chat_id}`:\n{msg.get('text')}")
             self.strangers.append(chat_id)
 
@@ -1537,7 +1524,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
-    def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=()) -> LoadingBarTimedWorker:
+    def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=(), on_cancel: Callable|None=None, block_default_cancel: bool=False) -> LoadingBarTimedWorker:
         print(f"Creating loading bar worker: {label}, duration={duration}")
         loadingbar_tw = LoadingBarTimedWorker(label=label,duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
             "full_char":self.loading_bar_set[0],
@@ -1545,7 +1532,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "spinner_frames":self.loading_bar_spinner,
             "spinner_pos":"right",
             "bar_lenght":10,
-        })
+        }, on_cancel=on_cancel, block_default_cancel=block_default_cancel)
         loadingbar = loadingbar_tw.get_loading_bar()
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar_tw
@@ -1721,7 +1708,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     
     def parse_video_note(self, saved_filepath: str, document: Any) -> None:
         duration = document.get("duration")
-        print(f"Parsing video note: {saved_filepath}, document={document}")
+        print(f"Parsing video note: {saved_filepath}, {duration=}")
         prompt = (
         "🎯 *Select Position*\n\n"
         "Choose a position by number:\n\n"
@@ -1755,7 +1742,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if not pos_idx.isnumeric():
             self.operation_canceled(f"Choose an option between 1 and {max(posx.keys())}")
             return
-        self.overlay_tk.video_note_overlay(saved_filepath, posx[pos_idx])
+        bar = self.new_loading_bar_timed_worker(label="Playing Video Note", duration=int(duration),
+                                          target=self.overlay_tk.video_note_overlay,
+                                          args=(saved_filepath, posx[pos_idx]),
+                                          on_cancel=self.overlay_tk._safe_destroy, block_default_cancel=True)
+        bar.start()
+        #self.overlay_tk.video_note_overlay(saved_filepath, posx[pos_idx])
 
     def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
         print(f"Parsing video: {saved_filename}")
@@ -2541,7 +2533,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         else:
             self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
-    def send_prompt(self, question: str, timeout: int = 10, delete: bool = False) -> str|None:
+    def send_prompt(self, question: str, timeout: int = 30, delete: bool = False) -> str|None:
         print(f"Sending prompt: {question}")
         msgid = self.bsendWithMarkdownV2(question)
         self.user["status"]="input_requested"
@@ -2697,7 +2689,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
         print(f"Starting HDMI overlay for {timeout_seconds} seconds")
-        Thread(target=self.overlay_opencv.run(timeout_seconds)).start()
+        Thread(target=self.overlay_opencv.run_disturbance_effect(timeout_seconds)).start()
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
         print(f"Starting disturbed overlay and noise for {duration} seconds")
