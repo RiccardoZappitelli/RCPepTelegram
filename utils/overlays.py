@@ -10,10 +10,41 @@ from os.path import join, exists
 from moviepy.editor import VideoFileClip
 from tkinter import Tk, Canvas, Label, NW, Frame
 from random import randint, choice, uniform, random
+from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
 
-from .audio_player import play_wav
-from typing import Any
+#from .audio_player import play_wav
+play_wav = lambda *args:None
+from typing import Any, Callable
 
+type TimeElapsed = float
+
+def invert_image(imagearray, time_elapsed=None) -> np.array:
+    return bitwise_not(imagearray)
+
+def distorted_screen(image, elapsed, strength=5.0, frequency=50.0, state=None):
+    h, w = image.shape[:2]
+
+    if state["_map"] is None:
+        state["_map"] = np.meshgrid(
+            np.arange(w, dtype=np.float32),
+            np.arange(h, dtype=np.float32)
+        )
+
+    base_x, base_y = state["_map"]
+
+    dx = np.sin((base_y / frequency) + elapsed) * strength
+    dy = np.cos((base_x / frequency) + elapsed) * strength
+
+    map_x = base_x + dx
+    map_y = base_y + dy
+
+    return remap(
+        image,
+        map_x,
+        map_y,
+        interpolation=INTER_LINEAR,
+        borderMode=BORDER_REFLECT
+    )
 
 def screen_and_webcam_pic(cap: cv2.VideoCapture, screen: Any | str = None) -> tuple[bool, Any]:
     if screen is None:
@@ -355,6 +386,7 @@ class OverlayManager:
             self._safe_destroy()
 
     def video_note_overlay(self, path, pos="center"):
+        # TODO: add a LBTW to make it cancellable
         TRANSPARENT_COLOR = "#FF00FF"
         temp_audio = join(self.burn_dir, f"{randint(100000,999999)}.wav")
         
@@ -502,15 +534,23 @@ class OpenCVOverlayPlayer:
         cv2.setWindowProperty(self.name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         cv2.setWindowProperty(self.name, cv2.WND_PROP_TOPMOST, 1)
 
-    def run(self, timeout):
+    def run(self, timeout, screen_modifying_function: Callable[[Any, TimeElapsed], None]):
         self.hide_cursor()
         self.setup()
         start = time()
 
         with mss.mss() as sct:
             while time() - start < timeout and not self.stop_flag:
-                frame = np.array(sct.grab(sct.monitors[1]))[:, :, :3]
-                out = self.process_frame(frame, time() - start)
+                raw = sct.grab(sct.monitors[1])
+                frame = np.array(raw)[:, :, :3]           # BGRA → BGR
+
+                # Option A: Most common fix — explicit channel reorder (safest)
+                frame = frame[:, :, [2,1,0]]              # BGR → RGB  (what many people need on Windows lately)
+
+                # Option B: If Option A gives red/blue swapped → use this instead
+                # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                out = screen_modifying_function(frame, time() - start)
                 cv2.imshow(self.name, out)
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
@@ -521,7 +561,10 @@ class OpenCVOverlayPlayer:
         cv2.destroyAllWindows()
         self.show_cursor()
 
-    def process_frame(self, frame, elapsed):
+    def run_disturbance_effect(self, timeout: int):
+        self.run(timeout, self.process_frame_for_disturbance_effect)
+
+    def process_frame_for_disturbance_effect(self, frame, elapsed):
         h, w, _ = frame.shape
 
         # Base blur
@@ -567,3 +610,6 @@ class OpenCVOverlayPlayer:
             out[::2] = (out[::2] * (0.65 + 0.35*(1-glitch_intensity))).astype(np.uint8)
 
         return out
+
+if __name__ == "__main__":
+    OpenCVOverlayPlayer().run_disturbance_effect(5)
