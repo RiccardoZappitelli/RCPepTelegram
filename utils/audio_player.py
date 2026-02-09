@@ -32,6 +32,9 @@ def ogg_to_wav(filename: str, rmold: bool=False) -> str:
 def play_wav(audio: str, separate_thread: bool = True) -> None:
     PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
 
+def stopallsounds():
+    PlaySound(None, 0)
+
 def play_random_noise(duration, samplerate=44100, volume=0.3):
     samples = int(duration * samplerate)
     noise = np.random.uniform(-1.0, 1.0, samples).astype(np.float32) * volume
