@@ -530,6 +530,15 @@ class OpenCVOverlayPlayer:
     def show_cursor(self):
         ctypes.windll.user32.ShowCursor(True)
 
+    def setstop(self):
+        self.stop_flag = True
+
+    def unsetstop(self):
+        self.stop_flag = False
+
+    def togglestop(self):
+        self.stop_flag = not self.stop_flag
+
     def setup(self):
         cv2.namedWindow(self.name, cv2.WINDOW_NORMAL)
         cv2.setWindowProperty(self.name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -555,12 +564,12 @@ class OpenCVOverlayPlayer:
                 cv2.imshow(self.name, out)
                 if cv2.waitKey(1) & 0xFF == 27:
                     break
-
         self.cleanup()
 
     def cleanup(self):
         cv2.destroyAllWindows()
         self.show_cursor()
+        self.unsetstop()
 
     def run_disturbance_effect(self, timeout: int):
         self.run(timeout, self.process_frame_for_disturbance_effect)
