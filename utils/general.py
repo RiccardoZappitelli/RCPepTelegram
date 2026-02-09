@@ -7,8 +7,10 @@ import socket
 import shutil
 import requests
 import platform
-from cv2 import imencode
-from os.path import join
+from cv2 import imencode, IMWRITE_JPEG_QUALITY
+import numpy as np
+
+user32 = ctypes.windll.user32
 
 conflict_error = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running', 409, {'ok': False, 'error_code': 409, 'description': 'Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
 
@@ -27,10 +29,49 @@ def is_admin() -> bool:
     except Exception:
         return False
 
-def fast_screenshot(output: str = "monitor-{mon}.png", callback = None):
+def numpy_to_jpg_bytes(capture_dict, quality=85) -> bytes:
+    img = capture_dict["screenshot"]
+    success, encoded = imencode(
+        '.jpg',
+        img,
+        [int(IMWRITE_JPEG_QUALITY), quality]
+    )
+
+    if not success:
+        raise RuntimeError("JPEG encoding failed")
+
+    return encoded.tobytes()   # pure bytes
+
+def screen_grub(sct=None, monitor=None):
+    if sct is None:
+        sct = mss.mss()
+    raw = sct.grab(monitor if monitor else sct.monitors[0])
+    img_bgra = np.array(raw)
+    cv2_array = img_bgra[:, :, :3]
+    sct.close()
+    return monitor, cv2_array
+
+def fast_screenshot():
+    """
+    Generator that captures screenshots of all monitors and yields
+    dictionaries with the format:
+        {"monitor": int, "screenshot": np.ndarray (OpenCV BGR format)}
+
+    Yields one dict per monitor.
+
+    Example usage:
+        for capture in fast_screenshot():
+            idx = capture["monitor"]
+            img = capture["screenshot"]
+            cv2.imshow(f"Monitor {idx}", img)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cv2.destroyAllWindows()
+    """
     with mss.mss() as sct:
-        for x in sct.save(callback=callback, output=output):
-            yield x
+        for idx, monitor in enumerate(sct.monitors[1:], start=1):
+            monitor, cv2_array = screen_grub(sct, monitor)
+            yield {"monitor": monitor, "screenshot": cv2_array}
 
 def cv2_to_bytesio(image, ext=".png") -> io.BytesIO:
     ok, buf = imencode(ext, image)
