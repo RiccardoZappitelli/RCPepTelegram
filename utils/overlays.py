@@ -11,6 +11,7 @@ from moviepy.editor import VideoFileClip
 from tkinter import Tk, Canvas, Label, NW, Frame
 from random import randint, choice, uniform, random
 from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
+from .general import screen_grub
 
 #from .audio_player import play_wav
 play_wav = lambda *args:None
@@ -378,7 +379,6 @@ class OverlayManager:
 
             # ESC to close
             self.root.bind("<Escape>", lambda e: self._safe_destroy())
-
             self.root.mainloop()
 
         except Exception as e:
@@ -522,6 +522,7 @@ class OpenCVOverlayPlayer:
         self.stop_flag = False
         self.prev_frame = None
         self.elapsed = -1
+        self.cache = {}
 
     def hide_cursor(self):
         ctypes.windll.user32.ShowCursor(False)
@@ -563,6 +564,11 @@ class OpenCVOverlayPlayer:
 
     def run_disturbance_effect(self, timeout: int):
         self.run(timeout, self.process_frame_for_disturbance_effect)
+
+    def run_block_screen(self, timeout: int):
+        _, self.cache["screenshot"] = screen_grub()
+        self.run(timeout, lambda *args: self.cache.get("screenshot"))
+        del self.cache["screenshot"]
 
     def process_frame_for_disturbance_effect(self, frame, elapsed):
         h, w, _ = frame.shape
@@ -612,4 +618,4 @@ class OpenCVOverlayPlayer:
         return out
 
 if __name__ == "__main__":
-    OpenCVOverlayPlayer().run_disturbance_effect(5)
+    OpenCVOverlayPlayer().run_block_screen(5)
