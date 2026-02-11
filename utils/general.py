@@ -14,6 +14,9 @@ user32 = ctypes.windll.user32
 
 conflict_error = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running', 409, {'ok': False, 'error_code': 409, 'description': 'Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
 
+def hide_cursor(self):
+    user32.ShowCursor(False)
+
 def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf = io.BytesIO()
     if isinstance(content, str):
@@ -71,7 +74,7 @@ def fast_screenshot():
     with mss.mss() as sct:
         for idx, monitor in enumerate(sct.monitors[1:], start=1):
             monitor, cv2_array = screen_grub(sct, monitor)
-            yield {"monitor": monitor, "screenshot": cv2_array}
+            yield {"monitor": f"Monitor N°{idx}", "screenshot": cv2_array}
 
 def cv2_to_bytesio(image, ext=".png") -> io.BytesIO:
     ok, buf = imencode(ext, image)
