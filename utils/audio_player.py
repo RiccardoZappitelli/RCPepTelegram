@@ -29,49 +29,59 @@ def ogg_to_wav(filename: str, rmold: bool=False) -> str:
         remove(filename)
     return new_filepath
 
-def play_wav(audio: str, separate_thread: bool = True) -> None:
-    PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
+class AudioPlayer:
+    def __init__(self):
+        self.stream: sd.OutputStream|None = None
+    
+    @staticmethod
+    def play_wav(audio: str, separate_thread: bool = True) -> None:
+        PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
 
-def stopallsounds():
-    PlaySound(None, 0)
+    def stopallsounds(self):
+        if isinstance(sd.OutputStream, self.stream):
+            sd.stop()
 
-def play_random_noise(duration, samplerate=44100, volume=0.3):
-    samples = int(duration * samplerate)
-    noise = np.random.uniform(-1.0, 1.0, samples).astype(np.float32) * volume
+    def play_random_noise(self, duration, samplerate=44100, volume=0.3):
+        samples = int(duration * samplerate)
+        noise = np.random.uniform(-1.0, 1.0, samples).astype(np.float32) * volume
 
-    chunk_size = 1024  # number of samples per chunk
+        chunk_size = 1024  # number of samples per chunk
 
-    with sd.OutputStream(samplerate=samplerate, channels=1, dtype='float32') as stream:
-        for start in range(0, samples, chunk_size):
-            end = min(start + chunk_size, samples)
-            stream.write(noise[start:end])
+        with sd.OutputStream(
+            samplerate=samplerate,
+            channels=1,
+            dtype='float32'
+        ) as self.stream:
+            for start in range(0, samples, chunk_size):
+                end = min(start + chunk_size, samples)
+                self.stream.write(noise[start:end])
 
-def play_mp3(path: str, blocking: bool = True):
-    data, sr = sf.read(path, dtype='float32', always_2d=True)
+    def play_mp3(self, path: str, blocking: bool = True):
+        data, sr = sf.read(path, dtype='float32', always_2d=True)
 
-    with sd.OutputStream(
-        samplerate=sr,
-        channels=data.shape[1],
-        dtype='float32',
-        latency='low'
-    ) as stream:
-        stream.write(data)
-        if blocking:
-            stream.stop()
+        with sd.OutputStream(
+            samplerate=sr,
+            channels=data.shape[1],
+            dtype='float32',
+            latency='low'
+        ) as self.stream:
+            self.stream.write(data)
+            if blocking:
+                self.stream.stop()
 
-def play_from_url(url: str, filename: str="out.mp3", delete_after_playing: bool=True) -> None:
-    filename = url.split("/")[-1]
-    extension = filename.split(".")[-1]
-    urlretrieve(url, filename=filename)
-    if extension == "mp3":
-        play_mp3(filename)
-    elif extension == "wav":
-        play_wav(filename)
-    elif extension == "ogg":
-        new_filename = ogg_to_wav(filename, rmold=True)
-        play_wav(new_filename)
+    def play_from_url(self, url: str, filename: str="out.mp3", delete_after_playing: bool=True) -> None:
+        filename = url.split("/")[-1]
+        extension = filename.split(".")[-1]
+        urlretrieve(url, filename=filename)
+        if extension == "mp3":
+            self.play_mp3(filename)
+        elif extension == "wav":
+            self.play_wav(filename)
+        elif extension == "ogg":
+            new_filename = ogg_to_wav(filename, rmold=True)
+            self.play_wav(new_filename)
 
-    if delete_after_playing:
-        try:
-            remove(filename)
-        except:...
+        if delete_after_playing:
+            try:
+                remove(filename)
+            except:...
