@@ -2,6 +2,7 @@ from telepot.namedtuple import InlineKeyboardButton, InlineKeyboardMarkup
 from telepot.exception import TelegramError
 from telepot import Bot
 
+from re import sub
 from typing import Callable, Any
 from time import perf_counter, sleep
 
@@ -14,24 +15,7 @@ from .commands import Command
 from .cancellable_thread import CancellableThread
 
 def escape_md_v2(text: str) -> str:
-    """
-    Escapes special characters for Telegram MarkdownV2.
-    Use this on any user-controlled or dynamic content inside `...` or *...*
-    """
-    if not text:
-        return text
-    
-    # Characters that must be escaped in MarkdownV2 inside inline code (`...`) or bold/italic
-    special_chars = r'\_[]()~`>#+-=|{}.!'
-    
-    result = []
-    for char in text:
-        if char in special_chars:
-            result.append('\\' + char)
-        else:
-            result.append(char)
-    
-    return ''.join(result)
+    return sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
 def generate_help(commands: List[Command]) -> List[str]:
     """Generate help messages, splitting into multiple parts if too long."""
