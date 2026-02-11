@@ -6,18 +6,21 @@ import numpy as np
 from os import remove
 from time import sleep, time
 from PIL import Image, ImageTk
+from typing import Any, Callable
 from os.path import join, exists
 from moviepy.editor import VideoFileClip
-from tkinter import Tk, Canvas, Label, NW, Frame
 from random import randint, choice, uniform, random
+from tkinter import Tk, Canvas, Label, NW, Frame, simpledialog
 from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
-from .general import screen_grub
 
-#from .audio_player import play_wav
-play_wav = lambda *args:None
-from typing import Any, Callable
+from .general import screen_grub
+from .audio_player import AudioPlayer
+play_wav = AudioPlayer.play_wav
 
 type TimeElapsed = float
+
+def user_prompt(question: str, window_title: str = "Question") -> str:
+    return simpledialog.askstring(window_title, question).strip()
 
 def invert_image(imagearray, time_elapsed=None) -> np.array:
     return bitwise_not(imagearray)
@@ -625,6 +628,3 @@ class OpenCVOverlayPlayer:
             out[::2] = (out[::2] * (0.65 + 0.35*(1-glitch_intensity))).astype(np.uint8)
 
         return out
-
-if __name__ == "__main__":
-    OpenCVOverlayPlayer().run_block_screen(5)
