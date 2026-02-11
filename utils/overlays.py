@@ -13,8 +13,8 @@ from random import randint, choice, uniform, random
 from tkinter import Tk, Canvas, Label, NW, Frame, simpledialog
 from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
 
-from .general import screen_grub
 from .audio_player import AudioPlayer
+from .general import screen_grub, user32
 play_wav = AudioPlayer.play_wav
 
 type TimeElapsed = float
@@ -528,10 +528,10 @@ class OpenCVOverlayPlayer:
         self.cache = {}
 
     def hide_cursor(self):
-        ctypes.windll.user32.ShowCursor(False)
+        user32.ShowCursor(False)
 
     def show_cursor(self):
-        ctypes.windll.user32.ShowCursor(True)
+        user32.ShowCursor(True)
 
     def setstop(self):
         self.stop_flag = True
