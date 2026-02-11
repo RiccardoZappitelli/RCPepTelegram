@@ -1,7 +1,7 @@
 from .cmdsession import CMDSession
 from .duckyscript import toducky, KEYMAP
 from .mymixer import CustomMixer
-from .overlays import OpenCVOverlayPlayer, OverlayManager, invert_image, distorted_screen
+from .overlays import OpenCVOverlayPlayer, OverlayManager, invert_image, distorted_screen, user_prompt
 from .tunnel_handler import *
 from .network_utils import *
 from .audio_player import *
