@@ -93,23 +93,19 @@ class GUIUser(User):
     def stop(self):
         self.safe_destroy()
 
-    def safe_destroy(self):
-        print("Destroying chat video")
-        try:
-            if self.root:
-                self.root.destroy()
-        except Exception as e:
-            pass
-        self.root = None
-
     def start(self, stop_event=None):
+        if stop_event:
+            print(f"[Chat] Polling stop event: {stop_event=}")
+            self._poll_stop_event(stop_event)
         self.root.mainloop()
-        while stop_event:
-            print(f"Chat {stop_event.is_set()}")
-            if stop_event.is_set():
-                self.stop()
-                break
-            sleep(4)
+
+    def _poll_stop_event(self, stop_event):
+        if stop_event.is_set():
+            print("[Chat] Destroying window")
+            self.root.quit()
+            self.root.destroy()
+            return
+        self.root.after(200, self._poll_stop_event, stop_event)
 
 if __name__ == "__main__":
     # -------------------------
