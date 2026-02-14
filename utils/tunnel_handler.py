@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 #Misc
 import numpy as np
 from threading import Thread
-from .duckyscript import toducky
+from .input_injection.duckyscript import toducky
 from pyautogui import screenshot
 from .general import get_public_ip
 from .overlays import screen_and_webcam_pic
