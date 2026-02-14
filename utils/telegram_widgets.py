@@ -341,7 +341,8 @@ class LoadingBar:
                  autodelete: bool=True, showperc: bool=True, label=None,
                  spinner_enabled: bool=True, full_char: str="🔲", empty_char="🔶",
                  spinner_frames=all_spinners["braille"], spinner_pos: str="left",
-                 bar_lenght: int=10, pin_message: bool=False, cancel_button: bool=True):
+                 bar_lenght: int=10, pin_message: bool=False, cancel_button: bool=True,
+                 on_complete: Callable = None):
         
         self.bot = bot
         self.tot = int(total)
@@ -358,10 +359,12 @@ class LoadingBar:
         self.spinner_pos = spinner_pos
         self.bar_lenght = bar_lenght
         self.progress = 0
-        self.done = False
+        self.done = False #if the bar was stopped or completed
+        self.completed = False # if the bar reached 100%
         self.deleted = False
         self.pin_message = pin_message
         self.cancel_button = cancel_button
+        self.on_complete = on_complete
         self.parse_mode = "HTML"
         if cancel_button:
             self.canceled = False
@@ -371,8 +374,8 @@ class LoadingBar:
             self.setup()
 
     def get_bar(self):
-        self.perc_progress = round((self.progress / self.tot) * 100, 1)
-        self.int_perc_progress = min(int(self.perc_progress), 100)
+        self.perc_progress = min(round((self.progress / self.tot) * 100, 1), 100)
+        self.int_perc_progress = int(self.perc_progress)
         bar = self.full_char * (self.int_perc_progress//self.bar_lenght) + \
               self.empty_char * (self.bar_lenght - (self.int_perc_progress//self.bar_lenght))
         if self.showperc:
@@ -403,17 +406,20 @@ class LoadingBar:
         while not self.done and self.progress < self.tot:
             self.spinner_index = (self.spinner_index + 1) % len(self.spinner)
             self.update()
-            if self.canceled:
-                self.cancel()
             sleep(self.spinner_delay)
 
     def update(self, new_progress: int=None):
         if new_progress is not None:
             self.progress = new_progress
-        if self.done:
-            return
+        if self.perc_progress >= 100:
+            self.completed = True
+            self.done = True
+        if self.completed and self.on_complete:
+            self.on_complete()
         if self.canceled:
             self.cancel()
+        if self.done:
+            return
         try:
             self.bot.editMessageText(
                 (self.chat_id, self.ETDMessage["message_id"]),
@@ -441,10 +447,10 @@ class LoadingBar:
         self.delete()
     
     def set100(self):
-        if self.done:
-            return
-        self.progress = self.tot
-        self.update()
+        try:
+            self.progress = self.tot
+            self.update()
+        except:...
 
 """
 ooooo                                  .o8   o8o                         oooooooooo.
@@ -473,6 +479,7 @@ class LoadingBarTimedWorker:
         bot: Bot,
         target: Callable,
         on_cancel: Callable|None=None,
+        on_complete: Callable|None=None,
         block_default_cancel: bool = False,
         args=(),
         loading_bar_kwargs: dict = {}
@@ -481,7 +488,8 @@ class LoadingBarTimedWorker:
         self._target = target
         self._args = args
         self._label = label
-        self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, **loading_bar_kwargs)
+        self.on_complete = on_complete
+        self._loading_bar = LoadingBar(duration, chat_id, bot, False, label=label, on_complete=on_complete, **loading_bar_kwargs)
         self.running = False
         self.on_cancel = on_cancel
         self.block_default_cancel = block_default_cancel
@@ -495,14 +503,16 @@ class LoadingBarTimedWorker:
     def stop(self) -> None:
         if not self.running:
             raise RuntimeError("The process was not running.")
-        
+
+        try:
+            print(f"[LoadingBarTimedWorker]({self.worker_name}) {self.on_cancel=}")
+            if self.on_cancel:
+                self.on_cancel()
+        except Exception as e:
+            print(f"[LoadingBarTimedWorker]({self.worker_name}) error executing on_cancel function:\n{e}")
+
         if self._thread and self._thread.is_alive():
             print(f"[{self._label}] Cancelling thread...")
-            try:
-                if self.on_cancel:
-                    self.on_cancel()
-            except Exception as e:
-                print(f"[LoadingBarTimedWorker]({self.worker_name}) error executing on_cancel function:\n{e}")
             if self.block_default_cancel:
                 return
             self._thread.cancel()
@@ -530,14 +540,16 @@ class LoadingBarTimedWorker:
 
         while True:
             if self._loading_bar.canceled:
+                print(f"[LoadingBarTimedWorker] {self.worker_name} stopping...")
                 self._thread.cancel()   # ← sets event automatically
                 self.stop()
+                print(f"[LoadingBarTimedWorker] {self.worker_name} stopped.")
                 break
 
             elapsed = perf_counter() - start_time
             self._loading_bar.update(elapsed)
 
-            if elapsed >= self._duration:
+            if self._loading_bar.completed or self._loading_bar.done:
                 break
 
             sleep(0.4)
@@ -545,3 +557,4 @@ class LoadingBarTimedWorker:
         self.running = False
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
+        self._loading_bar.fill_and_delete()
