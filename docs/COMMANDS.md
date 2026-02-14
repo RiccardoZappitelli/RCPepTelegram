@@ -2,489 +2,95 @@
 
 _This file is auto-generated. Do not edit manually._
 
-## null
+## audio
 
-### `execute`
+### `disturbed_overlay_random_noise`
 
-**Label:** `null`  
-**Function:** `execute`
-
-**Positional arguments:**
-
-- `*command`
-
-**Keyword-only arguments:**
-
-- `return_output`
-- `shell`
-
-> null
-
-## 🌐 Network
-
-### `block_http`
-
-**Label:** `🚫 Block HTTP`  
-**Function:** `block_http`
+**Label:** `🌀📻 Video&Sound Disturbance`  
+**Function:** `disturbed_overlay_and_random_noise`
 
 **Positional arguments:**
 
-- `timeout`
+- `duration`
 
-> Block all outbound HTTP traffic (port 80).
+> Noise overlay with audio.
 
-### `block_https`
+### `fullvolume`
 
-**Label:** `🚫 Block HTTPS`  
-**Function:** `block_https`
+**Label:** `🔊 Full Volume`  
+**Function:** `<lambda>`
 
-**Positional arguments:**
+> Set volume to maximum.
 
-- `timeout`
+### `getvolume`
 
-> Block all outbound HTTPS traffic (port 443).
+**Label:** `📊 Get Volume`  
+**Function:** `<lambda>`
 
-### `block_port`
+> Get current volume.
 
-**Label:** `🚫 Block Port`  
-**Function:** `block_port`
+### `microphone`
 
-**Positional arguments:**
-
-- `port`
-- `timeout`
-
-> Block a specific TCP/UDP port.
-
-### `getip`
-
-**Label:** `🌐 Get IP`  
-**Function:** `getip`
-
-> Get public IP and location.
-
-### `urltoast`
-
-**Label:** `🔗 URL Toast`  
-**Function:** `notify_toast`
+**Label:** `🎙️ Microphone`  
+**Function:** `send_record_audio`
 
 **Positional arguments:**
 
-- `appname`
-- `title`
-- `message`
-- `url_label`
+- `seconds`
+- `caption`
+
+> Record microphone audio.
+
+### `mixermenu`
+
+**Label:** `🎛️ Mixer Menu`  
+**Function:** `mixer_menu`
+
+> Open audio mixer menu.
+
+### `mutevolume`
+
+**Label:** `🔇 Mute Volume`  
+**Function:** `<lambda>`
+
+> Mute system volume.
+
+### `playfromurl`
+
+**Label:** `🔗 Play from URL`  
+**Function:** `play_from_url`
+
+**Positional arguments:**
+
 - `url`
+- `filename`
+- `delete_after_playing`
 
-> Show Windows toast with URL.
+> Play audio from URL.
 
-### `wifiinfo`
+### `playrandomnoise`
 
-**Label:** `📶 Wifiinfo`  
-**Function:** `wifiinfo`
-
-> Show saved WiFi credentials.
-
-## 🎮 Input
-
-### `capslock`
-
-**Label:** `🔠 Capslock`  
-**Function:** `<lambda>`
-
-> Toggle Caps Lock.
-
-### `leftclick`
-
-**Label:** `🖱️ Left Click`  
-**Function:** `leftclick`
-
-> Left mouse click.
-
-### `mousecontroller`
-
-**Label:** `🎮 Mousecontroller`  
-**Function:** `mousecontroller`
-
-> Open mouse control menu.
-
-### `moused`
-
-**Label:** `⬇️ Move Down`  
-**Function:** `moused`
-
-> Move mouse down.
-
-### `mousel`
-
-**Label:** `⬅️ Move Left`  
-**Function:** `mousel`
-
-> Move mouse left.
-
-### `mouselock`
-
-**Label:** `🖱️ Mouselock`  
-**Function:** `mouselock`
+**Label:** `📡 Play Noise`  
+**Function:** `playrandomnoise`
 
 **Positional arguments:**
 
-- `timer`
+- `duration`
 
-> Lock mouse position.
+> Play static/interference noise.
 
-### `mouser`
+### `setvolume`
 
-**Label:** `➡️ Move Right`  
-**Function:** `mouser`
-
-> Move mouse right.
-
-### `mouseu`
-
-**Label:** `⬆️ Move Up`  
-**Function:** `mouseu`
-
-> Move mouse up.
-
-### `randomkeyboard`
-
-**Label:** `🎹 Randomkeyboard`  
-**Function:** `randomkeyboard`
+**Label:** `🎚️ Set Volume`  
+**Function:** `setVolumePercentage`
 
 **Positional arguments:**
 
-- `timeout`
+- `percentage`
 
-> Send random keyboard input.
+> Set volume percentage.
 
-### `rightclick`
-
-**Label:** `🖱️ Right Click`  
-**Function:** `rightclick`
-
-> Right mouse click.
-
-### `setMouseJump`
-
-**Label:** `🎯 Set Mouse Jump`  
-**Function:** `setMouseJump`
-
-**Positional arguments:**
-
-- `jump`
-
-> Set mouse jump distance.
-
-## 🎵 Sound FX
-
-### `behindyou_kid`
-
-**Label:** `👶 Behind you (kid)`  
-**Function:** `behindyou_kid`
-
-> Play 'Behind you' child voice.
-
-### `behindyou_whisper`
-
-**Label:** `👻 Behind you (whisper)`  
-**Function:** `behindyou_whisper`
-
-> Play 'Behind you' whisper.
-
-### `breath`
-
-**Label:** `🌬️ Breath`  
-**Function:** `breath`
-
-> Play breathing sound.
-
-### `fart`
-
-**Label:** `💨 Fart`  
-**Function:** `fart`
-
-> Play fart sound.
-
-### `knockknock`
-
-**Label:** `🚪 Knock`  
-**Function:** `knockknock`
-
-> Play knocking sound.
-
-### `pss`
-
-**Label:** `👂 Psst`  
-**Function:** `pss`
-
-> Play 'psst' sound.
-
-### `psst`
-
-**Label:** `👂 Psst`  
-**Function:** `pss`
-
-> Alias for pss.
-
-### `scream11s`
-
-**Label:** `😱 11s Scream`  
-**Function:** `scream_11s`
-
-> Play 11-second scream.
-
-### `scream15s`
-
-**Label:** `😱 15s Scream`  
-**Function:** `scream_15s`
-
-> Play 15-second scream.
-
-### `tralalerotralala`
-
-**Label:** `🎶 Tralalero`  
-**Function:** `<lambda>`
-
-> Play Italian brainrot sound.
-
-## 🏠 Menu
-
-### `mainmenu`
-
-**Label:** `🏠 Main Menu`  
-**Function:** `mainmenu`
-
-> Open the main menu.
-
-### `menu_audio`
-
-**Label:** `🔊 Audio & Volume`  
-**Function:** `menu_audio`
-
-> Open Audio & Volume menu.
-
-### `menu_camera`
-
-**Label:** `📸 Camera & Screen`  
-**Function:** `menu_camera`
-
-> Open Camera & Screen menu.
-
-### `menu_cantopen`
-
-**Label:** `🔒 Can't Open List`  
-**Function:** `menu_cantopen`
-
-> Open Can't Open List menu.
-
-### `menu_control`
-
-**Label:** `💻 System Control`  
-**Function:** `menu_control`
-
-> Open System Control menu.
-
-### `menu_duckyscript`
-
-**Label:** `🦆 DuckyScript`  
-**Function:** `menu_ducky`
-
-> Opens ducky quick keys.
-
-### `menu_input`
-
-**Label:** `🎮 Input / Device Control`  
-**Function:** `menu_input`
-
-> Open Input / Device Control menu.
-
-### `menu_keylogger`
-
-**Label:** `🧠 Keylogger`  
-**Function:** `menu_keylogger`
-
-> Open Keylogger menu.
-
-### `menu_messaging`
-
-**Label:** `📋 Messaging`  
-**Function:** `menu_messaging`
-
-> Open Messaging menu.
-
-### `menu_misc`
-
-**Label:** `🦑 Misc`  
-**Function:** `menu_misc`
-
-> Open Misc menu.
-
-### `menu_mitm`
-
-**Label:** `🕵️‍♂️ MITM`  
-**Function:** `menu_mitm`
-
-> Open MITM menu.
-
-### `menu_network`
-
-**Label:** `🌐 Network & Remote Access`  
-**Function:** `menu_network`
-
-> Open Network & Remote Access menu.
-
-### `menu_plugins`
-
-**Label:** `🔌 Your Plugins`  
-**Function:** `menu_plugins`
-
-> Open Plugins menu.
-
-### `menu_pranks`
-
-**Label:** `😈 Pranks & Visuals`  
-**Function:** `menu_pranks`
-
-> Open Pranks & Visuals menu.
-
-### `menu_soundfx`
-
-**Label:** `🎵 Sound Effects`  
-**Function:** `menu_soundfx`
-
-> Open Sound Effects menu.
-
-### `menu_system`
-
-**Label:** `🛑 System & Shutdown`  
-**Function:** `menu_system`
-
-> Open System & Shutdown menu.
-
-### `menu_utilities`
-
-**Label:** `🔧 Utility`  
-**Function:** `menu_utilities`
-
-> Open Utilities Menu
-
-## 💻 System Control
-
-### `cmdsession`
-
-**Label:** `</> CMDSession`  
-**Function:** `cmdsession`
-
-> Open interactive CMD session.
-
-### `disk_info`
-
-**Label:** `💿 List Drives`  
-**Function:** `get_disk_info`
-
-> Sends infos about the connected drives.
-
-### `execute_withoutput`
-
-**Label:** `⚙️ Execute`  
-**Function:** `<lambda>`
-
-**Positional arguments:**
-
-- `x`
-
-> Execute system command.
-
-### `processkiller`
-
-**Label:** `💀 Process Killer`  
-**Function:** `process_killer`
-
-**Positional arguments:**
-
-- `page`
-
-> Kill process from list.
-
-### `procmonadd`
-
-**Label:** `➕ Procmon Add`  
-**Function:** `processmonitoradd`
-
-**Positional arguments:**
-
-- `processname`
-
-> Add process to monitor.
-
-### `procmonmenu`
-
-**Label:** `📊 Procmon Menu`  
-**Function:** `processmonitormenushow`
-
-> Show process monitor menu.
-
-### `procmonrem`
-
-**Label:** `➖ Procmon Remove`  
-**Function:** `processmonitorrem`
-
-**Positional arguments:**
-
-- `processname`
-
-> Remove process from monitor.
-
-### `terminateprocess`
-
-**Label:** `🛑 Terminate Process`  
-**Function:** `terminate_process_by_name`
-
-**Positional arguments:**
-
-- `process_name`
-
-> Terminate process by name.
-
-## 📋 Messaging
-
-### `bsend`
-
-**Label:** `📤 Bsend`  
-**Function:** `bsend`
-
-**Positional arguments:**
-
-- `text`
-- `retries`
-- `parse_mode`
-- `reply_markup`
-
-> Send text message.
-
-### `deleteallmessages`
-
-**Label:** `🗑️ Deleteallmessages`  
-**Function:** `deleteallmessages`
-
-> Delete all messages.
-
-### `deletemessages`
-
-**Label:** `❌ Deletemessages`  
-**Function:** `deleteallmessages`
-
-> Delete recent messages.
-
-### `id`
-
-**Label:** `🆔 Id`  
-**Function:** `<lambda>`
-
-> Send chat ID.
-
-## 📸 Camera
+## camera
 
 ### `camerawallpaper`
 
@@ -667,95 +273,7 @@ _This file is auto-generated. Do not edit manually._
 
 > Stop webcam stream.
 
-## 🔊 Audio
-
-### `disturbed_overlay_and_random_noise`
-
-**Label:** `🌀📻 Video&Sound Disturbance`  
-**Function:** `disturbed_overlay_and_random_noise`
-
-**Positional arguments:**
-
-- `duration`
-
-> Noise overlay with audio.
-
-### `fullvolume`
-
-**Label:** `🔊 Full Volume`  
-**Function:** `<lambda>`
-
-> Set volume to maximum.
-
-### `getvolume`
-
-**Label:** `📊 Get Volume`  
-**Function:** `<lambda>`
-
-> Get current volume.
-
-### `microphone`
-
-**Label:** `🎙️ Microphone`  
-**Function:** `send_record_audio`
-
-**Positional arguments:**
-
-- `seconds`
-- `caption`
-
-> Record microphone audio.
-
-### `mixermenu`
-
-**Label:** `🎛️ Mixer Menu`  
-**Function:** `mixer_menu`
-
-> Open audio mixer menu.
-
-### `mutevolume`
-
-**Label:** `🔇 Mute Volume`  
-**Function:** `<lambda>`
-
-> Mute system volume.
-
-### `playfromurl`
-
-**Label:** `🔗 Play from URL`  
-**Function:** `play_from_url`
-
-**Positional arguments:**
-
-- `url`
-- `filename`
-- `delete_after_playing`
-
-> Play audio from URL.
-
-### `playrandomnoise`
-
-**Label:** `📡 Play Noise`  
-**Function:** `playrandomnoise`
-
-**Positional arguments:**
-
-- `duration`
-
-> Play static/interference noise.
-
-### `setvolume`
-
-**Label:** `🎚️ Set Volume`  
-**Function:** `setVolumePercentage`
-
-**Positional arguments:**
-
-- `percentage`
-
-> Set volume percentage.
-
-## 🔒 Can't Open
+## cant_open
 
 ### `cantopenadd`
 
@@ -786,271 +304,266 @@ _This file is auto-generated. Do not edit manually._
 
 > Unblock process execution.
 
-## 🔧 Utility
+## input
 
-### `get_logs`
+### `capslock`
 
-**Label:** `📄 Get Logs`  
-**Function:** `get_logs`
-
-> Gets the program logs ins a file
-
-### `help`
-
-**Label:** `❓ Help`  
-**Function:** `show_help`
-
-> Show help menu.
-
-### `nothing`
-
-**Label:** `Nothing`  
+**Label:** `🔠 Capslock`  
 **Function:** `<lambda>`
 
-> No-op command.
+> Toggle Caps Lock.
 
-### `stop`
+### `leftclick`
 
-**Label:** `🛑 Stop`  
-**Function:** `stop`
+**Label:** `🖱️ Left Click`  
+**Function:** `leftclick`
 
-> Stop current operation.
+> Left mouse click.
 
-### `test`
+### `mousecontroller`
 
-**Label:** `🧪 Test`  
-**Function:** `test`
+**Label:** `🎮 Mousecontroller`  
+**Function:** `mousecontroller`
 
-> Run test routine.
+> Open mouse control menu.
 
-## 🕵️‍♂️ MITM
+### `mouselock`
 
-### `block_http`
+**Label:** `🖱️ Mouselock`  
+**Function:** `mouselock`
 
-**Label:** `Block HTTP`  
-**Function:** `block_http`
+**Positional arguments:**
+
+- `timer`
+
+> Lock mouse position.
+
+### `randomkeyboard`
+
+**Label:** `🎹 Randomkeyboard`  
+**Function:** `randomkeyboard`
 
 **Positional arguments:**
 
 - `timeout`
 
-> Blocks traffic http
+> Send random keyboard input.
 
-### `block_https`
+### `rightclick`
 
-**Label:** `Block HTTPS`  
-**Function:** `block_https`
+**Label:** `🖱️ Right Click`  
+**Function:** `rightclick`
+
+> Right mouse click.
+
+### `set_mouse_jump`
+
+**Label:** `🎯 Set Mouse Jump`  
+**Function:** `setMouseJump`
+
+**Positional arguments:**
+
+- `jump`
+
+> Set mouse jump distance.
+
+## keylogger
+
+### `keylogger`
+
+**Label:** `⌨️ Keylogger`  
+**Function:** `keylogger`
 
 **Positional arguments:**
 
 - `timeout`
 
-> Blocks traffic on a specific port.
+> Log keystrokes to file.
 
-### `block_port`
+### `livekeylogger`
 
-**Label:** `Block Port`  
-**Function:** `block_port`
+**Label:** `📡 Livekeylogger`  
+**Function:** `live_keylogger`
 
 **Positional arguments:**
 
-- `port`
 - `timeout`
 
-> Blocks traffic on a specific port.
+> Live keystroke monitoring.
 
-## 😈 Pranks
+## menu
 
-### `camerawallpaper`
+### `mainmenu`
 
-**Label:** `📷 Camera Wallpaper`  
-**Function:** `setCameraAsWallpaper`
+**Label:** `🏠 Main Menu`  
+**Function:** `mainmenu`
 
-**Positional arguments:**
+> Open the main menu.
 
-- `seconds`
+### `menu`
 
-> Webcam as wallpaper.
+**Label:** `🏠 Main Menu`  
+**Function:** `mainmenu`
 
-### `distortedscreen`
+> Open the main menu.
 
-**Label:** `🌀 Distorted Screen`  
-**Function:** `distorted_screen`
+### `menu_audio`
 
-> Distort screen output.
+**Label:** `🔊 Audio & Volume`  
+**Function:** `menu_audio`
 
-### `disturbed_overlay_and_random_noise`
+> Open Audio & Volume menu.
 
-**Label:** `🌀📻 Video&Sound Disturbance`  
-**Function:** `disturbed_overlay_and_random_noise`
+### `menu_camera`
 
-**Positional arguments:**
+**Label:** `📸 Camera & Screen`  
+**Function:** `menu_camera`
 
-- `duration`
+> Open Camera & Screen menu.
 
-> Noise overlay + audio.
+### `menu_cantopen`
 
-### `fakebsod`
+**Label:** `🔒 Can't Open List`  
+**Function:** `menu_cantopen`
 
-**Label:** `💀 Fake BSOD`  
-**Function:** `fake_bsod`
+> Open Can't Open List menu.
 
-**Positional arguments:**
+### `menu_control`
 
-- `duration`
-- `qr_url`
+**Label:** `💻 System Control`  
+**Function:** `menu_control`
 
-> Show fake Blue Screen of Death.
+> Open System Control menu.
 
-### `hdmi_drowning_effect`
+### `menu_duckyscript`
 
-**Label:** `🖥️🌀 Video Signal Drowning Effect`  
-**Function:** `wrapper_for_hdmi_overlay`
+**Label:** `🦆 DuckyScript`  
+**Function:** `menu_ducky`
 
-**Positional arguments:**
+> Opens ducky quick keys.
 
-- `timeout_seconds`
+### `menu_input`
 
-> Noise overlay effect.
+**Label:** `🎮 Input / Device Control`  
+**Function:** `menu_input`
 
-### `invertedscreen`
+> Open Input / Device Control menu.
 
-**Label:** `🔄 Inverted Screen`  
-**Function:** `inverted_screen`
+### `menu_keylogger`
 
-> Invert screen colors.
+**Label:** `🧠 Keylogger`  
+**Function:** `menu_keylogger`
 
-### `jumpscare`
+> Open Keylogger menu.
 
-**Label:** `👻 Jumpscare`  
-**Function:** `jumpscare`
+### `menu_messaging`
 
-**Positional arguments:**
+**Label:** `📋 Messaging`  
+**Function:** `menu_messaging`
 
-- `image`
-- `audio`
-- `playaudio`
-- `showimage`
-- `setvolume`
+> Open Messaging menu.
 
-> Trigger random jumpscare.
+### `menu_misc`
 
-### `jumpscarenoaudio`
+**Label:** `🦑 Misc`  
+**Function:** `menu_misc`
 
-**Label:** `😶‍🌫️ Jumpscare noaudio`  
-**Function:** `jumpscarenoaudio`
+> Open Misc menu.
 
-> Jumpscare without sound.
+### `menu_mitm`
 
-### `messagebox`
+**Label:** `🕵️‍♂️ MITM`  
+**Function:** `menu_mitm`
 
-**Label:** `💬 Message Box`  
-**Function:** `message_box`
+> Open MITM menu.
+
+### `menu_network`
+
+**Label:** `🌐 Network & Remote Access`  
+**Function:** `menu_network`
+
+> Open Network & Remote Access menu.
+
+### `menu_plugins`
+
+**Label:** `🔌 Your Plugins`  
+**Function:** `menu_plugins`
+
+> Open Plugins menu.
+
+### `menu_pranks`
+
+**Label:** `😈 Pranks & Visuals`  
+**Function:** `menu_pranks`
+
+> Open Pranks & Visuals menu.
+
+### `menu_soundfx`
+
+**Label:** `🎵 Sound Effects`  
+**Function:** `menu_soundfx`
+
+> Open Sound Effects menu.
+
+### `menu_system`
+
+**Label:** `🛑 System & Shutdown`  
+**Function:** `menu_system`
+
+> Open System & Shutdown menu.
+
+### `menu_user_interaction`
+
+**Label:** `👤 User Interaction`  
+**Function:** `menu_user_interaction`
+
+> Open Menu User Interaction
+
+### `menu_utilities`
+
+**Label:** `🔧 Utility`  
+**Function:** `menu_utilities`
+
+> Open Utilitiemenu
+
+## messaging
+
+### `bsend`
+
+**Label:** `📤 Bsend`  
+**Function:** `bsend`
 
 **Positional arguments:**
 
 - `text`
-- `title`
+- `retries`
+- `parse_mode`
+- `reply_markup`
 
-> Show custom message box.
+> Send text message.
 
-### `messagespam`
+### `deleteallmessages`
 
-**Label:** `📨 Message Spam`  
-**Function:** `spam_windows`
+**Label:** `🗑️ Deleteallmessages`  
+**Function:** `deleteallmessages`
 
-**Positional arguments:**
+> Delete all messages.
 
-- `n`
-- `text`
+### `deletemessages`
 
-> Spam message boxes.
+**Label:** `❌ Deletemessages`  
+**Function:** `deleteallmessages`
 
-### `setvideowallpaper`
+> Delete recent messages.
 
-**Label:** `🎞️ Set Video Wallpaper`  
-**Function:** `setvideowallpaper`
+### `id`
 
-**Positional arguments:**
+**Label:** `🆔 Id`  
+**Function:** `<lambda>`
 
-- `videofilename`
+> Send chat ID.
 
-> Video as wallpaper.
-
-### `showqr`
-
-**Label:** `QR Overlay`  
-**Function:** `show_qr_overlay`
-
-**Positional arguments:**
-
-- `url`
-- `text`
-- `duration`
-
-> Display QR code overlay with custom text. Args: url [text] [duration]
-
-### `whisper_overlay`
-
-**Label:** `👻 Red Text Overlay`  
-**Function:** `whisper_overlay`
-
-**Positional arguments:**
-
-- `duration`
-- `whispers`
-
-> Display creepy whisper overlay.
-
-## 🛑 System
-
-### `altf4`
-
-**Label:** `⌨️ Altf4`  
-**Function:** `altf4`
-
-> Send Alt+F4.
-
-### `clear`
-
-**Label:** `🧹 Clear`  
-**Function:** `clear`
-
-> Clean windows, webcam, temp files.
-
-### `fakeshutdown`
-
-**Label:** `🎭 Fakeshutdown`  
-**Function:** `fake_shutdown`
-
-> Fake shutdown sequence.
-
-### `fakeuac`
-
-**Label:** `Fake UAC`  
-**Function:** `fakeuac`
-
-> Fake UAC prompt.
-
-### `selfdestruction`
-
-**Label:** `💣 Selfdestruction`  
-**Function:** `selfdestruction`
-
-> Remove program permanently.
-
-### `shutdown`
-
-**Label:** `🛑 Shutdown`  
-**Function:** `shutdown`
-
-**Positional arguments:**
-
-- `seconds`
-
-> Power off PC.
-
-## 🦑 Misc
+## misc
 
 ### `browser`
 
@@ -1126,26 +639,555 @@ _This file is auto-generated. Do not edit manually._
 
 > Plankton without audio.
 
-## 🧠 Keylogger
+## mitm
 
-### `keylogger`
+### `block_chrome`
 
-**Label:** `⌨️ Keylogger`  
-**Function:** `keylogger`
-
-**Positional arguments:**
-
-- `timeout`
-
-> Log keystrokes to file.
-
-### `livekeylogger`
-
-**Label:** `📡 Livekeylogger`  
-**Function:** `live_keylogger`
+**Label:** `🚫 Block CHROME`  
+**Function:** `block_chrome`
 
 **Positional arguments:**
 
 - `timeout`
 
-> Live keystroke monitoring.
+> Blocks traffic on chrome.
+
+### `block_http`
+
+**Label:** `🚫 Block HTTP`  
+**Function:** `block_http`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Block all outbound HTTP traffic (port 80).
+
+### `block_https`
+
+**Label:** `🚫 Block HTTPS`  
+**Function:** `block_https`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Block all outbound HTTPS traffic (port 443).
+
+### `block_port`
+
+**Label:** `🚫 Block Port`  
+**Function:** `block_port`
+
+**Positional arguments:**
+
+- `port`
+- `timeout`
+
+> Block a specific TCP/UDP port.
+
+## network
+
+### `getip`
+
+**Label:** `🌐 Get IP`  
+**Function:** `getip`
+
+> Get public IP and location.
+
+### `urltoast`
+
+**Label:** `🔗 URL Toast`  
+**Function:** `notify_toast`
+
+**Positional arguments:**
+
+- `appname`
+- `title`
+- `message`
+- `url_label`
+- `url`
+
+> Show Windows toast with URL.
+
+### `wifiinfo`
+
+**Label:** `📶 Wifiinfo`  
+**Function:** `wifiinfo`
+
+> Show saved WiFi credentials.
+
+## null
+
+### `execute`
+
+**Label:** `null`  
+**Function:** `execute`
+
+**Positional arguments:**
+
+- `*command`
+
+**Keyword-only arguments:**
+
+- `return_output`
+- `shell`
+
+> null
+
+## pranks
+
+### `block_screen`
+
+**Label:** `Block Screen`  
+**Function:** `wrapper_block_screen`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Block screen
+
+### `camerawallpaper`
+
+**Label:** `📷 Camera Wallpaper`  
+**Function:** `setCameraAsWallpaper`
+
+**Positional arguments:**
+
+- `seconds`
+
+> Webcam as wallpaper.
+
+### `distortedscreen`
+
+**Label:** `🌀 Distorted Screen`  
+**Function:** `distorted_screen`
+
+> Distort screen output.
+
+### `disturbed_overlay_random_noise`
+
+**Label:** `🌀📻 Video&Sound Disturbance`  
+**Function:** `disturbed_overlay_and_random_noise`
+
+**Positional arguments:**
+
+- `duration`
+
+> Noise overlay + audio.
+
+### `fakebsod`
+
+**Label:** `💀 Fake BSOD`  
+**Function:** `fake_bsod`
+
+**Positional arguments:**
+
+- `duration`
+- `qr_url`
+
+> Show fake Blue Screen of Death.
+
+### `hdmi_drowning_effect`
+
+**Label:** `🖥️🌀 Video Signal Drowning Effect`  
+**Function:** `wrapper_for_disturbed_overlay`
+
+**Positional arguments:**
+
+- `timeout_seconds`
+- `custom_label`
+- `custom_oncancel`
+
+> Noise overlay effect.
+
+### `hidecursor`
+
+**Label:** `Hide Cursor`  
+**Function:** `wrapper_for_hide_cursor`
+
+**Positional arguments:**
+
+- `timeout`
+
+> Hides mouse's cursor
+
+### `invertedscreen`
+
+**Label:** `🔄 Inverted Screen`  
+**Function:** `inverted_screen`
+
+> Invert screen colors.
+
+### `jumpscare`
+
+**Label:** `👻 Jumpscare`  
+**Function:** `jumpscare`
+
+**Positional arguments:**
+
+- `image`
+- `audio`
+- `playaudio`
+- `showimage`
+- `setvolume`
+
+> Trigger random jumpscare.
+
+### `jumpscarenoaudio`
+
+**Label:** `😶‍🌫️ Jumpscare noaudio`  
+**Function:** `jumpscarenoaudio`
+
+> Jumpscare without sound.
+
+### `messagebox`
+
+**Label:** `💬 Message Box`  
+**Function:** `message_box`
+
+**Positional arguments:**
+
+- `text`
+- `title`
+
+> Show custom message box.
+
+### `messagespam`
+
+**Label:** `📨 Message Spam`  
+**Function:** `spam_windows`
+
+**Positional arguments:**
+
+- `n`
+- `text`
+
+> Spam message boxes.
+
+### `set_jumpscare_volume`
+
+**Label:** `Set Jumpscare Volume`  
+**Function:** `setJumpscareVolume`
+
+**Positional arguments:**
+
+- `volume`
+
+> Set jumpscare's volume.
+
+### `setvideowallpaper`
+
+**Label:** `🎞️ Set Video Wallpaper`  
+**Function:** `setvideowallpaper`
+
+**Positional arguments:**
+
+- `videofilename`
+
+> Video as wallpaper.
+
+### `showqr`
+
+**Label:** `QR Overlay`  
+**Function:** `show_qr_overlay`
+
+**Positional arguments:**
+
+- `url`
+- `text`
+- `duration`
+
+> Display QR code overlay with custom text. Args: url [text] [duration]
+
+### `whisper_overlay`
+
+**Label:** `👻 Red Text Overlay`  
+**Function:** `whisper_overlay`
+
+**Positional arguments:**
+
+- `duration`
+- `whispers`
+
+> Display creepy whisper overlay.
+
+## sound_fx
+
+### `behindyou_kid`
+
+**Label:** `👶 Behind you (kid)`  
+**Function:** `behindyou_kid`
+
+> Play 'Behind you' child voice.
+
+### `behindyou_whisper`
+
+**Label:** `👻 Behind you (whisper)`  
+**Function:** `behindyou_whisper`
+
+> Play 'Behind you' whisper.
+
+### `breath`
+
+**Label:** `🌬️ Breath`  
+**Function:** `breath`
+
+> Play breathing sound.
+
+### `fart`
+
+**Label:** `💨 Fart`  
+**Function:** `fart`
+
+> Play fart sound.
+
+### `knockknock`
+
+**Label:** `🚪 Knock`  
+**Function:** `knockknock`
+
+> Play knocking sound.
+
+### `pss`
+
+**Label:** `👂 Psst`  
+**Function:** `pss`
+
+> Play 'psst' sound.
+
+### `psst`
+
+**Label:** `👂 Psst`  
+**Function:** `pss`
+
+> Alias for pss.
+
+### `scream11s`
+
+**Label:** `😱 11s Scream`  
+**Function:** `scream_11s`
+
+> Play 11-second scream.
+
+### `scream15s`
+
+**Label:** `😱 15s Scream`  
+**Function:** `scream_15s`
+
+> Play 15-second scream.
+
+### `tralalerotralala`
+
+**Label:** `🎶 Tralalero`  
+**Function:** `<lambda>`
+
+> Play Italian brainrot sound.
+
+## system
+
+### `altf4`
+
+**Label:** `⌨️ Altf4`  
+**Function:** `altf4`
+
+> Send Alt+F4.
+
+### `clear`
+
+**Label:** `🧹 Clear`  
+**Function:** `clear`
+
+> Clean windows, webcam, temp files.
+
+### `fakeshutdown`
+
+**Label:** `🎭 Fakeshutdown`  
+**Function:** `fake_shutdown`
+
+> Fake shutdown sequence.
+
+### `fakeuac`
+
+**Label:** `Fake UAC`  
+**Function:** `fakeuac`
+
+> Fake UAC prompt.
+
+### `selfdestruction`
+
+**Label:** `💣 Selfdestruction`  
+**Function:** `selfdestruction`
+
+> Remove program permanently.
+
+### `shutdown`
+
+**Label:** `🛑 Shutdown`  
+**Function:** `shutdown`
+
+**Positional arguments:**
+
+- `seconds`
+
+> Power off PC.
+
+## system_control
+
+### `cmdsession`
+
+**Label:** `</> CMDSession`  
+**Function:** `cmdsession`
+
+> Open interactive CMD session.
+
+### `disk_info`
+
+**Label:** `💿 List Drives`  
+**Function:** `get_disk_info`
+
+> Sends infos about the connected drives.
+
+### `execute_withoutput`
+
+**Label:** `⚙️ Execute`  
+**Function:** `<lambda>`
+
+**Positional arguments:**
+
+- `x`
+
+> Execute system command.
+
+### `processkiller`
+
+**Label:** `💀 Process Killer`  
+**Function:** `process_killer`
+
+**Positional arguments:**
+
+- `page`
+
+> Kill process from list.
+
+### `procmonadd`
+
+**Label:** `➕ Procmon Add`  
+**Function:** `processmonitoradd`
+
+**Positional arguments:**
+
+- `processname`
+
+> Add process to monitor.
+
+### `procmonmenu`
+
+**Label:** `📊 Procmon Menu`  
+**Function:** `processmonitormenushow`
+
+> Show process monitor menu.
+
+### `procmonrem`
+
+**Label:** `➖ Procmon Remove`  
+**Function:** `processmonitorrem`
+
+**Positional arguments:**
+
+- `processname`
+
+> Remove process from monitor.
+
+### `terminateprocess`
+
+**Label:** `🛑 Terminate Process`  
+**Function:** `terminate_process_by_name`
+
+**Positional arguments:**
+
+- `process_name`
+
+> Terminate process by name.
+
+## user_interaction
+
+### `ask`
+
+**Label:** `🗣️ Ask`  
+**Function:** `user_prompt`
+
+**Positional arguments:**
+
+- `question`
+- `title`
+
+> Ask Something to the user using the machine
+
+### `chat`
+
+**Label:** `Chat`  
+**Function:** `chat`
+
+> Chat.
+
+### `messagebox`
+
+**Label:** `💬 Message Box`  
+**Function:** `message_box`
+
+**Positional arguments:**
+
+- `text`
+- `title`
+
+> Show custom message box.
+
+## utility
+
+### `get_logs`
+
+**Label:** `📄 Get Logs`  
+**Function:** `get_logs`
+
+> Gets the program logs ins a file
+
+### `help`
+
+**Label:** `❓ Help`  
+**Function:** `show_help`
+
+> Show help menu.
+
+### `nothing`
+
+**Label:** `Nothing`  
+**Function:** `<lambda>`
+
+> No-op command.
+
+### `status`
+
+**Label:** `Check Status`  
+**Function:** `<lambda>`
+
+> Just checking if the bot is online.
+
+### `stop`
+
+**Label:** `🛑 Stop`  
+**Function:** `stop`
+
+**Positional arguments:**
+
+- `confirm`
+
+> Stop current operation.
+
+### `test`
+
+**Label:** `🧪 Test`  
+**Function:** `test`
+
+> Run test routine.
