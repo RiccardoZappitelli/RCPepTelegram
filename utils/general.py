@@ -14,8 +14,10 @@ user32 = ctypes.windll.user32
 
 conflict_error = "Conflict: terminated by other getUpdates request; make sure that only one bot instance is running', 409, {'ok': False, 'error_code': 409, 'description': 'Conflict: terminated by other getUpdates request; make sure that only one bot instance is running"
 
-def hide_cursor(self):
-    user32.ShowCursor(False)
+ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+
+def strip_ansi(text: str) -> str:
+    return ANSI_ESCAPE_RE.sub('', text)
 
 def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf = io.BytesIO()
