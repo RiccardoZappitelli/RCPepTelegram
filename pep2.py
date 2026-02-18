@@ -141,7 +141,8 @@ def _patched_popen(*args, **kwargs):
     kwargs.setdefault("stdout", PIPE)
     return Popen(*args, **kwargs)
 
-def get_decrypted_content(fernet, src_path) -> str:
+def get_decrypted_content(fernet: Fernet, src_path) -> str:
+    print(f"Decrypting: {src_path}\nkey:{FERNET_KEY}")#TODO remove after debug
     with open(src_path, "rb") as f:
         encrypted = f.read()
     decrypted = fernet.decrypt(encrypted)
@@ -212,7 +213,11 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     returns token, chatid, ngrok_token, tunnel_provider
     """
     if DATA_ENCRYPTION:
-        var = json.loads(get_decrypted_content(FERNET, filename))
+        print(f"Decrypting auth.json")
+        try:
+            var = json.loads(get_decrypted_content(FERNET, filename))
+        except Exception as e:
+            print(f"Error decrypting auth json:\n{e}")
     else:
         with open(filename) as fi:
             var = json.load(fi)
