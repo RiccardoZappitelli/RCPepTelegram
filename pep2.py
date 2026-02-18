@@ -141,8 +141,7 @@ def get_real_key(key_path):
 
     if len(key_bytes) != 44:
         raise ValueError(f"Key reconstruction failed - got {len(key_bytes)} bytes instead of 44")
-
-    # Comment out the marker search for now – we'll fix it after confirming data exists
+    return bytes(key_bytes)
 
 DATA_ENCRYPTION = exists(keyfile)
 if DATA_ENCRYPTION:
