@@ -9,6 +9,7 @@ from .messages import *
 from .general import *
 from .logs import DebugLogger
 from .cancellable_thread import *
+from .commands import Command
 
 from .chat.chat import *
 from .input_injection.duckyscript import *
