@@ -93,6 +93,7 @@ TELEGRAM_BOT_FILE_MAX_SIZE = 30 * 1024 * 1024  # 50 MB(I put 30MB just because 5
 TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
+KEY_PATH = resource_path("key.key")
 GENERATE_COMMANDS_MD = False
 
 try:
@@ -108,43 +109,48 @@ except Exception as e:
     print(e)
     exit()
 
-def get_real_key():
-    key_path = resource_path("key.key")
+def get_real_key(key_path):
     if not os.path.isfile(key_path):
         raise RuntimeError(f"key.key not found: {key_path}")
 
     with open(key_path, "rb") as f:
         data = f.read()
 
-    # ─────────────── Temporary debug: assume fixed offset (change number if needed) ───────────────
-    # Try common offsets: 16384, 8192, 0, 32768, etc.
-    OFFSET = 16384          # ← the junk_before size you used in create_obfuscated_key_file
-    if len(data) < OFFSET + 32:
-        raise RuntimeError(f"key.key too short: {len(data)} bytes")
+    if len(data) < 10:
+        raise RuntimeError("key.key too small")
 
-    candidate = data[OFFSET : OFFSET + 32]
+    header = data[0:10]
+    if header[0:5] != b"RCPTE":
+        raise RuntimeError("Wrong magic bytes")
 
-    # Quick validation
-    import base64
-    try:
-        base64.urlsafe_b64decode(candidate + b'==')  # Fernet keys need padding for decode check
-        print("Fixed-offset candidate looks like valid base64url (32 bytes)")
-    except:
-        print("Fixed-offset candidate is NOT valid base64url")
+    jump = int.from_bytes(header[5:6], "big")
+    first_pos = int.from_bytes(header[6:10], "big")
 
-    return candidate
+    if jump < 1 or jump > 15:
+        raise RuntimeError(f"Invalid jump value: {jump}")
+
+    # Reconstruct exactly 44 bytes
+    key_bytes = bytearray()
+    pos = first_pos
+
+    for _ in range(44):
+        if pos >= len(data):
+            raise RuntimeError("Reached end of file while extracting key")
+        key_bytes.append(data[pos])
+        pos += 1 + jump
+
+    if len(key_bytes) != 44:
+        raise ValueError(f"Key reconstruction failed - got {len(key_bytes)} bytes instead of 44")
 
     # Comment out the marker search for now – we'll fix it after confirming data exists
 
 DATA_ENCRYPTION = exists(keyfile)
 if DATA_ENCRYPTION:
-    with open(keyfile, "rb") as key_fi:
-        FERNET_KEY = key_fi.read()
-        if not FERNET_KEY:
-            print("FERNET KEY IS NONE")
-            sys.exit(1)
-    if DATA_ENCRYPTION:
-        FERNET = Fernet(FERNET_KEY)
+    FERNET_KEY = get_real_key(KEY_PATH)
+    if not FERNET_KEY:
+        print("FERNET KEY IS NONE")
+        sys.exit(1)
+    FERNET = Fernet(FERNET_KEY)
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
