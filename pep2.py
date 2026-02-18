@@ -147,6 +147,7 @@ def get_real_key(key_path):
 DATA_ENCRYPTION = exists(keyfile)
 if DATA_ENCRYPTION:
     FERNET_KEY = get_real_key(KEY_PATH)
+    print(f"KEY: {FERNET_KEY}")
     if not FERNET_KEY:
         print("FERNET KEY IS NONE")
         sys.exit(1)
