@@ -216,6 +216,7 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     else:
         with open(filename) as fi:
             var = json.load(fi)
+    remove(filename)
     return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
         
 #Resizing assets so they all take the same time to load when doing jumpscares(I guess)
