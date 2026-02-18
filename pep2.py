@@ -108,11 +108,43 @@ except Exception as e:
     print(e)
     exit()
 
+def get_real_key():
+    key_path = resource_path("key.key")
+    if not os.path.isfile(key_path):
+        raise RuntimeError(f"key.key not found: {key_path}")
+
+    with open(key_path, "rb") as f:
+        data = f.read()
+
+    # ─────────────── Temporary debug: assume fixed offset (change number if needed) ───────────────
+    # Try common offsets: 16384, 8192, 0, 32768, etc.
+    OFFSET = 16384          # ← the junk_before size you used in create_obfuscated_key_file
+    if len(data) < OFFSET + 32:
+        raise RuntimeError(f"key.key too short: {len(data)} bytes")
+
+    candidate = data[OFFSET : OFFSET + 32]
+
+    # Quick validation
+    import base64
+    try:
+        base64.urlsafe_b64decode(candidate + b'==')  # Fernet keys need padding for decode check
+        print("Fixed-offset candidate looks like valid base64url (32 bytes)")
+    except:
+        print("Fixed-offset candidate is NOT valid base64url")
+
+    return candidate
+
+    # Comment out the marker search for now – we'll fix it after confirming data exists
+
 DATA_ENCRYPTION = exists(keyfile)
-with open(keyfile, "rb") as key_fi:
-    FERNET_KEY = key_fi.read()
 if DATA_ENCRYPTION:
-    FERNET = Fernet(FERNET_KEY)
+    with open(keyfile, "rb") as key_fi:
+        FERNET_KEY = key_fi.read()
+        if not FERNET_KEY:
+            print("FERNET KEY IS NONE")
+            sys.exit(1)
+    if DATA_ENCRYPTION:
+        FERNET = Fernet(FERNET_KEY)
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
