@@ -1190,8 +1190,13 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 self.bsend(f"Unparsed content-type: {content_type}")
         else:
             # Handling strangers
-            stranger_message = f"What do you want {sender_name}, @{username} `{chat_id}`, I don't work for you."
-            self.bot.sendMessage(chat_id, stranger_message)
+            stranger_message = (
+                f"⛔ <b>Unauthorized Entity</b>\n\n"
+                f"<code>{sender_name} | @{username} | {chat_id}</code>\n\n"
+                f"Status: <b>BLOCKED BY BOT</b>\n"
+                f"No further responses will be issued."
+            )
+            self.bot.sendMessageWithHtml(chat_id, stranger_message)
             self.bsend(f"Message from {sender_name} @{username} `{chat_id}`:\n{msg.get('text')}")
             self.strangers.append(chat_id)
 
