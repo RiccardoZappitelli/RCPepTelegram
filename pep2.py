@@ -1164,7 +1164,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         sender_name = msg["from"]["first_name"]
         message_id = msg["message_id"]
         user = msg['from']
-        username = user.get('username')
+        username = user.get('username') or "N/A"
 
 
         if chat_id == self.owner_id:
