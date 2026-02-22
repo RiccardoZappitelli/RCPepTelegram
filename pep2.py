@@ -1166,11 +1166,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         user = msg['from']
         username = user.get('username')
 
-        if content_type != "pinned_message":
-            self.all_session_messages.append(message_id)
 
         if chat_id == self.owner_id:
             self.owner_name = sender_name
+
+            if content_type != "pinned_message":
+                self.all_session_messages.append(message_id)
 
             if content_type == "text":
                 self.parse_text(msg)
