@@ -11,6 +11,7 @@ from .logs import DebugLogger
 from .cancellable_thread import *
 from .commands import Command
 
-from .chat.chat import *
+from .user_interaction.chat import *
 from .input_injection.duckyscript import *
 from .input_injection.mouse_controller import *
+from .user_interaction.notifications import notify_toast, notify_toast_with_url
