@@ -14,7 +14,7 @@ from tkinter import Tk, Canvas, Label, NW, Frame, simpledialog
 from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
 
 from .audio_player import AudioPlayer
-from .general import screen_grub, user32
+from ..program_system.general import screen_grub, user32
 play_wav = AudioPlayer.play_wav
 
 type TimeElapsed = float

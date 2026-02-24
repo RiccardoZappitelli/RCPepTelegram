@@ -10,10 +10,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 #Misc
 import numpy as np
 from threading import Thread
-from .input_injection.duckyscript import toducky
+from ..input_injection.duckyscript import toducky
 from pyautogui import screenshot
 from .general import get_public_ip
-from .overlays import screen_and_webcam_pic
+from ..system_interaction.overlays import screen_and_webcam_pic
 from cv2 import cvtColor, resize, imencode, COLOR_BGR2RGB, VideoCapture
 
 

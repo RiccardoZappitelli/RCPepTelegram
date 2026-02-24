@@ -1,17 +1,17 @@
-from .cmdsession import CMDSession
-from .mymixer import CustomMixer
-from .overlays import OpenCVOverlayPlayer, OverlayManager, invert_image, distorted_screen, user_prompt
-from .tunnel_handler import *
-from .network_utils import *
-from .audio_player import *
-from .telegram_widgets import *
-from .messages import *
-from .general import *
-from .logs import DebugLogger
-from .cancellable_thread import *
-from .commands import Command
+from .system_interaction.cmdsession import CMDSession
+from .system_interaction.mymixer import CustomMixer
+from .system_interaction.overlays import OpenCVOverlayPlayer, OverlayManager, invert_image, distorted_screen, user_prompt
+from .program_system.tunnel_handler import *
+from .system_interaction.network_utils import *
+from .system_interaction.audio_player import *
+from .program_system.telegram_widgets import *
+from .program_system.messages import *
+from .program_system.general import *
+from .program_system.logs import DebugLogger
+from .program_system.cancellable_thread import *
+from .program_system.commands import Command
 
 from .user_interaction.chat import *
 from .input_injection.duckyscript import *
 from .input_injection.mouse_controller import *
-from .user_interaction.notifications import notify_toast, notify_toast_with_url
+from .user_interaction.notifications import notify_toast, notify_toast_with_url, AUDIO_MAP as WinotifyAudioMap
