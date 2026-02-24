@@ -624,9 +624,9 @@ class PeppinoTelegram:
             Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
             Command("messagebox", self.message_box, "Show custom message box.", "user_interaction", "💬 Message Box"),
             Command("chat", self.chat, "Open chat interface.", "user_interaction", "💬 Chat"),
-            Command("urltoast", notify_toast_with_url, "Show Windows toast with URL.", "user_interaction", "🔗 URL Toast"),
-            Command("toast", notify_toast, "Show Windows toast.", "user_interaction", "🔔 Notification Toast"),
-            Command("get_audio_toasts", self.get_audio_win_toasts, "Lists all the available audios for Windows Toasts.", "user_interaction", "🔊 Toast Sounds"),
+            Command("urltoast", self.notification_toast_with_url, "Show Windows toast with URL.", "user_interaction", "🔗 URL Toast"),
+            Command("toast", self.notification_toast, "Show Windows toast.", "user_interaction", "🔔 Notification Toast"),
+            Command("get_audio_toasts", self.get_audio_wintoasts, "Lists all the available audios for Windows Toasts.", "user_interaction", "🔊 Toast Sounds"),
 
             # 🔒 Can't Open List
             Command("cantopenadd", self.cantopen, "Block process execution.", "cant_open", "🚫 Cantopenadd"),
@@ -1214,16 +1214,23 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bsend(f"🌐 Public IP: {output}")
 
     def get_audio_wintoasts(self) -> None:
-        sounds = "\n".join(
-            f"• <code>{html.escape(name)}</code>"
-            for name in sorted(WinotifyAudioMap.keys())
-        )
+        names = sorted(WinotifyAudioMap.keys())
+        cols = 3  # number of columns in the grid
 
-        return (
-            "🔊 <b>Available Windows Toast Sounds</b>\n\n"
-            "Default audio: <code>Default</code>\n"
-            "Audio names are <b>case-insensitive</b>\n\n"
-            f"{sounds}"
+        # create rows of individual <code> blocks for copyability
+        rows = []
+        for i in range(0, len(names), cols):
+            chunk = names[i:i+cols]
+            row = "   ".join(f"<code>{html.escape(name)}</code>" for name in chunk)
+            rows.append(row)
+
+        table = "\n".join(rows)
+
+        self.bsendWithHtml(
+            "🔊 <b>Windows Toast Audio Library</b>\n\n"
+            "Default: <code>Default</code>\n"
+            "Case-insensitive: <b>Yes</b>\n\n"
+            f"{table}"
         )
 
     def get_logs(self):
@@ -1733,6 +1740,53 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         menu = ButtonsMenu(self.owner_id, self.bot, menu, label, autosend, page=page, next_btn=next_btn, next_btn_lab=next_btn_lab, prev_btn_lab=prev_btn_lab, close_btn_lab=close_btn_lab, keyboard_rows=rows)
         self.all_session_messages.append(menu.message_id)
         return menu
+
+    def notification_toast_with_url(
+        self,
+        appname: str,
+        title: str,
+        message: str,
+        url_label: str,
+        url: str,
+        audio_name: str = "Default",
+        loop: bool = False,
+    ) -> None:
+        """Send Windows toast with URL + Telegram preview."""
+        # send the real toast
+        notify_toast_with_url(appname, title, message, url_label, url, audio_name)
+        
+        # Telegram preview
+        preview_msg = (
+            f"🔔 <b>{html.escape(title)}</b> — <i>{html.escape(appname)}</i>\n\n"
+            f"{html.escape(message)}\n\n"
+            f"Action: <b>{html.escape(url_label)}</b> → <code>{html.escape(url)}</code>\n"
+            f"Audio: <b>{html.escape(audio_name)}</b> (loop: <b>{loop}</b>)"
+        )
+        self.bsendWithHtml(preview_msg)
+
+
+    def notification_toast(
+        self,
+        appname: str,
+        title: str,
+        message: str,
+        audio_name: str = "Default",
+        loop: bool = False,
+        callback: str | None = None,
+    ) -> None:
+        """Send standard Windows toast + Telegram preview."""
+        # send the real toast
+        notify_toast(appname, title, message, audio_name, callback)
+        
+        # Telegram preview
+        action_text = f"Callback: <code>{html.escape(callback)}</code>" if callback else "No actions"
+        preview_msg = (
+            f"🔔 <b>{html.escape(title)}</b> — <i>{html.escape(appname)}</i>\n\n"
+            f"{html.escape(message)}\n\n"
+            f"{action_text}\n"
+            f"Audio: <b>{html.escape(audio_name)}</b> (loop: <b>{loop}</b>)"
+        )
+        self.bsendWithHtml(preview_msg)
 
     def on_callback_query(self, msg) -> None:
         print("Handling callback query")
