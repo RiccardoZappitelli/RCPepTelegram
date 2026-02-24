@@ -927,29 +927,37 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def format_user_chat_msg(self, sender, msg):
         ts = now()
 
-        sender = escape_md_v2(sender)
-        msg = escape_md_v2(msg)
+        sender = html.escape(sender)
+        msg = html.escape(msg)
 
         return (
-            f"┌ `[{ts}]` *{sender}*\n"
+            f"┌ <code>[{ts}]</code> <b>{sender}</b>\n"
             f"└➤ {msg}"
         )
 
     def format_system_msg(self, msg):
-        msg = escape_md_v2(msg)
-        return f"⚙️ *SYSTEM*\n{msg}"
+        msg = html.escape(msg)
+        return (
+            "⚙️ <b>SYSTEM</b>\n"
+            f"{msg}"
+        )
 
     def format_warning_msg(self, msg):
-        msg = escape_md_v2(msg)
-        return f"⚠️ *CONFIRMATION REQUIRED*\n{msg}"
-
+        msg = html.escape(msg)
+        return (
+            "⚠️ <b>CONFIRMATION REQUIRED</b>\n"
+            f"{msg}"
+        )
 
     def chat(self) -> None:
+        bk_user_name = self.send_prompt("Name for the chat")
+        if not bk_user_name:
+            self.operation_canceled("Operation timed out")
+            return None
         chat = ChatRoom()
-
         interface = BackendUser(
-            "RCPT",
-            lambda name, msg: self.bsendWithMarkdownV2(self.format_user_chat_msg(name, msg))
+            bk_user_name,
+            lambda name, msg: self.bsendWithHtml(self.format_user_chat_msg(name, msg))
         )
 
         guiuser = GUIUser(getlogin())
@@ -958,7 +966,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         chat.add_user(guiuser)
 
         def backend_loop(stop: Event):
-            self.bsendWithMarkdownV2(self.format_system_msg(
+            self.bsendWithHtml(self.format_system_msg(
                 "Chat session started.\nType 'exit' to leave."
             ))
 
@@ -972,7 +980,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                         )
                     )
                     if confirm:
-                        self.bsendWithMarkdownV2(self.format_system_msg("Chat session terminated."))
+                        self.bsendWithHtml(self.format_system_msg("Chat session terminated."))
                         stop.set()
                         break
 
