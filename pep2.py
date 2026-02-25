@@ -67,12 +67,13 @@ from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, spl
 
 # This is needed to understand if the file was compiled or not
 FROZEN = getattr(sys, 'frozen', False)
+if FROZEN:
+    rp_base_path = dirname(sys.executable)
+else:
+    rp_base_path = dirname(__file__)
+print(f"The function 'resource_path' will use {rp_base_path} as base_path")
 def resource_path(relative_path: str) -> str:
-    if FROZEN:
-        base_path = dirname(sys.executable)
-    else:
-        base_path = dirname(__file__)
-    return join(base_path, relative_path)
+    return join(rp_base_path, relative_path)
 
 def load_dll(path: str) -> None:
     print(f"Loading DLL:", path)
