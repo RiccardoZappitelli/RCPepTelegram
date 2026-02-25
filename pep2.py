@@ -760,14 +760,14 @@ class PeppinoTelegram:
     @requires_admin
     def block_https(self, timeout: int) -> None:
         warning = (
-            "🚨 <b>HTTPS Traffic Block Warning</b><br><br>"
-            "🔒 You are about to block <b>HTTPS traffic (port 443)</b>.<br><br>"
+            "🚨 <b>HTTPS Traffic Block Warning</b>\n\n"
+            "🔒 You are about to block <b>HTTPS traffic (port 443)</b>.\n\n"
             "❗ This will make your bot <b>completely unreachable</b> from Telegram "
-            "until the timeout expires.<br><br>"
-            "⛔ Cancelling the loading bar will <b>NOT</b> immediately stop the block.<br>"
-            "The restriction will remain active until the timeout finishes.<br><br>"
-            "━━━━━━━━━━━━━━━━━━━━━━<br>"
-            "<b>Are you absolutely sure you want to continue?</b><br>"
+            "until the timeout expires.\n\n"
+            "⛔ Cancelling the loading bar will <b>NOT</b> immediately stop the block.\n"
+            "The restriction will remain active until the timeout finishes.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "<b>Are you absolutely sure you want to continue?</b>\n"
             "<code>y</code> / <code>n</code>"
         )
 
