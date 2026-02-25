@@ -779,9 +779,9 @@ class PeppinoTelegram:
             )
             return
         print(f"Blocking HTTPS for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("🚫 Blocking HTTPS", timeout, block_https, args=(timeout,))
-        if not loading_bar: return
-        loading_bar.start()
+        m = self.new_editable_message("🚫 Blocking HTTPS")
+        sleep(timeout+5) # giving time to WinDovert to stop
+        m.delete()
 
     def breath(self) -> None:
         print("Playing breath sound")
