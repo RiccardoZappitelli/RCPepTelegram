@@ -171,8 +171,9 @@ except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
-# This is needed so pyngrok is windowless and doesn't spawn a terminal window
+# This will force every subprocess.Popen and os.system to be windowless
 def _patched_popen(*args, **kwargs):
+    """
     cmd_list = []
     if args:
         cmd_list = list(args)
@@ -180,6 +181,8 @@ def _patched_popen(*args, **kwargs):
         cmd_list = kwargs['args'] if isinstance(kwargs['args'], list) else [kwargs['args']]
     if any("ngrok" in str(part).lower() for part in cmd_list):
         kwargs["creationflags"] = kwargs.get("creationflags", 0) | CREATE_NO_WINDOW
+    """
+    kwargs["creationflags"] = kwargs.get("creationflags", 0) | CREATE_NO_WINDOW
     kwargs.setdefault("stderr", PIPE)
     kwargs.setdefault("stdout", PIPE)
     return Popen(*args, **kwargs)
