@@ -873,10 +873,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if self.cmd_session is None:
             self.cmd_session = CMDSession("cmd.exe /K cd /d %USERPROFILE%")
 
-        if self.cmd_session_active:
-            self.bsend("⚠️ CMD session is already active.")
-            return
-
         self.cmd_session_active = True
         self.bsendWithHtml(
             "💻 <b>CMD Session Started</b>\n"
