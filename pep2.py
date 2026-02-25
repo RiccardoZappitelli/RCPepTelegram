@@ -554,6 +554,7 @@ class PeppinoTelegram:
 
             # 🎵 Sound Effects
             Command("pss", self.pss, "Play 'psst' sound.", "sound_fx", "👂 Psst"),
+            Command("mibombo", self.mibombo, "Play 'Mi Bombo' sound.", "sound_fx", "💣 Mi Bombo"),
             Command("psst", self.pss, "Alias for pss.", "sound_fx", "👂 Psst"),
             Command("breath", self.breath, "Play breathing sound.", "sound_fx", "🌬️ Breath"),
             Command("fart", self.fart, "Play fart sound.", "sound_fx", "💨 Fart"),
@@ -2189,6 +2190,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def pss(self) -> None:
         print("Playing 'pss' sound")
         self.__play_loaded_sound("pss")
+
+    def mibombo(self) -> None:
+        print("Playing 'mi bombo sound")
+        self.__play_loaded_sound("mi_bombo")
 
     def behindyou_kid(self) -> None:
         print("Playing 'behind you kid' sound")
