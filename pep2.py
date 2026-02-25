@@ -1976,6 +1976,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     del self.bars[bar_id]
             else:
                 self.bsend(f"Invalid command {command}")
+        except NotImplemented:
+            self.bsendWithHtml(
+                "🚧 <b>Feature Not Implemented</b>\n\n"
+                "This functionality is currently <b>not available</b>.\n"
+                "It has not been implemented yet.\n\n"
+                "Please check back in a future update."
+            )
+
         except Exception as e:
             self.bsendWithHtml(
                 f"Error parsing command '{html.escape(text)}'\n"
