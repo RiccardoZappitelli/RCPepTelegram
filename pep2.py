@@ -759,15 +759,25 @@ class PeppinoTelegram:
 
     @requires_admin
     def block_https(self, timeout: int) -> None:
-        warning = "⚠️ *Important Warning*\n\n"\
-            "Blocking HTTPS traffic \\(port 443\\) will make your bot *unreachable* from Telegram until the timeout expires\\.\n"\
-            "Even if you click *Cancel* on the loading bar\\, the block *will not stop* immediately\\.\n\n"\
-            "Are you *absolutely sure* you want to continue\\? *y* / *n*"
+        warning = (
+            "🚨 <b>HTTPS Traffic Block Warning</b><br><br>"
+            "🔒 You are about to block <b>HTTPS traffic (port 443)</b>.<br><br>"
+            "❗ This will make your bot <b>completely unreachable</b> from Telegram "
+            "until the timeout expires.<br><br>"
+            "⛔ Cancelling the loading bar will <b>NOT</b> immediately stop the block.<br>"
+            "The restriction will remain active until the timeout finishes.<br><br>"
+            "━━━━━━━━━━━━━━━━━━━━━━<br>"
+            "<b>Are you absolutely sure you want to continue?</b><br>"
+            "<code>y</code> / <code>n</code>"
+        )
+
         if not self.ask_yesno(warning):
             print("Blocking HTTPS request canceled by user.")
-            self.bsendWithMarkdownV2("✅ HTTPS block *cancelled* by you\\.")
+            self.bsendWithHTML(
+                "✅ <b>Operation Cancelled</b><br><br>"
+                "HTTPS traffic block has been aborted."
+            )
             return
-
         print(f"Blocking HTTPS for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("🚫 Blocking HTTPS", timeout, block_https, args=(timeout,))
         if not loading_bar: return
