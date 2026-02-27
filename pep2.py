@@ -1789,7 +1789,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         message: str,
         url_label: str,
         url: str,
-        audio_name: str = "Default",
+        audio_name: str,
         loop: bool = False,
     ) -> None:
         """Send Windows toast with URL + Telegram preview."""
@@ -1811,7 +1811,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         appname: str,
         title: str,
         message: str,
-        audio_name: str = "Default",
+        audio_name,
         loop: bool = False,
         callback: str | None = None,
     ) -> None:
