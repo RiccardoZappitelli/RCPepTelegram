@@ -111,7 +111,7 @@ except Exception as e:
 
 from utils import SimpleFernet
 # algoritm to get the key from the obfuscated key file
-def get_real_key(key_path):
+def get_real_key(key_path): #this function MUST stay in the main to remain obfuscated
     if not os.path.isfile(key_path):
         raise RuntimeError(f"key.key not found: {key_path}")
 
