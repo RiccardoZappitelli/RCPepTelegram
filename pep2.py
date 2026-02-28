@@ -57,7 +57,6 @@ from tempfile import gettempdir
 from typing import Any, Callable
 from time import monotonic, sleep
 from random import choice, randint
-from cryptography.fernet import Fernet
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
@@ -110,6 +109,7 @@ except Exception as e:
     print(e)
     exit()
 
+from utils import SimpleFernet
 # algoritm to get the key from the obfuscated key file
 def get_real_key(key_path):
     if not os.path.isfile(key_path):
@@ -152,7 +152,7 @@ if DATA_ENCRYPTION:
     if not FERNET_KEY:
         print("FERNET KEY IS NONE")
         sys.exit(1)
-    FERNET = Fernet(FERNET_KEY)
+    FERNET = SimpleFernet(FERNET_KEY)
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
@@ -187,7 +187,7 @@ def _patched_popen(*args, **kwargs):
     kwargs.setdefault("stdout", PIPE)
     return Popen(*args, **kwargs)
 
-def get_decrypted_content(fernet: Fernet, src_path) -> str:
+def get_decrypted_content(fernet: SimpleFernet, src_path) -> str:
     with open(src_path, "rb") as f:
         encrypted = f.read()
     decrypted = fernet.decrypt(encrypted)
