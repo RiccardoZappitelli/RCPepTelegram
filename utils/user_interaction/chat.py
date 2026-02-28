@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
-from time import sleep
-
 
 # -------------------------
 # Core abstraction
@@ -68,6 +66,7 @@ class GUIUser(User):
 
         self.entry = tk.Entry(self.root, width=40)
         self.entry.pack(side="left", padx=(10, 5), pady=5)
+        self.entry.bind("<Return>", lambda e:self._send_gui())
 
         self.send_btn = tk.Button(self.root, text="Send", command=self._send_gui)
         self.send_btn.pack(side="left", padx=(0, 10), pady=5)
