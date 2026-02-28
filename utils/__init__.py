@@ -18,3 +18,5 @@ from .user_interaction.notifications import notify_toast, notify_toast_with_url,
 
 from .input_injection.duckyscript import *
 from .input_injection.mouse_controller import *
+
+from .obfuscation import SimpleFernet
