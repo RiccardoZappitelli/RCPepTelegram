@@ -1,7 +1,5 @@
 import cv2
 import mss
-import ctypes
-import qrcode
 import numpy as np
 from os import remove
 from time import sleep, time
@@ -182,17 +180,26 @@ class OverlayManager:
                 qr_container = Frame(frame, bg="#0078d4")
                 qr_container.place(relx=0.82, rely=0.68, anchor="center")
                 try:
-                    import qrcode
-                    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-                    qr.add_data(qr_code_url)
-                    qr.make(fit=True)
-                    qr_img = qr.make_image(fill_color="black", back_color="white")
-                    qr_photo = ImageTk.PhotoImage(qr_img)
+                    qr_encoder = cv2.QRCodeEncoder_create()
+                    _, qr_img = qr_encoder.encode(qr_code_url, None)
+
+                    # qr_img is single-channel → convert to RGB
+                    qr_img = cv2.cvtColor(qr_img, cv2.COLOR_GRAY2RGB)
+
+                    pil_img = Image.fromarray(qr_img)
+                    qr_photo = ImageTk.PhotoImage(pil_img)
+
                     qr_label = Label(qr_container, image=qr_photo, bg="#0078d4")
                     qr_label.image = qr_photo
                     qr_label.pack()
-                    Label(qr_container, text="Scan to get help", font=("Segoe UI", 18),
-                        fg="#ffff00", bg="#0078d4").pack(pady=8)
+
+                    Label(
+                        qr_container,
+                        text="Scan to get help",
+                        font=("Segoe UI", 18),
+                        fg="#ffff00",
+                        bg="#0078d4"
+                    ).pack(pady=8)
                 except:
                     Label(qr_container, text="QR code area", font=("Segoe UI", 18),
                         fg="#ffff00", bg="#0078d4").pack(pady=8)
@@ -327,12 +334,13 @@ class OverlayManager:
             self.root = Tk()
             self.root.withdraw()  # hide it temporarily — we only need it for PhotoImage
 
-            # Step 2: Now generate QR + PhotoImage (root exists → no error)
-            qr = qrcode.QRCode(version=1, box_size=10, border=4)
-            qr.add_data(url)
-            qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
-            qr_photo = ImageTk.PhotoImage(img.resize((qr_size, qr_size), Image.Resampling.LANCZOS))
+            qr_encoder = cv2.QRCodeEncoder_create()
+            _, qr_img = qr_encoder.encode(url, None)
+            qr_img = cv2.resize(qr_img, (qr_size, qr_size), interpolation=cv2.INTER_NEAREST)
+            qr_img = cv2.cvtColor(qr_img, cv2.COLOR_GRAY2RGB)
+
+            pil_img = Image.fromarray(qr_img)
+            qr_photo = ImageTk.PhotoImage(pil_img)
 
             # Step 3: Now configure the visible window
             self.root.deiconify()               # show it again
