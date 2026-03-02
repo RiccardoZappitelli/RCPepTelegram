@@ -666,11 +666,12 @@ class PeppinoTelegram:
 
             # 🔧 Utilities & Testing
             Command("status", lambda: self.bsend("Hey! I'm online"), "Just checking if the bot is online.",  "utility", "Check Status"),
+            Command("status", self.restart, "Restarts the bot process.",  "utility", "Restart"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
-            Command("test", self.test, "Run test routine.", "utility", "🧪 Test"),
+            Command("test", self.test, "Run test routine.", "null", "🧪 Test"),
             Command("help", self.show_help, "Show help menu.", "utility", "❓ Help"),
-            Command("nothing", lambda: ..., "No-op command.", "utility", "Nothing"),
+            Command("nothing", lambda: ..., "No-op command.", "null", "Nothing"),
         ]
 
         self.help = generate_help(self.commands)
@@ -2236,6 +2237,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         commands = [f"/{c.name}" for c in self.commands]
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+
+    def restart(self) -> None:
+        if self.ask_yesno():
+            restart()
 
     def randomkeyboard(self, timeout: int =5) -> None:
         print(f"Random keyboard input for {timeout} seconds")
