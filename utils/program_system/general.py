@@ -1,6 +1,7 @@
 import re
 import os
 import io
+import sys
 import mss
 import ctypes
 import socket
@@ -18,6 +19,9 @@ ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 def strip_ansi(text: str) -> str:
     return ANSI_ESCAPE_RE.sub('', text)
+
+def restart():
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf = io.BytesIO()
