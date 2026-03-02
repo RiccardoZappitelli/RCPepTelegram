@@ -20,7 +20,9 @@ play_wav = AudioPlayer.play_wav
 type TimeElapsed = float
 
 def user_prompt(question: str, window_title: str = "Question") -> str:
-    return simpledialog.askstring(window_title, question).strip()
+    res = simpledialog.askstring(window_title, question)
+    if not res: return ""
+    return res.strip()
 
 def invert_image(imagearray, time_elapsed=None) -> np.array:
     return bitwise_not(imagearray)
