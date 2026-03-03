@@ -1039,7 +1039,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         while self.running:
             if (not self.getLastMessageTimestamp()) or (not self.RESTART_TIME_TRESHOLD):
                 continue
-            if monotonic()-self.getLastMessageTimestamp() < self.RESTART_TIME_TRESHOLD:
+            if monotonic()-self.getLastMessageTimestamp() > self.RESTART_TIME_TRESHOLD:
                 self.restart(
                     confirm=False,
                     verbose=True,
