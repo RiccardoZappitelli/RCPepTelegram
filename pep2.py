@@ -820,11 +820,11 @@ class PeppinoTelegram:
     
     def bsendWithMarkdownV2(self, text: str, retries=0, reply_markup=None) -> int|None:
         print(f"Sending MarkdownV2 message: {text[:50]}...")
-        self.bsend(text, retries, parse_mode="MarkDownV2", reply_markup=reply_markup)
+        return self.bsend(text, retries, parse_mode="MarkDownV2", reply_markup=reply_markup)
 
     def bsendWithHtml(self, text: str, retries=0, reply_markup=None) -> int|None:
         print(f"Sending HTML message: {text[:50]}...")
-        self.bsend(text, retries, parse_mode="HTML", reply_markup=reply_markup)
+        return self.bsend(text, retries, parse_mode="HTML", reply_markup=reply_markup)
 
     def download_file(self, path: str) -> None:
         print(f"Downloading file: {path}")
@@ -2905,9 +2905,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         while monotonic() - start < timeout:
             if self.user["last_callback"] is not None:
                 break
-            sleep(0.3)
+            print(f"Waiting for response for buttons menu,  keys: {' '.join(options.values())}")
+            sleep(1)
 
         chosen_key = self.user.get("last_callback")
+        print(f"Choosen key:{chosen_key}")
         
         # Clean up state
         self.user["status"] = None
