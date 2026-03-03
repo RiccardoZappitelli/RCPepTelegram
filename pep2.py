@@ -1178,6 +1178,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         system("shutdown -a")
 
     def fakeuac(self) -> None:
+        # TODO remove the executable and build it inside the code
+        # also maybe with a new phishing menu with other phishing methods
+        return NotImplemented
         print("Showing fake UAC prompt")
         proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
         if proc.returncode:
@@ -1990,7 +1993,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     del self.bars[bar_id]
             else:
                 self.bsend(f"Invalid command {command}")
-        except NotImplemented:
+        except (NotImplemented,NotImplementedError):
             self.bsendWithHtml(
                 "🚧 <b>Feature Not Implemented</b>\n\n"
                 "This functionality is currently <b>not available</b>.\n"
