@@ -10,8 +10,8 @@ from typing import Any, Callable
 from os.path import join, exists
 from moviepy.editor import VideoFileClip
 from random import randint, choice, uniform, random
-from tkinter import Tk, Canvas, Label, NW, Frame, simpledialog
 from cv2 import bitwise_not, INTER_LINEAR, BORDER_REFLECT, remap
+from tkinter import Tk, Canvas, Label, NW, Frame, simpledialog, Toplevel
 
 from .audio_player import AudioPlayer
 from ..program_system.general import screen_grub, user32
@@ -94,23 +94,57 @@ class OverlayManager:
             pass
         self.root = None
 
+    def textual_jumpscare(self, text: str, duration: int):
+        print("[JUMPSCARE] Starting textual jumpscare...")
+        try:
+            self._safe_destroy()
+            print("[JUMPSCARE] Old root destroyed")
+
+            self.root = Toplevel()
+            print("[JUMPSCARE] Toplevel created")
+
+            self.root.attributes("-fullscreen", True)
+            self.root.attributes("-topmost", True)
+            self.root.configure(bg="black")
+            print("[JUMPSCARE] Window configured")
+
+            lbl = Label(
+                self.root,
+                text=text,
+                font=("Arial Black", 90),
+                fg="#ff0000",
+                bg="black"
+            )
+            lbl.pack(expand=True)
+            print("[JUMPSCARE] Label packed")
+
+            self.root.after(duration*1000, self._safe_destroy)
+            print("[JUMPSCARE] Auto-destroy scheduled → calling mainloop()")
+
+            self.root.mainloop()
+            print("[JUMPSCARE] mainloop exited")   # you should NOT see this if it works
+
+        except Exception as e:
+            print(f"[JUMPSCARE ERROR] {type(e).__name__}: {e}")
+            self._safe_destroy()
+
     def fake_bsod(self, duration: float = 20.0, qr_code_url: str = None):
         #this is ass
         try:
             self._safe_destroy()
 
-            root = Tk()
-            root.overrideredirect(True)
-            root.attributes("-topmost", True)
+            self.root = Tk()
+            self.root.overrideredirect(True)
+            self.root.attributes("-topmost", True)
 
             # Exact fullscreen geometry (no -fullscreen flag → no conflict)
-            sw = root.winfo_screenwidth()
-            sh = root.winfo_screenheight()
-            root.geometry(f"{sw}x{sh}+0+0")
-            root.configure(bg="#0078d4")
+            sw = self.root.winfo_screenwidth()
+            sh = self.root.winfo_screenheight()
+            self.root.geometry(f"{sw}x{sh}+0+0")
+            self.root.configure(bg="#0078d4")
 
             # Main content frame
-            frame = Frame(root, bg="#0078d4")
+            frame = Frame(self.root, bg="#0078d4")
             frame.place(relx=0.5, rely=0.5, anchor="center")
 
             # Sad face + main title (exact offset & sizing from real BSOD)
@@ -201,7 +235,7 @@ class OverlayManager:
             start_time = time()
 
             def update_progress():
-                if not root.winfo_exists():
+                if not self.root.winfo_exists():
                     return
 
                 elapsed = time() - start_time
@@ -227,10 +261,10 @@ class OverlayManager:
                 else:
                     main_percent.configure(text=f"({prog}% complete)")
 
-                root.after(180, update_progress)  # ~5.5 fps update
+                self.root.after(180, update_progress)  # ~5.5 fps update
 
             update_progress()
-            root.mainloop()
+            self.root.mainloop()
 
         except Exception as e:
             print(f"BSOD overlay failed: {e}")
