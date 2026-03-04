@@ -597,6 +597,7 @@ class PeppinoTelegram:
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
             Command("set_jumpscare_volume", self.setJumpscareVolume, "Adjust jumpscare volume.","pranks" , "🔊 Jumpscare Volume"),
             Command("block_screen", self.wrapper_block_screen, "Block user screen temporarily forcing them to see a screenshot.", "pranks", "🖥️ Block Screen"), #TODO
+            Command("text_jumpscare", self.overlay_tk.textual_jumpscare, "Textual Jumpscare", "pranks", "Text Jumpscare"),
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
