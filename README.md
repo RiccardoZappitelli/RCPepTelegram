@@ -144,7 +144,6 @@ cd RCPepTelegram
 
 ```bash
 pip install -r requirements.txt
-#also install this: https://github.com/xshiraori/PyDivert2
 ```
 
 ---
@@ -173,22 +172,9 @@ Create an `auth.json` file in the project root:
 
 ## 🏗 Build (Nuitka)
 
-1. Download the latest release of **FakeUAC**  
-   https://github.com/RiccardoZappitelli/FakeUAC
-
-2. Place the executable here:
-```
-assets/executables/fakeuac.exe
-```
-
-> The executable is not included because it exceeds GitHub's 100MB file size limit.
-
-3. Build with Nuitka:
-
-```bash
-nuitka pep2.py   --standalone   --onefile   --windows-console-mode=disable   --follow-imports   --msvc=latest   --include-data-dir=assets/vfx=assets/vfx   --include-data-dir=assets/sfx=assets/sfx   --include-data-dir=assets/model=assets/model   --include-data-file=auth.json=auth.json   --include-data-file=assets/executables/fakeuac.exe=assets/executables/fakeuac.exe
-```
-
+1. Download [the official builder](https://github.com/RiccardoZappitelli/RCPepTelegramMaker)
+2. Clone the repository inside the builder's directory
+3. Start compiling!
 ---
 
 ## ⚠️ Security & Ethical Warning
