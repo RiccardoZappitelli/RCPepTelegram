@@ -454,7 +454,7 @@ class PeppinoTelegram:
             "last_message_timestamp":None,
         }
 
-        self.RESTART_TIME_TRESHOLD = 1 * 5 # After this seconds are passed and no message was received the bot will restart itself assuming it crashed or got blocked in some loop
+        self.RESTART_TIME_TRESHOLD = 60 * 120 # After this seconds are passed and no message was received the bot will restart itself assuming it crashed or got blocked in some loop
 
         self.MOUSE_JMP = 50
 
@@ -668,13 +668,14 @@ class PeppinoTelegram:
             Command("block_chrome", self.block_chrome, "Blocks traffic on chrome.", "mitm", "🚫 Block CHROME"),
 
             # 🔧 Utilities & Testing
-            Command("status", self.send_status, "Just checking if the bot is online.",  "utility", "Check Status"),
-            Command("restart", self.restart, "Restarts the bot process.",  "utility", "Restart"),
+            Command("status", self.send_status, "Just checking if the bot is online.", "utility", "🟢 Check Status"),
+            Command("restart", self.restart, "Restarts the bot process.", "utility", "🔄 Restart"),
+            Command("set_time_restart", self.setTimeoutRestart, "Sets bot time threshold before restarting.", "utility", "⏱️ Set Time Restart"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
             Command("test", self.test, "Run test routine.", "null", "🧪 Test"),
             Command("help", self.show_help, "Show help menu.", "utility", "❓ Help"),
-            Command("nothing", lambda: ..., "No-op command.", "null", "Nothing"),
+            Command("nothing", lambda: ..., "No-op command.", "null", "⚪ Nothing"),
         ]
 
         self.help = generate_help(self.commands)
@@ -1036,10 +1037,17 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def crash_time_handler(self) -> None:
         print("Starting crashtime handler")
+
         while self.running:
-            if (not self.getLastMessageTimestamp()) or (not self.RESTART_TIME_TRESHOLD):
+            last_ts = self.getLastMessageTimestamp()
+            threshold = self.RESTART_TIME_TRESHOLD
+
+            if last_ts is None or threshold is None:
+                sleep(1)
                 continue
-            if monotonic()-self.getLastMessageTimestamp() > self.RESTART_TIME_TRESHOLD:
+            seconds_from_last_message = monotonic()-last_ts
+
+            if seconds_from_last_message > threshold:
                 self.restart(
                     confirm=False,
                     verbose=True,
@@ -1047,6 +1055,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 )
 
             sleep(1)
+            print(f"[CrashTimeHandler] Restarting in {max(threshold-seconds_from_last_message, 1)}, threshold:{threshold}")
 
     def cantopenmenu(self) -> None:
         print("Opening cantopen menu")
@@ -1222,6 +1231,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def handle(self, msg: str) -> None:
         print(f"Handling message type: {msg}\nUserStatus: {self.user}")
+        date = int(msg["date"])
+        if (date+self.message_timeout)<monotonic():
+            print("Message skipped because it was too old")
+            return
         content_type, chat_type, chat_id = glance(msg)
         if chat_id in self.strangers:
             return
@@ -1583,27 +1596,48 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             self.bsend("Mouse jump must be numeric.")
 
     def setTimeoutRestart(self) -> None:
-        print(f"Setting value for RESTART_TIME_TRESHOLD")
-        rtt = self.send_prompt("Set mouse jump: ")
+        print("Setting value for RESTART_TIME_TRESHOLD")
+        rtt = self.send_prompt("Set restart timeout (seconds): ")
+
         if rtt is None:
             self.action_timed_out()
-        elif rtt.isnumeric():
-            self.RESTART_TIME_TRESHOLD = int(rtt.split(".")[0]) #Yeah this is pretty ugly
-            self.bsendWithHtml(f"The value for <b>RESTART_TIME_TRESHOLD</b> was set to <code>{self.RESTART_TIME_TRESHOLD}</code>")
-        else:
-            self.operation_canceled("Only use integers")
 
-    def setJumpscareVolume(self, volume: int= None) -> None:
-        print(f"Setting jumpscare's volume to: {volume}")
-        if volume is None:
-            jmp = self.send_prompt("Set jumpscare's volume: ")
-        if jmp.isnumeric():
-            jmp = int(jmp)
-            if jmp < 0:
-                self.bsend("Volume must be a positive number.")
-            self.jumpscare_volume = min(jmp, 100)
+        elif rtt.isnumeric():
+            self.RESTART_TIME_TRESHOLD = int(rtt.split(".")[0])
+
+            self.bsendWithHtml(
+                "✅ The value of <b>RESTART_TIME_TRESHOLD</b> has been set to "
+                f"<code>{self.RESTART_TIME_TRESHOLD}</code> seconds."
+            )
+
         else:
-            self.bsend("Jumpscare's volume must be numeric.")
+            self.operation_canceled(
+                "❌ Invalid input. Please enter a valid integer value."
+            )
+
+    def setJumpscareVolume(self, volume: int = None) -> None:
+        print(f"Setting jumpscare volume to: {volume}")
+
+        if volume is None:
+            jmp = self.send_prompt("Set jumpscare volume (0–100): ")
+        else:
+            jmp = str(volume)
+
+        if jmp and jmp.isnumeric():
+            jmp = int(jmp)
+
+            if jmp < 0:
+                self.bsend("❌ Volume must be a non-negative number.")
+                return
+
+            self.jumpscare_volume = min(jmp, 100)
+
+            self.bsendWithHtml(
+                "🔊 Jumpscare volume has been set to "
+                f"<code>{self.jumpscare_volume}</code>%."
+            )
+        else:
+            self.bsend("❌ Invalid input. Volume must be a numeric value.")
 
     def moused(self) -> None:
         print("Moving mouse down")
@@ -1866,6 +1900,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def on_callback_query(self, msg) -> None:
         print(f"[on_callback_query] {msg=} {self.user=}")
+        date = int(msg["message"]["date"])
+        self.user["last_message_timestamp"] = monotonic()
+        if (date+self.message_timeout)<monotonic():
+            print("Query skipped because it was too old")
+            return
         query_id, from_id, query_data = glance(msg, flavor='callback_query')
         self.bot.answerCallbackQuery(query_id, text="")
 
@@ -2149,9 +2188,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def parse_text(self, msg: dict) -> None:
         print(f"Parsing text message: {self.user=} {msg['text'][:50]}...")
         text = msg["text"]
-        date = int(msg["date"])
-        if (date+self.message_timeout)<monotonic():
-            return
         if self.user["status"] is None:
             if text == "/start":
                 return None
@@ -3032,12 +3068,30 @@ The bot is now restarting. Please wait a moment...
         public_ip = get_public_ip()
         STARTING_LOG_MESSAGE.edit("📋 GETTING BASIC INFO AND 📸 WEBCAM SELFIE")
 
+        if self.RESTART_TIME_TRESHOLD is None:
+            ar_thresholds = "N/A"
+            ar_measure = None
+        
+        elif self.RESTART_TIME_TRESHOLD < 120:
+            ar_threshols = self.RESTART_TIME_TRESHOLD
+            ar_measure = "seconds"
+
+        elif self.RESTART_TIME_TRESHOLD >= 120 and self.RESTART_TIME_TRESHOLD < 60*60:
+            ar_threshols = self.RESTART_TIME_TRESHOLD//60
+            ar_measure = "minutes"
+
+        elif self.RESTART_TIME_TRESHOLD >= 60*60:
+            ar_threshols = self.RESTART_TIME_TRESHOLD//(60*60)
+            ar_measure = "hours"
+        
+        
+        automatic_restart_message = f"⏰ <b>Automatic bot restart threshold:</b> <code>{ar_threshols}</code> {ar_measure + ' without messages' if ar_measure else ''}.\n"
+
         botstartedmessage = (
             "🚀 <b>RCPT Online – Ready</b> 🚀\n\n"
             f"🕒 <b>Started:</b> <code>{html.escape(now())}</code>\n"
             f"👤 <b>User:</b> <code>{html.escape(getlogin())}</code>\n"
-            f"🛡️ <b>Admin:</b> <code>{'YES ✅' if self.has_admin else 'NO ❌'}</code>\n"
-            f"🧊 <b>Frozen:</b> <code>{'YES ✅' if FROZEN else 'NO ❌'}</code>\n"
+            f"🛡️ <b>Admin:</b> <code>{'YES ✅' if self.has_admin else 'NO ❌'}</code>\n" + automatic_restart_message +
             f"🌐 <b>Public IP:</b> <code>{html.escape(public_ip)}</code>\n"
             f"📡 <b>WiFi:</b> <code>{html.escape(get_wifi_name())}</code>\n"
             f"📸 <b>Webcam:</b> <code>{html.escape(check_webcam())}</code>\n"
