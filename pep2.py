@@ -1054,7 +1054,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     custom_message="🔄 Restarting: messages timed out."
                 )
 
-            sleep(1)
+            sleep(
+                60 * 30 if threshold > 60 * 60
+                else 60 if threshold > 120
+                else 1
+            )
             print(f"[CrashTimeHandler] Restarting in {max(threshold-seconds_from_last_message, 1)}, threshold:{threshold}")
 
     def cantopenmenu(self) -> None:
@@ -1597,13 +1601,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def setTimeoutRestart(self) -> None:
         print("Setting value for RESTART_TIME_TRESHOLD")
-        rtt = self.send_prompt("Set restart timeout (seconds): ")
+        rtt = self.send_prompt("Set restart timeout (seconds).\nUse '-1' to disable it: ")
 
         if rtt is None:
             self.action_timed_out()
 
         elif rtt.isnumeric():
             self.RESTART_TIME_TRESHOLD = int(rtt.split(".")[0])
+            if self.RESTART_TIME_TRESHOLD<0:
+                self.RESTART_TIME_TRESHOLD = None
 
             self.bsendWithHtml(
                 "✅ The value of <b>RESTART_TIME_TRESHOLD</b> has been set to "
