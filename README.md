@@ -1,24 +1,16 @@
 # RCPepTelegram
 
-**RCPepTelegram** is a Telegram-controlled remote control bot for Windows, inspired by a previous project named *Peppino*.  
-It provides a wide set of remote interaction features, including system control, media capture, automation, and prank-oriented actions.
+<img align="right" width="380" src="docs/screenshots/menu.png" alt="Telegram bot menu">
 
-**Tested on:** Windows 10 / Windows 11 only.
+**RCPepTelegram** is a Telegram-controlled remote control bot for Windows, inspired by a previous project named *Peppino*.
 
----
-
-## 📌 Overview
-
-RCPepTelegram runs locally on a Windows machine and exposes its functionality through a Telegram bot.
-Commands, media uploads, and plugins allow real-time interaction with the target system.
-
-The project is intended for educational, experimental, and controlled environments.
+It provides a wide range of remote interaction features, including system control, media capture, automation, and prank-oriented actions.
 
 ---
 
 ## 📚 Documentation
 
-- 📄 **Commands:** `docs/COMMANDS.md`
+- 🐄 **Commands:** `docs/COMMANDS.md`
 - 🧩 **Plugins:** `docs/PLUGINS.md`
 
 ---
@@ -43,28 +35,16 @@ The project is intended for educational, experimental, and controlled environmen
 
 ### File & Media Input Commands
 
-- **Send a photo**  
-  Displays the photo as a pop-up on the screen.
-
-- **Send a photo with `/jumpscare` caption**  
-  Displays the image as a jumpscare.
-
-- **Send a video with `/setvideowallpaper` caption**  
-  Plays the video as a desktop wallpaper (avoid long videos).
-
-- **Send an audio or voice message**  
-  Plays the audio in the background.
-
-- **Send a `.dd` file**  
-  Executes the file as Duckyscript  
-  (`/duckyhelp` for available commands).
-
-- **Send a file with `/save <path>` caption**  
-  Saves the file to the specified path, regardless of extension.  
-  Example:  
-  `photo.jpg /save C:\Users\YOURUSER\Pictures`
-
----
+- **Send a photo** – Displays the photo as a pop-up on the screen.
+- **Send a photo with `/jumpscare` caption** – Displays the image as a jumpscare.
+- **Send a video with `/setvideowallpaper` caption** – Plays the video as a desktop wallpaper (avoid long videos).
+- **Send an audio or voice message** – Plays the audio in the background.
+- **Send a `.dd` file** – Executes the file as Duckyscript (`/duckyhelp` for available commands).
+- **Send a file with `/save <path>` caption** – Saves the file to the specified path.
+  Example:
+  ```
+  photo.jpg /save C:\Users\YOURUSER\Pictures
+  ```
 
 ### 📚 Multi-Command Execution
 
@@ -74,7 +54,6 @@ Multiple commands can be executed in sequence by separating them with a comma.
 ```
 /fullclip 10; /jumpscare
 ```
-
 This command:
 1. Starts a full recording
 2. Waits 5 seconds
@@ -85,10 +64,9 @@ This command:
 ## 🧩 Plugin System
 
 RCPepTelegram supports **class-based plugins** that integrate directly with the bot, UI, and messaging system.
-
 Refer to: `docs/PLUGINS.md`
 
-### 📁 Plugin Structure
+### 👁 Plugin Structure
 
 ```
 plugins/
@@ -97,7 +75,7 @@ plugins/
 └── custom_plugins.py
 ```
 
-### 🧪 Minimal Plugin Example
+### 🤪 Minimal Plugin Example
 
 ```python
 from .plugin_base import Plugin
@@ -112,7 +90,7 @@ class ShutdownTimed(Plugin):
         self.pep2.bsend(f"Shutdown scheduled in {seconds} seconds.")
 ```
 
-### 🧠 Plugin Rules
+### 🤠 Plugin Rules
 
 - Must inherit from `Plugin`
 - `__init__(label, command)` defines button label and Telegram command
@@ -170,49 +148,24 @@ Create an `auth.json` file in the project root:
 
 ---
 
-## 🏗 Build (Nuitka)
+## 🍷 Build (Nuitka)
 
 1. Download [the official builder](https://github.com/RiccardoZappitelli/RCPepTelegramMaker)
 2. Clone the repository inside the builder's directory
 3. Start compiling!
+
 ---
 
 ## ⚠️ Security & Ethical Warning
 
 This project contains functionality that can significantly impact system security and user privacy.
 
-Included capabilities such as:
+Included capabilities:
+
 - Remote system control
 - Keylogging
 - Webcam and microphone access
 - Screenshot and screen recording
 - Duckyscript execution
 
-**must only be used on systems you own or are explicitly authorized to test.**
-
----
-
-## ⚖️ Ethical Considerations
-
-- Unauthorized access is illegal and unethical
-- Recording audio, video, or keystrokes without consent is a serious privacy violation
-- The project can be abused if deployed irresponsibly
-
----
-
-## 🔐 Security Risks
-
-- Exposure of sensitive data (Telegram tokens, chat IDs, recordings)
-- Potential remote exploitation if deployed insecurely
-
----
-
-## ✅ Recommendations
-
-- Use only in controlled environments
-- Secure all credentials and generated data
-- Comply with applicable laws and regulations
-
-By using this code, you accept full responsibility for its usage.  
-The author is not responsible for misuse, damage, or legal consequences.
-
+**Must only be used on systems you own or are explicitly authorized to test.**
