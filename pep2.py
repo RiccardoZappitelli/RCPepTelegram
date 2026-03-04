@@ -1045,21 +1045,26 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             if last_ts is None or threshold is None:
                 sleep(1)
                 continue
-            seconds_from_last_message = monotonic()-last_ts
 
-            if seconds_from_last_message > threshold:
+            elapsed = monotonic() - last_ts
+            remaining = threshold - elapsed
+
+            if remaining <= 0:
                 self.restart(
                     confirm=False,
                     verbose=True,
                     custom_message="🔄 Restarting: messages timed out."
                 )
+                continue
 
-            sleep(
-                60 * 30 if threshold > 60 * 60
-                else 60 if threshold > 120
-                else 1
-            )
-            print(f"[CrashTimeHandler] Restarting in {max(threshold-seconds_from_last_message, 1)}, threshold:{threshold}")
+            print(f"[CrashTimeHandler] Restart in {int(remaining)}s | threshold={threshold}")
+
+            if remaining <= 10:
+                sleep(1)
+            elif remaining <= 60:
+                sleep(10)
+            else:
+                sleep(60)
 
     def cantopenmenu(self) -> None:
         print("Opening cantopen menu")
