@@ -95,18 +95,18 @@ class OverlayManager:
         self.root = None
 
     def textual_jumpscare(self, text: str, duration: int):
-        print("[JUMPSCARE] Starting textual jumpscare...")
+        print("[Textaul Jumpscare] Starting textual jumpscare...")
         try:
             self._safe_destroy()
-            print("[JUMPSCARE] Old root destroyed")
+            print("[Textaul Jumpscare] Old root destroyed")
 
-            self.root = Toplevel()
-            print("[JUMPSCARE] Toplevel created")
+            self.root = Tk()
+            print("[Textaul Jumpscare] Toplevel created")
 
             self.root.attributes("-fullscreen", True)
             self.root.attributes("-topmost", True)
             self.root.configure(bg="black")
-            print("[JUMPSCARE] Window configured")
+            print("[Textaul Jumpscare] Window configured")
 
             lbl = Label(
                 self.root,
@@ -116,16 +116,16 @@ class OverlayManager:
                 bg="black"
             )
             lbl.pack(expand=True)
-            print("[JUMPSCARE] Label packed")
+            print("[Textaul Jumpscare] Label packed")
 
             self.root.after(duration*1000, self._safe_destroy)
-            print("[JUMPSCARE] Auto-destroy scheduled → calling mainloop()")
+            print("[Textaul Jumpscare] Auto-destroy scheduled → calling mainloop()")
 
             self.root.mainloop()
-            print("[JUMPSCARE] mainloop exited")   # you should NOT see this if it works
+            print("[Textaul Jumpscare] mainloop exited")   # you should NOT see this if it works
 
         except Exception as e:
-            print(f"[JUMPSCARE ERROR] {type(e).__name__}: {e}")
+            print(f"[Textaul Jumpscare ERROR] {type(e).__name__}: {e}")
             self._safe_destroy()
 
     def fake_bsod(self, duration: float = 20.0, qr_code_url: str = None):
