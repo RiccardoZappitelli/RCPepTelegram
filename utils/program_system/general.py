@@ -17,6 +17,13 @@ conflict_error = "Conflict: terminated by other getUpdates request; make sure th
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except (ValueError, TypeError):
+        return False
+
 def strip_ansi(text: str) -> str:
     return ANSI_ESCAPE_RE.sub('', text)
 
