@@ -24,11 +24,7 @@ def generate_help(commands: List[Command]) -> List[str]:
     for cmd in commands:
         grouped[cmd.category].append(cmd)
     
-    # Get all unique categories and sort them alphabetically
-    # But keep "🏠 Menu" first if it exists
     all_categories = list(grouped.keys())
-    
-    # Try to put "🏠 Menu" first, then sort the rest alphabetically
     categories_with_menu_first = []
     menu_category = None
     
@@ -38,10 +34,8 @@ def generate_help(commands: List[Command]) -> List[str]:
         else:
             categories_with_menu_first.append(cat)
     
-    # Sort non-menu categories alphabetically
     categories_with_menu_first.sort()
     
-    # Add menu category at the beginning if found
     if menu_category:
         category_order = [menu_category] + categories_with_menu_first
     else:
@@ -69,7 +63,7 @@ def generate_help(commands: List[Command]) -> List[str]:
             section_length = len(category_header) + len(commands_section) + len(separator)
             
             # If adding this section would exceed limit, start new part
-            if current_length + section_length > 2800:  # Keep under 3000 with buffer
+            if current_length + section_length > 2800:  # Keep under 3000 with buffer or it'll be a message too long
                 if current_part:
                     help_parts.append("".join(current_part).strip())
                 current_part = [category_header, commands_section, separator]
