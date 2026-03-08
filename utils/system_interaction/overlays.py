@@ -27,16 +27,13 @@ def user_prompt(question: str, window_title: str = "Question") -> str:
 def invert_image(imagearray, time_elapsed=None) -> np.array:
     return bitwise_not(imagearray)
 
-def distorted_screen(image, elapsed, strength=5.0, frequency=50.0, state=None):
+def distorted_screen(image, elapsed, strength=5.0, frequency=50.0):
     h, w = image.shape[:2]
 
-    if state["_map"] is None:
-        state["_map"] = np.meshgrid(
-            np.arange(w, dtype=np.float32),
-            np.arange(h, dtype=np.float32)
-        )
-
-    base_x, base_y = state["_map"]
+    base_x, base_y = np.meshgrid(
+        np.arange(w, dtype=np.float32),
+        np.arange(h, dtype=np.float32)
+    )
 
     dx = np.sin((base_y / frequency) + elapsed) * strength
     dy = np.cos((base_x / frequency) + elapsed) * strength
@@ -94,38 +91,38 @@ class OverlayManager:
             pass
         self.root = None
 
-    def textual_jumpscare(self, text: str, duration: int):
-        print("[Textaul Jumpscare] Starting textual jumpscare...")
+    def textual_jumpscare(self, text: str, duration: int, text_color="red", bg_color="black"):
+        print("[Textual Jumpscare] Starting textual jumpscare...")
         try:
             self._safe_destroy()
-            print("[Textaul Jumpscare] Old root destroyed")
+            print("[Textual Jumpscare] Old root destroyed")
 
             self.root = Tk()
-            print("[Textaul Jumpscare] Toplevel created")
+            print("[Textual Jumpscare] Toplevel created")
 
             self.root.attributes("-fullscreen", True)
             self.root.attributes("-topmost", True)
-            self.root.configure(bg="black")
-            print("[Textaul Jumpscare] Window configured")
+            self.root.configure(bg=bg_color)
+            print("[Textual Jumpscare] Window configured")
 
             lbl = Label(
                 self.root,
                 text=text,
                 font=("Arial Black", 90),
-                fg="#ff0000",
-                bg="black"
+                fg=text_color,
+                bg=bg_color
             )
             lbl.pack(expand=True)
-            print("[Textaul Jumpscare] Label packed")
+            print("[Textual Jumpscare] Label packed")
 
             self.root.after(duration*1000, self._safe_destroy)
-            print("[Textaul Jumpscare] Auto-destroy scheduled → calling mainloop()")
+            print("[Textual Jumpscare] Auto-destroy scheduled → calling mainloop()")
 
             self.root.mainloop()
-            print("[Textaul Jumpscare] mainloop exited")   # you should NOT see this if it works
+            print("[Textual Jumpscare] mainloop exited")   # you should NOT see this if it works
 
         except Exception as e:
-            print(f"[Textaul Jumpscare ERROR] {type(e).__name__}: {e}")
+            print(f"[Textual Jumpscare ERROR] {type(e).__name__}: {e}")
             self._safe_destroy()
 
     def fake_bsod(self, duration: float = 20.0, qr_code_url: str = None):
