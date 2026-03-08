@@ -18,14 +18,14 @@ _This file is auto-generated. Do not edit manually._
 ### `fullvolume`
 
 **Label:** `🔊 Full Volume`  
-**Function:** `<lambda>`
+**Function:** `full_audio`
 
 > Set volume to maximum.
 
 ### `getvolume`
 
 **Label:** `📊 Get Volume`  
-**Function:** `<lambda>`
+**Function:** `get_volume`
 
 > Get current volume.
 
@@ -51,7 +51,7 @@ _This file is auto-generated. Do not edit manually._
 ### `mutevolume`
 
 **Label:** `🔇 Mute Volume`  
-**Function:** `<lambda>`
+**Function:** `mute_audio`
 
 > Mute system volume.
 
@@ -59,12 +59,6 @@ _This file is auto-generated. Do not edit manually._
 
 **Label:** `🔗 Play from URL`  
 **Function:** `play_from_url`
-
-**Positional arguments:**
-
-- `url`
-- `filename`
-- `delete_after_playing`
 
 > Play audio from URL.
 
@@ -76,17 +70,18 @@ _This file is auto-generated. Do not edit manually._
 **Positional arguments:**
 
 - `duration`
+- `volume`
 
 > Play static/interference noise.
 
 ### `setvolume`
 
 **Label:** `🎚️ Set Volume`  
-**Function:** `setVolumePercentage`
+**Function:** `set_volume`
 
 **Positional arguments:**
 
-- `percentage`
+- `custom_text`
 
 > Set volume percentage.
 
@@ -316,7 +311,7 @@ _This file is auto-generated. Do not edit manually._
 ### `capslock`
 
 **Label:** `🔠 Capslock`  
-**Function:** `<lambda>`
+**Function:** `lambda`
 
 > Toggle Caps Lock.
 
@@ -566,7 +561,7 @@ _This file is auto-generated. Do not edit manually._
 ### `id`
 
 **Label:** `🆔 Id`  
-**Function:** `<lambda>`
+**Function:** `lambda`
 
 > Send chat ID.
 
@@ -575,31 +570,21 @@ _This file is auto-generated. Do not edit manually._
 ### `browser`
 
 **Label:** `🌐 Browser`  
-**Function:** `open`
-
-**Positional arguments:**
-
-- `url`
-- `new`
-- `autoraise`
+**Function:** `browseropen`
 
 > Open URL in browser.
 
 ### `duckyhelp`
 
 **Label:** `❓ Duckyhelp`  
-**Function:** `<lambda>`
+**Function:** `lambda`
 
 > Show DuckyScript help.
 
 ### `duckyscript`
 
 **Label:** `⌨️ Duckyscript`  
-**Function:** `<lambda>`
-
-**Positional arguments:**
-
-- `*args`
+**Function:** `lambda`
 
 > Execute DuckyScript.
 
@@ -758,7 +743,7 @@ _This file is auto-generated. Do not edit manually._
 ### `nothing`
 
 **Label:** `⚪ Nothing`  
-**Function:** `<lambda>`
+**Function:** `lambda`
 
 > No-op command.
 
@@ -935,6 +920,18 @@ _This file is auto-generated. Do not edit manually._
 
 > Display QR code overlay with custom text. Args: url [text] [duration]
 
+### `text_jumpscare`
+
+**Label:** `Text Jumpscare`  
+**Function:** `textual_jumpscare`
+
+**Positional arguments:**
+
+- `text`
+- `duration`
+
+> Textual Jumpscare
+
 ### `whisper_overlay`
 
 **Label:** `👻 Red Text Overlay`  
@@ -1022,7 +1019,7 @@ _This file is auto-generated. Do not edit manually._
 ### `tralalerotralala`
 
 **Label:** `🎶 Tralalero`  
-**Function:** `<lambda>`
+**Function:** `lambda`
 
 > Play Italian brainrot sound.
 
@@ -1097,11 +1094,7 @@ _This file is auto-generated. Do not edit manually._
 ### `execute_withoutput`
 
 **Label:** `⚙️ Execute`  
-**Function:** `<lambda>`
-
-**Positional arguments:**
-
-- `x`
+**Function:** `lambda`
 
 > Execute system command.
 
@@ -1149,10 +1142,6 @@ _This file is auto-generated. Do not edit manually._
 
 **Label:** `🛑 Terminate Process`  
 **Function:** `terminate_process_by_name`
-
-**Positional arguments:**
-
-- `process_name`
 
 > Terminate process by name.
 
