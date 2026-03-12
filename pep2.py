@@ -104,7 +104,7 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
-BUNDLE_PATH = [ x for x in listdir(rp_base_path) if x.endswith("Bundle.bin") ] or ""
+BUNDLE_PATH = resource_path("bundle.bin")
 if BUNDLE_PATH:
     BUNDLE_PATH = BUNDLE_PATH[0]
 
