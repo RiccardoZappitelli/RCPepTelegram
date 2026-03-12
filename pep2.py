@@ -169,7 +169,7 @@ if DATA_ENCRYPTION:
     FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
 
 if ASSETS_PACKED:
-    print(f"Assets bundled, bundle {bundle_file}")
+    print(f"Assets bundled, bundle path:{bundle_file}")
     BUNDLER = Bundle(bundle_file)
     print(f"{BUNDLER.index=}")
     _real_open = builtins.open
@@ -190,6 +190,8 @@ if ASSETS_PACKED:
 
         return _real_open(file, mode, *args, **kwargs)
     builtins.open = patched_open
+else:
+    print("Assets are NOT bundled.")
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
