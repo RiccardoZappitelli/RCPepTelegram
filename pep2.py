@@ -25,10 +25,10 @@ from telepot.namedtuple import ReplyKeyboardMarkup
 #IMAGES
 import numpy as np
 from PIL import Image
-from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, waitKey,
+from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, imdecode, resize, waitKey,
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
-                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn,
+                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, IMREAD_COLOR,
                  destroyAllWindows, BORDER_CONSTANT, destroyWindow, copyMakeBorder)
 
 #MERGE AUDIO&VIDEO
@@ -188,6 +188,29 @@ if ASSETS_PACKED:
 
         return _real_open(file, mode, *args, **kwargs)
     builtins.open = patched_open
+
+    _original_imread = imread
+    def patched_imread(filename, flags=IMREAD_COLOR):
+        print(f"[patched_imread] opening {filename}")
+        try:
+            with open(filename, "rb") as f:
+                file_content = f.read()
+        except Exception as e:
+            print(f"[patched_imread] open failed for {filename}: {e}")
+            return _original_imread(filename, flags)
+
+        if not file_content:
+            print(f"[patched_imread] Empty content for {filename}")
+            return None
+        nparr = np.frombuffer(file_content, np.uint8)
+        img = imdecode(nparr, flags)
+
+        if img is None:
+            print(f"[patched_imread] Decode failed for {filename}")
+            return _original_imread(filename, flags)
+        return img
+    imread = patched_imread
+
 else:
     print("Assets are NOT bundled.")
 
