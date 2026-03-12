@@ -49,13 +49,13 @@ import inspect
 import builtins
 import functools
 import traceback
-from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
+from io import BytesIO, StringIO
 from time import monotonic, sleep
 from random import choice, randint
 from webbrowser import open as browseropen
@@ -105,8 +105,6 @@ TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
 BUNDLE_PATH = resource_path("bundle.bin")
-if BUNDLE_PATH:
-    BUNDLE_PATH = BUNDLE_PATH[0]
 
 try:
     assets_dir = resource_path("assets")
@@ -184,9 +182,9 @@ if ASSETS_PACKED:
                 print("[PatchedOpen] Getting content from BUNDLE")
                 data = BUNDLER.get_content(key)
                 if "b" in mode:
-                    return io.BytesIO(data)
+                    return BytesIO(data)
                 else:
-                    return io.StringIO(data.decode())
+                    return StringIO(data.decode())
 
         return _real_open(file, mode, *args, **kwargs)
     builtins.open = patched_open
