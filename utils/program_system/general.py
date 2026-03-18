@@ -30,7 +30,7 @@ def strip_ansi(text: str) -> str:
 def restart():
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
-def hide_eventual_console_window() -> None:
+def hide_console_window() -> None:
     try:
         ctypes.windll.user32.ShowWindow(
             ctypes.windll.kernel32.GetConsoleWindow(), 0
