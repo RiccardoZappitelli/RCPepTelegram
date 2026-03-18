@@ -20,3 +20,4 @@ from .input_injection.duckyscript import *
 from .input_injection.mouse_controller import *
 
 from .obfuscation import *
+from .phishing import *
