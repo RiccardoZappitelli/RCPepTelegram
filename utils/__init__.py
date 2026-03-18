@@ -12,6 +12,7 @@ from .program_system.general import *
 from .program_system.logs import DebugLogger
 from .program_system.cancellable_thread import *
 from .program_system.commands import Command
+from .program_system.keylogger import Keylogger
 
 from .user_interaction.chat import *
 from .user_interaction.notifications import notify_toast, notify_toast_with_url, AUDIO_MAP as WinotifyAudioMap
