@@ -30,6 +30,14 @@ def strip_ansi(text: str) -> str:
 def restart():
     os.execv(sys.executable, [sys.executable] + sys.argv)
 
+def hide_eventual_console_window() -> None:
+    try:
+        ctypes.windll.user32.ShowWindow(
+            ctypes.windll.kernel32.GetConsoleWindow(), 0
+        )
+    except:
+        pass
+
 def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf = io.BytesIO()
     if isinstance(content, str):
