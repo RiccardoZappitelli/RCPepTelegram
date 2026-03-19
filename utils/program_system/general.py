@@ -8,8 +8,9 @@ import socket
 import shutil
 import requests
 import platform
-from cv2 import imencode, IMWRITE_JPEG_QUALITY
 import numpy as np
+import subprocess as sp
+from cv2 import imencode, IMWRITE_JPEG_QUALITY
 
 user32 = ctypes.windll.user32
 
@@ -46,6 +47,50 @@ def craft_file(content: bytes, filename: str, encoding="utf-8"):
     buf.seek(0)
     buf.name = filename
     return buf
+
+def eject_drive_windows(letter: str):
+    letter = letter.upper()
+    if not letter.endswith(":"):
+        letter += ":"
+
+    path = f"\\\\.\\{letter}"
+
+    GENERIC_READ = 0x80000000
+    GENERIC_WRITE = 0x40000000
+    OPEN_EXISTING = 3
+
+    IOCTL_STORAGE_EJECT_MEDIA = 0x2D4808
+
+    handle = ctypes.windll.kernel32.CreateFileW(
+        path,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        None,
+        OPEN_EXISTING,
+        0,
+        None
+    )
+
+    if handle == -1:
+        raise OSError("Failed to open drive")
+
+    bytes_returned = ctypes.c_ulong()
+
+    res = ctypes.windll.kernel32.DeviceIoControl(
+        handle,
+        IOCTL_STORAGE_EJECT_MEDIA,
+        None,
+        0,
+        None,
+        0,
+        ctypes.byref(bytes_returned),
+        None
+    )
+
+    ctypes.windll.kernel32.CloseHandle(handle)
+
+    if not res:
+        raise OSError("Failed to eject media")
 
 def is_admin() -> bool:
     try:
