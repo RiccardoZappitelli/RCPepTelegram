@@ -625,8 +625,8 @@ class PeppinoTelegram:
 
             # 💻 System Control
             Command("disk_info", self.get_disk_info, "Sends infos about the connected drives.", "system_control", "💿 List Drives"),
-            Command("drive_eject_menu", self.drive_eject_menu, "Display drive eject menu", "system_control", "📤 Eject Menu"),
-            Command("eject_drive", self.eject_drive, "Eject a drive by its letter", "system_control", "⏏️ Eject Drive"),
+            Command("drive_eject_menu", self.drive_eject_menu, "Display drive eject menu", "system_control", "💿📤 Eject Menu"),
+            Command("eject_drive", self.eject_drive, "Eject a drive by its letter", "system_control", "💿⏏️ Eject Drive"),
             Command("execute_withoutput", lambda x: self.bsend(self.execute(x, return_output=True, shell=True)), "Execute system command.", "system_control", "⚙️ Execute"),
 
             Command("execute", self.execute, "Execute a command(helper)", "null", "Execute(helper)"),
@@ -893,7 +893,6 @@ class PeppinoTelegram:
             )
         except OSError as e:
             self.display_exception(str(e))
-
 
     def drive_eject_menu(self) -> None:
         disks = get_disk_info()
