@@ -758,7 +758,7 @@ class PeppinoTelegram:
         if volume:
             self._audio_mixer_set_volume(old)
 
-    def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None, reply_markup=None) -> int:
+    def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None, reply_markup=None, parse_mode=None) -> int:
         print(f"Sending image: {image_name}, caption={caption}")
         """
         return a message id
@@ -766,10 +766,10 @@ class PeppinoTelegram:
         try:
             assert (image_name is None) ^ (image_buf is None), "You can only use either image_name or image_buf"
             if image_buf:
-                msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption, reply_markup=reply_markup)["message_id"]
+                msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)["message_id"]
             if image_name:
                 with open(image_name, "rb") as image:
-                    msg = self.bot.sendPhoto(self.owner_id, image, caption=caption, reply_markup=reply_markup)["message_id"]
+                    msg = self.bot.sendPhoto(self.owner_id, image, caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)["message_id"]
             return msg
         except Exception as e:
             return self.bsend(f"Error while sending an image\n{e}")
@@ -2563,7 +2563,7 @@ The bot is now restarting. Please wait a moment...
                 mon, img = scrt["monitor"],scrt["screenshot"]
                 f = cv2_to_bytesio(img)
                 f.name = "Screenshot.png"
-            self.__send_image(image_buf=f, caption=caption or mon, reply_markup=reply_markup)
+            self.__send_image(image_buf=f, caption=caption or mon, reply_markup=reply_markup, parse_mode="HTML")
         except Exception as e:
             return self.display_exception(f"Error while getting screenshot\n{e}")
 
