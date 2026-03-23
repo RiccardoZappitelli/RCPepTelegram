@@ -26,6 +26,9 @@ if FROZEN:
 else:
     rp_base_path = os.path.dirname(__file__)
 
+def resource_path(relative_path: str) -> str:
+    return os.path.join(rp_base_path, relative_path)
+
 def is_number(s):
     try:
         float(s)
