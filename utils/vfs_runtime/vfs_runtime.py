@@ -126,6 +126,29 @@ _real_open = builtins.open
 _real_exists = os.path.exists
 _real_listdir = os.listdir
 
+def vfs_tree(path: str = ".", prefix: str = "") -> None:
+    """
+    Print a tree of the VFS starting from 'path'.
+    """
+    # map "." to root of VFS
+    if path == ".":
+        path = ""
+
+    if not vfs.exists(path):
+        print(f"{prefix}{path or '.'} [not found]")
+        return
+
+    entries = vfs.listdir(path)
+    entries.sort()
+    for i, entry in enumerate(entries):
+        full_path = f"{path}/{entry}" if path else entry
+        connector = "└── " if i == len(entries) - 1 else "├── "
+        print(f"{prefix}{connector}{entry}")
+        # Recurse if entry is a directory
+        if vfs.exists(full_path) and vfs.listdir(full_path):
+            extension = "    " if i == len(entries) - 1 else "│   "
+            vfs_tree(full_path, prefix + extension)
+
 def vfs_open(path, *args, **kwargs):
     if isinstance(path, str) and vfs.exists(path):
         vfs_log("vfs_open", f"path={path}", "serving from VFS")
