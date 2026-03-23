@@ -9,13 +9,58 @@ import zlib
 import tempfile
 import atexit
 
+
 # =========================
 # CONFIG
 # =========================
-BUNDLE_PATH = "assets.bin" # None = auto-detect (appended to exe)
+BUNDLE_PATH = None # None = auto-detect (appended to exe)
+BUNDLE_NAME = "assets.bin"
+FROZEN = getattr(sys, "frozen", False)
 
 def vfs_log(func_name, params, action):
     print(f"[VFS]({func_name}, {params}) {action}")
+
+def resolve_bundle_path():
+    candidates = []
+
+    # 1. Explicit override
+    if BUNDLE_PATH:
+        candidates.append(BUNDLE_PATH)
+
+    # 2. CWD (most important in dev)
+    candidates.append(os.path.abspath("assets.bin"))
+
+    # 3. Main script location (NOT module location)
+    if hasattr(sys, "argv") and sys.argv[0]:
+        main_path = os.path.abspath(sys.argv[0])
+        candidates.append(os.path.join(os.path.dirname(main_path), "assets.bin"))
+
+    # 4. Executable dir (Nuitka standalone)
+    exe_dir = os.path.dirname(sys.executable)
+    candidates.append(os.path.join(exe_dir, "assets.bin"))
+
+    # 5. Appended to executable (Nuitka onefile)
+    candidates.append(sys.executable)
+
+    # DEBUG
+    for c in candidates:
+        print(f"[resolve_bundle_path] Candidate: {c}")
+
+    for path in candidates:
+        if not os.path.exists(path):
+            continue
+
+        try:
+            with open(path, "rb") as f:
+                f.seek(-4096, 2)
+                if VFS.MAGIC in f.read():
+                    print(f"[resolve_bundle_path] FOUND: {path}")
+                    return path
+        except:
+            continue
+
+    print("[resolve_bundle_path] No bundle found")
+    return None
 
 # =========================
 # VFS CORE
@@ -29,7 +74,10 @@ class VFS:
         self._load_bundle()
 
     def _load_bundle(self):
-        path = BUNDLE_PATH or sys.executable
+        path = resolve_bundle_path()
+        if not path:
+            vfs_log("_load_bundle", "", "no bundle detected")
+            return
         print(f"{BUNDLE_PATH=}")
         vfs_log("_load_bundle", f"path={path}", "loading bundle")
         with open(path, "rb") as f:
