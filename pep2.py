@@ -61,9 +61,9 @@ from random import choice, randint
 from webbrowser import open as browseropen
 from string import ascii_letters, printable
 from subprocess import CREATE_NO_WINDOW, PIPE, Popen
-from os import system, remove, getenv, getcwd, listdir, name, getlogin, chmod, rename
+from os import system, remove, getenv, getcwd, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
-from os.path import join, abspath, isdir, isfile, exists, dirname, realpath, split as pathsplit, basename, getsize
+from os.path import join, abspath, isdir, isfile, dirname, realpath, split as pathsplit, basename, getsize
 
 from utils import *
 try:
@@ -179,22 +179,6 @@ if isdir(DLLS_DIR):
             load_dll(join(DLLS_DIR, file))
 else:
     print(f"DLLS directory not does not exist or it was empty: {DLLS_DIR}")
-
-# This will force every subprocess.Popen and os.system to be windowless
-def _patched_popen(*args, **kwargs):
-    """
-    cmd_list = []
-    if args:
-        cmd_list = list(args)
-    elif 'args' in kwargs:
-        cmd_list = kwargs['args'] if isinstance(kwargs['args'], list) else [kwargs['args']]
-    if any("ngrok" in str(part).lower() for part in cmd_list):
-        kwargs["creationflags"] = kwargs.get("creationflags", 0) | CREATE_NO_WINDOW
-    """
-    kwargs["creationflags"] = kwargs.get("creationflags", 0) | CREATE_NO_WINDOW
-    kwargs.setdefault("stderr", PIPE)
-    kwargs.setdefault("stdout", PIPE)
-    return Popen(*args, **kwargs)
 
 def get_decrypted_content(fernet: SimpleFernet, src_path) -> bytes:
     with open(src_path, "rb") as f:
@@ -389,7 +373,6 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
             print(f"[load_audios] Processing: {x}")
             print(f"[load_audios] Full path: {full_path}")
 
-            # optional: check existence through VFS-aware exists
             if not os.path.exists(full_path):
                 print(f"[load_audios][WARNING] Path does not exist: {full_path}")
                 continue
@@ -3444,7 +3427,6 @@ if __name__ == "__main__":
     signal_error = ""
     if tunnel_provider == "ngrok":
         try:
-            pyngrok.process.subprocess.Popen = _patched_popen
             try:
                 if ngrok_token.strip():
                     terminate_process_by_name("ngrok.exe")
