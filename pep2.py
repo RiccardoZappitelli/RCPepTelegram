@@ -289,12 +289,17 @@ def getCred(filename:str=resource_path("auth.json")) -> tuple[str,int]:
 # Resizing assets so they all take the same time to load when doing jumpscares
 # or at lest that's what I think it should do
 def compress_and_resize_image(image_array, target_size=(1920, 1080), quality=30) -> np.array:
-    img = Image.fromarray(image_array)
-    img_resized = img.resize(target_size, Image.Resampling.LANCZOS)
-    buffer = BytesIO()
-    img_resized.save(buffer, 'JPEG', quality=quality)
-    buffer.seek(0)
-    compressed_image = np.array(Image.open(buffer))
+    print(f"[compress_and_resize_image] resizing image into({target_size[0]}x{target_size[1]})..")
+    try:
+        img = Image.fromarray(image_array)
+        img_resized = img.resize(target_size, Image.Resampling.LANCZOS)
+        buffer = BytesIO()
+        img_resized.save(buffer, 'JPEG', quality=quality)
+        buffer.seek(0)
+        compressed_image = np.array(Image.open(buffer))
+    except Exception as e:
+        print(f"[compress_and_resize_image] Exception while resizing image: {e}")
+        return 
     return compressed_image
 
 def show_image_fullscreen(image, timeout=1250) -> None:
@@ -324,10 +329,10 @@ def detect_face(cap:VideoCapture|None=None) -> tuple[int,Mat]:
     return sum(1 for i in range(detections.shape[2]) if detections[0, 0, i, 2] > 0.5), frame
 
 def load_images(vfx_folder: str=vfx) -> dict[str:Mat]:
-    return { x[:-4]:compress_and_resize_image(imread(join(vfx_folder,x))) for x in listdir(vfx_folder) }
+    return { x.split(".")[0]:compress_and_resize_image(imread(join(vfx_folder,x))) for x in listdir(vfx_folder) }
 
 def load_audios(sfx_folder: str=sfx) -> list[str]:
-    return { x[:-4]:join(sfx_folder,x) for x in listdir(sfx_folder) }
+    return { x.split(".")[0]:join(sfx_folder,x) for x in listdir(sfx_folder) }
 
 def randompngname(lenght: int=10) -> str:
     return randomname(lenght)+".png"
