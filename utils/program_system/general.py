@@ -18,6 +18,15 @@ conflict_error = "Conflict: terminated by other getUpdates request; make sure th
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
+# This will force every subprocess.Popen and os.system to be windowless
+_default_Popen = sp.Popen
+def _patched_popen(*args, **kwargs):
+    kwargs["creationflags"] = kwargs.get("creationflags", 0) | sp.CREATE_NO_WINDOW
+    kwargs.setdefault("stderr", sp.PIPE)
+    kwargs.setdefault("stdout", sp.PIPE)
+    return _default_Popen(*args, **kwargs)
+sp.Popen = _patched_popen
+
 def is_number(s):
     try:
         float(s)
