@@ -329,11 +329,79 @@ def detect_face(cap:VideoCapture|None=None) -> tuple[int,Mat]:
     detections = net.forward()
     return sum(1 for i in range(detections.shape[2]) if detections[0, 0, i, 2] > 0.5), frame
 
-def load_images(vfx_folder: str=vfx) -> dict[str:Mat]:
-    return { x.split(".")[0]:compress_and_resize_image(imread(join(vfx_folder,x))) for x in listdir(vfx_folder) }
+def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
+    result = {}
 
-def load_audios(sfx_folder: str=sfx) -> list[str]:
-    return { x.split(".")[0]:join(sfx_folder,x) for x in listdir(sfx_folder) }
+    print(f"[load_images] Loading from folder: {vfx_folder}")
+
+    try:
+        files = listdir(vfx_folder)
+        print(f"[load_images] Found {len(files)} entries: {files}")
+    except Exception as e:
+        print(f"[load_images][ERROR] listdir failed: {e}")
+        return result
+
+    for x in files:
+        try:
+            full_path = join(vfx_folder, x)
+            key = x.split(".")[0]
+
+            print(f"[load_images] Processing: {x}")
+            print(f"[load_images] Full path: {full_path}")
+
+            img = imread(full_path)
+
+            if img is None:
+                print(f"[load_images][WARNING] imread returned None for: {full_path}")
+                continue
+
+            print(f"[load_images] Image loaded: shape={getattr(img, 'shape', 'unknown')}")
+
+            processed = compress_and_resize_image(img)
+
+            print(f"[load_images] Processed: {key}")
+
+            result[key] = processed
+
+        except Exception as e:
+            print(f"[load_images][ERROR] Failed on {x}: {e}")
+
+    print(f"[load_images] Done. Loaded {len(result)} images.")
+    return result
+
+def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
+    result = {}
+
+    print(f"[load_audios] Loading from folder: {sfx_folder}")
+
+    try:
+        files = listdir(sfx_folder)
+        print(f"[load_audios] Found {len(files)} entries: {files}")
+    except Exception as e:
+        print(f"[load_audios][ERROR] listdir failed: {e}")
+        return result
+
+    for x in files:
+        try:
+            full_path = join(sfx_folder, x)
+            key = x.split(".")[0]
+
+            print(f"[load_audios] Processing: {x}")
+            print(f"[load_audios] Full path: {full_path}")
+
+            # optional: check existence through VFS-aware exists
+            if not os.path.exists(full_path):
+                print(f"[load_audios][WARNING] Path does not exist: {full_path}")
+                continue
+
+            result[key] = full_path
+            print(f"[load_audios] Added: {key} -> {full_path}")
+
+        except Exception as e:
+            print(f"[load_audios][ERROR] Failed on {x}: {e}")
+
+    print(f"[load_audios] Done. Loaded {len(result)} audios.")
+    return result
 
 def randompngname(lenght: int=10) -> str:
     return randomname(lenght)+".png"
