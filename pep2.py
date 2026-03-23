@@ -73,6 +73,9 @@ except ImportError as e:
     plugins = None
 
 from utils.vfs_runtime import *
+print(f"VFS TREE:")
+for dir in vfs.listdir("."):
+    vfs_tree(dir)
 
 #TODO Add all the message boxes to a file un user_interaction/boxes.py
 
