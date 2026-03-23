@@ -18,6 +18,14 @@ conflict_error = "Conflict: terminated by other getUpdates request; make sure th
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
+# This is needed to understand if the file was compiled or not
+FROZEN = getattr(sys, "frozen", False)
+
+if FROZEN:
+    rp_base_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+else:
+    rp_base_path = os.path.dirname(__file__)
+
 def is_number(s):
     try:
         float(s)
