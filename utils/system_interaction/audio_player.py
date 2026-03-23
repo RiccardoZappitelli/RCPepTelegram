@@ -1,6 +1,7 @@
 import soundfile as sf
 import sounddevice as sd
 import numpy as np
+from ..vfs_runtime import extract_temp, vfs_exists
 
 # TODO play mp3 from yt
 
@@ -35,7 +36,11 @@ class AudioPlayer:
     
     @staticmethod
     def play_wav(audio: str, separate_thread: bool = True) -> None:
-        PlaySound(audio, (SND_FILENAME|SND_ASYNC) if separate_thread else SND_FILENAME)
+        if vfs_exists(audio):
+            tmp_path = extract_temp(audio)
+            PlaySound(tmp_path, SND_FILENAME | (SND_ASYNC if separate_thread else 0))
+        else:
+            PlaySound(audio, SND_FILENAME | (SND_ASYNC if separate_thread else 0))
 
     def stopallsounds(self):
         if isinstance(sd.OutputStream, self.stream):
