@@ -213,28 +213,32 @@ _real_listdir = os.listdir
 _real_imread = cv2.imread
 
 def vfs_tree(path: str = ".", prefix: str = "") -> None:
-    """
-    Print a tree of the VFS starting from 'path'.
-    """
     path = _norm(path)
-    # map "." to root of VFS
     if path == ".":
         path = ""
 
-    if not vfs.exists(path):
-        print(f"{prefix}{path or '.'} [not found]")
-        return
+    def _build(path: str, prefix: str) -> str:
+        if not vfs.exists(path):
+            return f"{prefix}{path or '.'} [not found]\n"
 
-    entries = vfs.listdir(path)
-    entries.sort()
-    for i, entry in enumerate(entries):
-        full_path = f"{path}/{entry}" if path else entry
-        connector = "└── " if i == len(entries) - 1 else "├── "
-        print(f"{prefix}{connector}{entry}")
-        # Recurse if entry is a directory
-        if vfs.exists(full_path) and vfs.listdir(full_path):
-            extension = "    " if i == len(entries) - 1 else "│   "
-            vfs_tree(full_path, prefix + extension)
+        entries = vfs.listdir(path)
+        entries.sort()
+
+        tree_str = ""
+
+        for i, entry in enumerate(entries):
+            full_path = f"{path}/{entry}" if path else entry
+            connector = "└── " if i == len(entries) - 1 else "├── "
+            tree_str += f"{prefix}{connector}{entry}\n"
+
+            if vfs.exists(full_path) and vfs.listdir(full_path):
+                extension = "    " if i == len(entries) - 1 else "│   "
+                tree_str += _build(full_path, prefix + extension)
+
+        return tree_str
+
+    final_tree = _build(path, prefix)
+    print(final_tree, end="")
 
 def vfs_open(path, *args, **kwargs):
     path = _norm(path)
