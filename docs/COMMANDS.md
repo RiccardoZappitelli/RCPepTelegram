@@ -152,6 +152,11 @@ _This file is auto-generated. Do not edit manually._
 **Label:** `🖼️ Take Screenshot`  
 **Function:** `screenshot`
 
+**Positional arguments:**
+
+- `caption`
+- `reply_markup`
+
 > Capture screen.
 
 ### `screenstreamstart`
@@ -374,24 +379,9 @@ _This file is auto-generated. Do not edit manually._
 ### `keylogger`
 
 **Label:** `⌨️ Keylogger`  
-**Function:** `keylogger`
+**Function:** `get_keylog`
 
-**Positional arguments:**
-
-- `timeout`
-
-> Log keystrokes to file.
-
-### `livekeylogger`
-
-**Label:** `📡 Livekeylogger`  
-**Function:** `live_keylogger`
-
-**Positional arguments:**
-
-- `timeout`
-
-> Live keystroke monitoring.
+> Sends the current keylog file.
 
 ## menu
 
@@ -1090,6 +1080,24 @@ _This file is auto-generated. Do not edit manually._
 **Function:** `get_disk_info`
 
 > Sends infos about the connected drives.
+
+### `drive_eject_menu`
+
+**Label:** `💿📤 Eject Menu`  
+**Function:** `drive_eject_menu`
+
+> Display drive eject menu
+
+### `eject_drive`
+
+**Label:** `💿⏏️ Eject Drive`  
+**Function:** `eject_drive`
+
+**Positional arguments:**
+
+- `drive_letter`
+
+> Eject a drive by its letter
 
 ### `execute_withoutput`
 
