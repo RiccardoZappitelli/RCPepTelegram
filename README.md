@@ -150,7 +150,7 @@ Create an `auth.json` file in the project root:
 
 ## 🍷 Build (Nuitka)
 
-1. Download [the official builder](https://github.com/RiccardoZappitelli/RCPepTelegramMaker)
+1. Download [the official builder](https://github.com/RiccardoZappitelli/RCPTMaker)
 2. Clone the repository inside the builder's directory
 3. Start compiling!
 
