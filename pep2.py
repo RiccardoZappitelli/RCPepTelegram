@@ -325,6 +325,7 @@ def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
         print(f"[load_images][ERROR] listdir failed: {e}")
         return result
 
+    errors = 0
     for x in files:
         try:
             full_path = join(vfx_folder, x)
@@ -337,6 +338,7 @@ def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
 
             if img is None:
                 print(f"[load_images][WARNING] imread returned None for: {full_path}")
+                errors+=1
                 continue
 
             print(f"[load_images] Image loaded: shape={getattr(img, 'shape', 'unknown')}")
@@ -350,7 +352,7 @@ def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
         except Exception as e:
             print(f"[load_images][ERROR] Failed on {x}: {e}")
 
-    print(f"[load_images] Done. Loaded {len(result)} images.")
+    print(f"[load_images] Done. Loaded {len(result)} images.{f'Errors: {errors}' if errors else ''}")
     return result
 
 def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
@@ -364,7 +366,8 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
     except Exception as e:
         print(f"[load_audios][ERROR] listdir failed: {e}")
         return result
-
+    
+    errors = 0
     for x in files:
         try:
             full_path = join(sfx_folder, x)
@@ -375,6 +378,7 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
 
             if not os.path.exists(full_path):
                 print(f"[load_audios][WARNING] Path does not exist: {full_path}")
+                errors += 1
                 continue
 
             result[key] = full_path
@@ -383,7 +387,7 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
         except Exception as e:
             print(f"[load_audios][ERROR] Failed on {x}: {e}")
 
-    print(f"[load_audios] Done. Loaded {len(result)} audios.")
+    print(f"[load_audios] Done. Loaded {len(result)} audios.{f'Errors: {errors}' if errors else ''}")
     return result
 
 def randompngname(lenght: int=10) -> str:
