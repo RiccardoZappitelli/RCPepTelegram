@@ -272,10 +272,6 @@ exists = vfs_exists
 listdir = vfs_listdir
 imread = vfs_imread
 
-os.path.exists = vfs_exists
-os.listdir = vfs_listdir
-cv2.imread = vfs_imread
-
 # =========================
 # IMPORT HOOK
 # =========================
