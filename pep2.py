@@ -1154,7 +1154,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 if msg == "exit":
                     confirm = self.ask_yesno(
                         self.format_warning_msg(
-                            "Are you sure you want to leave the chat? Y/n"
+                            "Are you sure you want to leave the chat? Y/n",
                             title="CONFIRMATION REQUIRED"
                         )
                     )
