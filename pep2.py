@@ -376,7 +376,7 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
             print(f"[load_audios] Processing: {x}")
             print(f"[load_audios] Full path: {full_path}")
 
-            if not os.path.exists(full_path):
+            if not exists(full_path):
                 print(f"[load_audios][WARNING] Path does not exist: {full_path}")
                 errors += 1
                 continue
