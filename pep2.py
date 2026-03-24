@@ -1120,10 +1120,10 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             f"{msg}"
         )
 
-    def format_warning_msg(self, msg):
+    def format_warning_msg(self, msg, title="WARNING"):
         msg = html.escape(msg)
         return (
-            "⚠️ <b>CONFIRMATION REQUIRED</b>\n"
+            f"⚠️ <b>{title}</b>\n"
             f"{msg}"
         )
 
@@ -1155,6 +1155,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                     confirm = self.ask_yesno(
                         self.format_warning_msg(
                             "Are you sure you want to leave the chat? Y/n"
+                            title="CONFIRMATION REQUIRED"
                         )
                     )
                     if confirm:
@@ -1825,9 +1826,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         }
         return self.new_menu(buttons)
 
-    def new_editable_message(self, content: str, autosend: bool=True) -> EditableMessage:
+    def new_editable_message(self, content: str, autosend: bool=True, parse_mode=None) -> EditableMessage:
         print(f"Creating editable message: {content[:50]}...")
-        editable = EditableMessage(self.bot, self.owner_id, content, autosend)
+        editable = EditableMessage(self.bot, self.owner_id, content, autosend, parse_mode=parse_mode)
         self.all_session_messages.append(editable.message_id)
         return editable
 
