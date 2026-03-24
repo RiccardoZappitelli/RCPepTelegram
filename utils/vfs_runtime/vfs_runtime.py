@@ -1,4 +1,5 @@
 import sys
+import cv2
 import os
 import builtins
 import importlib.abc
@@ -16,6 +17,41 @@ import atexit
 BUNDLE_PATH = None # None = auto-detect (appended to exe)
 BUNDLE_NAME = "assets.bin"
 FROZEN = getattr(sys, "frozen", False)
+
+# =========================
+# TEMP FILE HANDLER
+# =========================
+_temp_files = []
+
+def extract_temp(path_in_bundle):
+    fp = vfs.read(path_in_bundle)
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp.write(fp)
+    tmp.close()
+    _temp_files.append(tmp.name)
+    vfs_log("extract_temp", f"path={path_in_bundle}", f"extracted to {tmp.name}")
+    return tmp.name
+
+def cleanup_temp_files():
+    for f in _temp_files:
+        try:
+            os.unlink(f)
+            vfs_log("cleanup_temp_files", f"file={f}", "deleted temp file")
+        except:
+            pass
+
+def _norm(path: str) -> str:
+    if not isinstance(path, str):
+        return path
+    path = path.replace("\\", "/").strip()
+    if path == ".":
+        return ""
+    return path.strip("/")
+
+
+# =========================
+# HELPERS
+# =========================
 
 def vfs_log(func_name, params, action):
     print(f"[VFS]({func_name}, {params}) {action}")
@@ -108,7 +144,7 @@ class VFS:
         vfs_log("_load_bundle", f"loaded {len(self.index)} files", "bundle loaded")
 
     def exists(self, path: str) -> bool:
-        path = path.rstrip("/").replace("\\", "/")
+        path = _norm(path)
         if path in self.index:
             vfs_log("exists", f"path={path}", "file exists")
             return True
@@ -123,7 +159,7 @@ class VFS:
         return False
 
     def read(self, path: str) -> bytes:
-        path = path.replace("\\", "/")
+        path = _norm(path)
         if path not in self.index:
             vfs_log("read", f"path={path}", "file not found")
             raise FileNotFoundError(path)
@@ -140,12 +176,13 @@ class VFS:
             return raw
 
     def open_file(self, path: str):
+        path = _norm(path)
         vfs_log("open_file", f"path={path}", "returning BytesIO")
         return BytesIO(self.read(path))
 
     def listdir(self, path: str):
         # map "." to root
-        path = path.rstrip("/").replace("\\", "/")
+        path = _norm(path)
         if path == ".":
             path = ""
         out = set()
@@ -173,11 +210,13 @@ vfs = VFS()
 _real_open = builtins.open
 _real_exists = os.path.exists
 _real_listdir = os.listdir
+_real_imread = cv2.imread
 
 def vfs_tree(path: str = ".", prefix: str = "") -> None:
     """
     Print a tree of the VFS starting from 'path'.
     """
+    path = _norm(path)
     # map "." to root of VFS
     if path == ".":
         path = ""
@@ -198,6 +237,7 @@ def vfs_tree(path: str = ".", prefix: str = "") -> None:
             vfs_tree(full_path, prefix + extension)
 
 def vfs_open(path, *args, **kwargs):
+    path = _norm(path)
     if isinstance(path, str) and vfs.exists(path):
         vfs_log("vfs_open", f"path={path}", "serving from VFS")
         return vfs.open_file(path)
@@ -205,20 +245,36 @@ def vfs_open(path, *args, **kwargs):
     return _real_open(path, *args, **kwargs)
 
 def vfs_exists(path):
+    path = _norm(path)
     exists = vfs.exists(path) or _real_exists(path)
     vfs_log("vfs_exists", f"path={path}", f"exists={exists}")
     return exists
 
 def vfs_listdir(path):
+    path = _norm(path)
     if vfs.exists(path):
         vfs_log("vfs_listdir", f"path={path}", "listing VFS directory")
         return vfs.listdir(path)
     vfs_log("vfs_listdir", f"path={path}", "fallback to real listdir")
     return _real_listdir(path)
 
+def vfs_imread(path, *args, **kwargs):
+    if vfs.exists(path):
+        tmp_path = extract_temp(path)
+        vfs_log("cv2.imread", f"path={path}", f"reading via temp {tmp_path}")
+        return _real_imread(tmp_path, *args, **kwargs)
+    vfs_log("cv2.imread", f"path={path}", "reading from real path")
+    return _real_imread(path, *args, **kwargs)
+
 builtins.open = vfs_open
+
 exists = vfs_exists
 listdir = vfs_listdir
+imread = vfs_imread
+
+os.path.exists = vfs_exists
+os.listdir = vfs_listdir
+cv2.imread = vfs_imread
 
 # =========================
 # IMPORT HOOK
@@ -260,46 +316,4 @@ class VFSFinder(importlib.abc.MetaPathFinder):
         return None
 
 sys.meta_path.insert(0, VFSFinder())
-
-# =========================
-# TEMP FILE HANDLER
-# =========================
-_temp_files = []
-
-def extract_temp(path_in_bundle):
-    fp = vfs.read(path_in_bundle)
-    tmp = tempfile.NamedTemporaryFile(delete=False)
-    tmp.write(fp)
-    tmp.close()
-    _temp_files.append(tmp.name)
-    vfs_log("extract_temp", f"path={path_in_bundle}", f"extracted to {tmp.name}")
-    return tmp.name
-
-def cleanup_temp_files():
-    for f in _temp_files:
-        try:
-            os.unlink(f)
-            vfs_log("cleanup_temp_files", f"file={f}", "deleted temp file")
-        except:
-            pass
-
 atexit.register(cleanup_temp_files)
-
-# =========================
-# PATCH cv2.imread
-# =========================
-try:
-    import cv2
-    _real_imread = cv2.imread
-
-    def vfs_imread(path, *args, **kwargs):
-        if vfs.exists(path):
-            tmp_path = extract_temp(path)
-            vfs_log("cv2.imread", f"path={path}", f"reading via temp {tmp_path}")
-            return _real_imread(tmp_path, *args, **kwargs)
-        vfs_log("cv2.imread", f"path={path}", "reading from real path")
-        return _real_imread(path, *args, **kwargs)
-
-    imread = vfs_imread
-except ImportError:
-    vfs_log("cv2.imread patch", "cv2 not installed", "skipped patch")
