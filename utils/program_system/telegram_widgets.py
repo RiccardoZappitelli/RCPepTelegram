@@ -244,13 +244,14 @@ o888ooooood8 `Y8bod88P" o888o   "888" `Y888""8o  `Y8bod8P' o888o `Y8bod8P' o8o  
 """
 class EditableMessage:
     def __init__(self, bot: Bot, chat_id, content: str, autosend: bool=True,
-                 bold: bool=False, reply_markup=None) -> None:
+                 bold: bool=False, reply_markup=None, parse_mode=None) -> None:
         self.bot = bot
         self.bold = bold
         self.chat_id = chat_id
         self.content = content
         self.reply_markup = reply_markup
         self.sent = False
+        self.parse_mode = parse_mode
         if autosend:
             self.send()
     
@@ -261,7 +262,7 @@ class EditableMessage:
             self.message_id = self.bot.sendMessage(
                 self.chat_id,
                 self.content,
-                parse_mode="HTML" if self.bold else None,
+                parse_mode=self.parse_mode,
                 reply_markup=self.reply_markup
             )["message_id"]
             self.sent = True
@@ -278,7 +279,7 @@ class EditableMessage:
             self.bot.editMessageText(
                 (self.chat_id, self.message_id),
                 new_content,
-                parse_mode="HTML" if self.bold else None,
+                parse_mode=self.parse_mode,
                 reply_markup=reply_markup
             )
             self.content = new_content
