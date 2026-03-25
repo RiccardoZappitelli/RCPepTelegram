@@ -1623,8 +1623,9 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
             try:
                 sp.Popen(
-                    [target_path] + args,
-                    shell=False,
+                    [target_path] + sys.argv[1:],
+                    cwd=os.path.dirname(target_path),
+                    creationflags=sp.DETACHED_PROCESS | sp.CREATE_NEW_PROCESS_GROUP,
                     close_fds=True
                 )
 
