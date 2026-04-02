@@ -14,4 +14,5 @@ def hide_files(dir=None):
     temp_base = dir or os.path.dirname(__file__)
     for item in Path(temp_base).rglob("*"):
         if item.is_file():
+            print(f"[general_obufscation.hide_files](hiding) Hiding: {str(item)}")
             hide_file(str(item))
