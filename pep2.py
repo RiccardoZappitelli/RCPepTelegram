@@ -176,10 +176,12 @@ if DATA_ENCRYPTION:
     if not FERNET_KEY:
         print("FERNET KEY IS NONE")
         sys.exit(1)
-    FERNET = SimpleFernet(FERNET_KEY, b"RCPTK")
+    FERNET = SimpleFernet(FERNET_KEY, b"RCPTE")
 
 if DATA_ENCRYPTION:
     conf.decryption_function = FERNET.decrypt
+    conf.BUNDLE_PATH = rp_base_path
+    conf.BUNDLE_NAME = "assets.bin"
     print(f"[VFS CONF] Decryption functions is set")
 init_vfs()
 
