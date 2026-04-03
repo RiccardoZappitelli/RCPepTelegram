@@ -77,7 +77,10 @@ try:
 except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
+
+import utils.vfs_runtime.conf as conf
 from utils.vfs_runtime import *
+
 
 #TODO Add all the message boxes to a file un user_interaction/boxes.py
 
@@ -174,6 +177,11 @@ if DATA_ENCRYPTION:
         print("FERNET KEY IS NONE")
         sys.exit(1)
     FERNET = SimpleFernet(FERNET_KEY, b"RCPTK")
+
+if DATA_ENCRYPTION:
+    conf.decryption_function = FERNET.decrypt
+    print(f"[VFS CONF] Decryption functions is set")
+init_vfs()
 
 if isdir(DLLS_DIR):
     print(f"DLLS Directory exists: {DLLS_DIR}")
