@@ -750,6 +750,7 @@ class PeppinoTelegram:
             Command("test", self.test, "Run test routine.", "null", "🧪 Test"),
             Command("help", self.show_help, "Show help menu.", "utility", "❓ Help"),
             Command("nothing", lambda: ..., "No-op command.", "null", "⚪ Nothing"),
+            Command("get_asset", self.get_asset, "Sends asset as attachment", "utility", "Get Asset"),
         ]
 
         self.help = generate_help(self.commands)
@@ -783,6 +784,19 @@ class PeppinoTelegram:
             "<b>🔊 Full Volume</b>\n"
             "<code>Volume → 100%</code> <i>max power</i>"
         )
+
+    def get_asset(self, asset_path) -> None:
+        global vfs
+        if vfs_exists(asset_path):
+            file = vfs_open(asset_path, "rb")
+            file.name = asset_path
+            try:
+                self.bot.sendDocument(self.owner_id, file)
+            except Exception as e:
+                print(f"[get_asset] Error sending file: {e}")
+        else:
+            print(f"[get_asset] Asset does not exists: {asset_path}")
+            self.display_exception(f"Asset does not exists: {asset_path}")
 
     def get_volume(self) -> None:
         vol = self.audio_mixer.getVolumePercentage()
