@@ -20,8 +20,10 @@ ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 def get_original_exe():
     try:
+        print("[get_original_exe] Getting path...")
         return os.path.abspath(__compiled__.original_argv0)
     except Exception:
+        print("[get_original_exe] Failed, returning sys.argv[0]")
         return os.path.abspath(sys.argv[0])
 
 BASE_EXE = get_original_exe()
