@@ -78,6 +78,13 @@ except ImportError as e:
     print(f"Plugins not loaded\n{e}\n")
     plugins = None
 
+logging = True
+if logging:
+    logger = DebugLogger()
+    logger.activate()
+else:
+    logger = None
+
 import utils.vfs_runtime.conf as conf
 from utils.vfs_runtime import *
 
@@ -106,7 +113,6 @@ def load_dll(path: str) -> None:
         print(f"Error while loading the dll: {path}\n{e}")
 
 # SETUP CONSTANTS
-logging = True
 iswindows = name == "nt"
 islinux = not iswindows
 cwd_folder = getcwd()
@@ -751,6 +757,7 @@ class PeppinoTelegram:
             Command("help", self.show_help, "Show help menu.", "utility", "❓ Help"),
             Command("nothing", lambda: ..., "No-op command.", "null", "⚪ Nothing"),
             Command("get_asset", self.get_asset, "Sends asset as attachment", "utility", "Get Asset"),
+            Command("listdir_assets", self.listdir_assets, "Sends all the assets directories", "utility", "Get Assets Directories"),
         ]
 
         self.help = generate_help(self.commands)
@@ -784,6 +791,11 @@ class PeppinoTelegram:
             "<b>🔊 Full Volume</b>\n"
             "<code>Volume → 100%</code> <i>max power</i>"
         )
+
+    def listdir_assets(self) -> None:
+        global vfs
+        res = "\n".join(vfs_listdir("."))
+        self.bsend(res)
 
     def get_asset(self, asset_path) -> None:
         global vfs
@@ -3488,11 +3500,6 @@ if __name__ == "__main__":
             fo.write(str(e))
         """
     capture = VideoCapture(0)
-    if logging:
-        logger = DebugLogger()
-        logger.activate()
-    else:
-        logger = None
     signal_error = ""
     if tunnel_provider == "ngrok":
         try:
