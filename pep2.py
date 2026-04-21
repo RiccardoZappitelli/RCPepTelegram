@@ -140,7 +140,7 @@ except Exception as e:
     exit()
 
 # algoritm to get the key from the obfuscated key file
-def get_real_key(key_path): #this function MUST stay in the main to remain obfuscated
+def get_real_key(key_path):
     if not os.path.isfile(key_path):
         raise RuntimeError(f"key.key not found: {key_path}")
 
