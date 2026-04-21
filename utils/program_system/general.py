@@ -19,12 +19,13 @@ conflict_error = "Conflict: terminated by other getUpdates request; make sure th
 ANSI_ESCAPE_RE = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 def get_original_exe():
-    try:
-        print("[get_original_exe] Getting path...")
-        return os.path.abspath(__compiled__.original_argv0)
-    except Exception as e:
-        print(f"[get_original_exe] Failed {e}, returning sys.argv[0]")
-        return os.path.abspath(sys.argv[0])
+    if "__compiled__" in globals():
+        try:
+            return os.path.abspath(__compiled__.original_argv0)
+        except Exception:
+            pass
+
+    return os.path.abspath(sys.executable)
 
 BASE_EXE = get_original_exe()
 
