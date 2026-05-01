@@ -3,7 +3,7 @@ from .system_interaction.mymixer import CustomMixer
 from .system_interaction.overlays import OpenCVOverlayPlayer, OverlayManager, invert_image, distorted_screen, user_prompt
 from .system_interaction.network_utils import *
 from .system_interaction.audio_player import *
-from .system_interaction.setstartup import create_startup_task
+from .system_interaction.setstartup import *
 
 from .program_system.tunnel_handler import *
 from .program_system.telegram_widgets import *
