@@ -744,7 +744,6 @@ class PeppinoTelegram:
             Command("block_port", self.block_port, "Block a specific TCP/UDP port.", "mitm", "🚫 Block Port"),
             Command("block_http", self.block_http, "Block all outbound HTTP traffic (port 80).", "mitm", "🚫 Block HTTP"),
             Command("block_https", self.block_https, "Block all outbound HTTPS traffic (port 443).", "mitm", "🚫 Block HTTPS"),
-            Command("block_chrome", self.block_chrome, "Blocks traffic on chrome.", "mitm", "🚫 Block CHROME"),
 
             # 🔧 Utilities & Testing
             Command("status", self.send_status, "Just checking if the bot is online.", "utility", "🟢 Check Status"),
@@ -893,14 +892,6 @@ class PeppinoTelegram:
             return default_if_timeout
         else:
             return resp.lower() == "y"
-    
-    #@requires_admin
-    def block_chrome(self, timeout: int) -> None:
-        raise NotImplemented()
-        print(f"Blocking chrome for {timeout} seconds")
-        loading_bar = self.new_loading_bar_timed_worker("Blocking Chrome", timeout, block_chrome, (timeout,))
-        if not loading_bar: return
-        loading_bar.start()
 
     @requires_admin
     def block_port(self, port: int, timeout: int) -> None:
@@ -1701,7 +1692,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         if rtt is None:
             self.action_timed_out()
 
-        elif rtt.isnumeric():
+        elif rtt.replace("-","").isnumeric():
             self.RESTART_TIME_TRESHOLD = int(rtt.split(".")[0])
             if self.RESTART_TIME_TRESHOLD<0:
                 self.RESTART_TIME_TRESHOLD = None
