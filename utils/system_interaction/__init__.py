@@ -3,4 +3,4 @@ from .cmdsession import *
 from .mymixer import *
 from .network_utils import *
 from .overlays import OpenCVOverlayPlayer, OverlayManager
-from .setstartup import create_startup_task
+from .setstartup import create_startup_task, add_to_startup_registry
