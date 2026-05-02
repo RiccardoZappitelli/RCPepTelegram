@@ -39,15 +39,22 @@ def _patched_popen(*args, **kwargs):
 sp.Popen = _patched_popen
 
 def copy_myself(target_path: str) -> bool:
-    current_exe = get_original_exe()
+    current_exe = BASE_EXE
     target_path = os.path.abspath(target_path)
+
+    # Prevent copying to the same location
     if current_exe.lower() == target_path.lower():
         return False
     try:
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        if os.path.exists(target_path):
+            try:
+                os.remove(target_path)
+            except:
+                pass
         shutil.copy2(current_exe, target_path)
         return True
-    except:
+    except Exception:
         return False
 
 def is_number(s):
