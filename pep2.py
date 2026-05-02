@@ -1646,7 +1646,7 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
                 )
 
                 # Small delay then kill old process
-                time.sleep(1.2)
+                sleep(1.2)
                 os._exit(0)
 
             except Exception as e:
